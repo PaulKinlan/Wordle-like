@@ -7,6 +7,7 @@ import { Board, renderTracker, toUpper } from './board';
 import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
+import { initDebug } from './debug';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
 import { shareCard, shareText, streakLine } from './share';
 import {
@@ -601,6 +602,7 @@ async function chooseLanguage() {
 }
 
 async function init() {
+  initDebug();
   const ui = savedUiLang();
   if (ui && ui !== 'en') {
     await setUiLanguage(ui);

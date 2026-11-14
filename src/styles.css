@@ -1032,3 +1032,20 @@ dialog.sheet li {
   grid-area: pts;
   font-variant-numeric: tabular-nums;
 }
+
+/* ?debug panel (src/debug.ts) */
+.debug-panel {
+  position: fixed;
+  inset: auto 8px 8px 8px;
+  z-index: 1000;
+  max-height: 40vh;
+  overflow: auto;
+  background: #111;
+  color: #9fe;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: 12px/1.4 ui-monospace, monospace;
+}
+.debug-panel summary { cursor: pointer; color: #fff; }
+.debug-panel button { font: inherit; padding: 2px 8px; border-radius: 6px; border: 1px solid #555; background: #222; color: #fff; }
+.debug-panel pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; }

@@ -39,6 +39,8 @@ describe('daily reminders', () => {
   it('only accepts real push services and time zones', () => {
     expect(isPushEndpoint('https://fcm.googleapis.com/fcm/send/abc')).toBe(true);
     expect(isPushEndpoint('https://web.push.apple.com/QGx')).toBe(true);
+    expect(isPushEndpoint('https://jmt17.google.com/fcm/send/abc')).toBe(true);
+    expect(isPushEndpoint('https://evil.google.com.example/x')).toBe(false);
     expect(isPushEndpoint('https://updates.push.services.mozilla.com/wpush/v2/x')).toBe(true);
     expect(isPushEndpoint('https://evil.example/fcm.googleapis.com')).toBe(false);
     expect(isPushEndpoint('http://fcm.googleapis.com/x')).toBe(false);
