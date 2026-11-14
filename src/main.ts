@@ -437,10 +437,12 @@ function openStats() {
 
 async function openDialog(id: string) {
   const dlg = $<HTMLDialogElement>(id);
-  entry.setEnabled(false);
-  // Let the keyboard go down before the dialog makes the field inert, or
-  // Android drops the request and leaves it up over the dialog.
-  await entry.hideKeyboard();
+  // Typing off (which blurs the field and closes the keyboard) before the
+  // dialog takes focus.
+  // The keyboard gets a moment to go down first: the dialog taking focus
+  // straight away can cancel the request (capped, so the dialog never waits long).
+  if (dlg.open) return;
+  await Promise.race([entry.setEnabled(false), new Promise((r) => setTimeout(r, 1200))]);
   if (dlg.open) return;
   dlg.showModal();
   // Start focus on the sheet itself rather than its first button, so the

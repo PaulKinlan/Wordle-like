@@ -259,6 +259,10 @@ button {
   place-items: center;
 }
 
+.board:focus {
+  outline: none; /* focused only to put the keyboard away (see keyboard.ts) */
+}
+
 .board {
   --gap: 6px;
   /* Tiles grow to fill the space, whatever the keyboard leaves us. */
@@ -464,8 +468,8 @@ body:not(.typing) .tile.cursor {
   background: transparent;
   caret-color: transparent;
   cursor: text;
-  /* Taps go to the form underneath (keyboard.ts), so Android never shows a cursor handle. */
-  pointer-events: none;
+  /* Taps land on the field, so the browser opens the keyboard itself (keyboard.ts). */
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -1215,17 +1219,20 @@ dialog.sheet li {
   position: fixed;
   inset: auto 8px 8px 8px;
   z-index: 1000;
-  max-height: 40vh;
-  overflow: auto;
   background: #111;
   color: #9fe;
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   font: 12px/1.4 ui-monospace, monospace;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  opacity: 0.92;
 }
-.debug-panel summary { cursor: pointer; color: #fff; }
-.debug-panel button { font: inherit; padding: 2px 8px; border-radius: 6px; border: 1px solid #555; background: #222; color: #fff; }
-.debug-panel pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; }
+.debug-panel summary { cursor: pointer; color: #fff; list-style: none; display: flex; gap: 6px; align-items: center; user-select: none; }
+.debug-panel summary::-webkit-details-marker { display: none; }
+.debug-panel summary .debug-title { flex: 1; }
+.debug-panel button { font: inherit; padding: 4px 8px; border-radius: 6px; border: 1px solid #555; background: #222; color: #fff; }
+.debug-panel pre { margin: 6px 0 0; max-height: 30vh; overflow: auto; white-space: pre-wrap; word-break: break-all; }
 
 .app-version {
   margin: 18px 0 0;
@@ -1278,6 +1285,11 @@ dialog.sheet li {
   padding: 6px 14px;
   flex: none;
   width: auto;
+}
+
+/* Typing is off (game over, or a dialog is open): taps pass through the field. */
+.entry.locked {
+  pointer-events: none;
 }
 
 /* ------------------------------------------------------------ on-screen keyboard
