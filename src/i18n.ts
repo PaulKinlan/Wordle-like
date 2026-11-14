@@ -20,6 +20,18 @@ export const UI_LANGUAGES: UiLanguage[] = [
   { code: 'it', nativeName: 'Italiano', name: 'Italian' },
   { code: 'pt', nativeName: 'Português', name: 'Portuguese' },
   { code: 'nl', nativeName: 'Nederlands', name: 'Dutch' },
+  { code: 'ca', nativeName: 'Català', name: 'Catalan' },
+  { code: 'eu', nativeName: 'Euskara', name: 'Basque' },
+  { code: 'cy', nativeName: 'Cymraeg', name: 'Welsh' },
+  { code: 'ga', nativeName: 'Gaeilge', name: 'Irish' },
+  { code: 'gd', nativeName: 'Gàidhlig', name: 'Scottish Gaelic' },
+  { code: 'br', nativeName: 'Brezhoneg', name: 'Breton' },
+  { code: 'pl', nativeName: 'Polski', name: 'Polish' },
+  { code: 'sv', nativeName: 'Svenska', name: 'Swedish' },
+  { code: 'tr', nativeName: 'Türkçe', name: 'Turkish' },
+  { code: 'el', nativeName: 'Ελληνικά', name: 'Greek' },
+  { code: 'ja', nativeName: '日本語', name: 'Japanese' },
+  { code: 'ko', nativeName: '한국어', name: 'Korean' },
 ];
 
 const loaders: Record<string, () => Promise<{ default: Messages }>> = {
@@ -29,6 +41,18 @@ const loaders: Record<string, () => Promise<{ default: Messages }>> = {
   it: () => import('./locales/it'),
   pt: () => import('./locales/pt'),
   nl: () => import('./locales/nl'),
+  ca: () => import('./locales/ca'),
+  eu: () => import('./locales/eu'),
+  cy: () => import('./locales/cy'),
+  ga: () => import('./locales/ga'),
+  gd: () => import('./locales/gd'),
+  br: () => import('./locales/br'),
+  pl: () => import('./locales/pl'),
+  sv: () => import('./locales/sv'),
+  tr: () => import('./locales/tr'),
+  el: () => import('./locales/el'),
+  ja: () => import('./locales/ja'),
+  ko: () => import('./locales/ko'),
 };
 
 let current: Messages = en;
