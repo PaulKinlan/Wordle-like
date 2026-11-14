@@ -57,6 +57,7 @@ export class NativeEntry {
     form.addEventListener('pointerup', () => this.focus(true));
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      debugLog('kb submit', { gesture: gesture() });
       if (this.enabled) o.onSubmit();
     });
 
@@ -155,7 +156,7 @@ export class NativeEntry {
   hideKeyboard(): Promise<void> {
     const { input } = this.o;
     const focused = document.activeElement === input;
-    debugLog('kb hide start', { focused, vk: vkHeight(), active: describe(document.activeElement) });
+    debugLog('kb hide start', { focused, vk: vkHeight(), active: describe(document.activeElement), gesture: gesture() });
     if (this.hiding) return this.hiding;
     if (!focused && !(vkHeight() > 0)) {
       if (!this.enabled) this.lockField();
@@ -234,7 +235,7 @@ export class NativeEntry {
       ];
       for (const [name, run] of steps) {
         if (name !== 'hide()') {
-          debugLog(`kb try: ${name}`, { vk: vkHeight(), active: describe(document.activeElement) });
+          debugLog(`kb try: ${name}`, { vk: vkHeight(), active: describe(document.activeElement), gesture: gesture() });
           await run();
         }
         if (await this.closed()) {
@@ -326,6 +327,12 @@ export class NativeEntry {
 /** A short name for an element in the debug log, like "input#entry". */
 const describe = (el: Element | null) =>
   el ? el.tagName.toLowerCase() + (el.id ? `#${el.id}` : '') + (el.className && typeof el.className === 'string' ? `.${el.className.split(' ')[0]}` : '') : 'none';
+
+/** Whether the page has a user gesture right now (transient activation), for the debug log. */
+const gesture = () => {
+  const ua = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
+  return ua ? ua.isActive : 'n/a';
+};
 
 const frames = (n: number) =>
   new Promise<void>((resolve) => {
