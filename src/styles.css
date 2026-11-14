@@ -1851,3 +1851,112 @@ install[hidden],
     transform: translateY(16px) scale(0.98);
   }
 }
+
+/* The share card (share.ts, HTML-in-canvas): laid out by the browser inside
+   a canvas that is never seen, then drawn into it at 1080×1350. Same layout
+   and colours as the hand-drawn card. */
+.share-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1350px;
+  /* Clipped away, not hidden: a canvas that isn't painted (opacity 0, off
+     screen) gets no snapshot of its HTML to draw. */
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+.share-card {
+  --correct: #2f9e74;
+  --present: #d9a21b;
+  --absent: #7d828c;
+  box-sizing: border-box;
+  width: 1080px;
+  height: 1350px;
+  padding: 58px 60px 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f6f6f3;
+  color: #17181b;
+  font-family: ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  text-align: center;
+  line-height: 1.15;
+}
+.share-card.contrast {
+  --correct: #f5793a;
+  --present: #6fb2f2;
+}
+.share-name {
+  font-size: 64px;
+  font-weight: 800;
+}
+.share-which {
+  margin-top: 8px;
+  font-size: 36px;
+  font-weight: 600;
+  color: #6b6f78;
+  white-space: pre;
+}
+.share-score {
+  margin-top: 24px;
+  font-size: 170px;
+  font-weight: 800;
+  line-height: 1;
+}
+.share-score.won {
+  color: var(--correct);
+}
+.share-said {
+  margin-top: 16px;
+  font-size: 44px;
+  font-weight: 700;
+}
+.share-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--tile));
+  grid-auto-rows: var(--tile);
+  gap: 14px;
+  align-content: center;
+}
+.share-grid i {
+  border: 5px solid #dcdde0;
+  border-radius: 16px;
+}
+@supports (corner-shape: squircle) {
+  .share-grid i {
+    border-radius: 26px;
+    corner-shape: squircle;
+  }
+}
+.share-grid i.correct,
+.share-grid i.present,
+.share-grid i.absent {
+  border: 0;
+}
+.share-grid i.correct {
+  background: var(--correct);
+}
+.share-grid i.present {
+  background: var(--present);
+}
+.share-grid i.absent {
+  background: var(--absent);
+}
+.share-streak {
+  min-height: 46px;
+  margin-bottom: 24px;
+  font-size: 40px;
+  font-weight: 700;
+}
+.share-play {
+  max-width: 960px;
+  padding: 22px 48px;
+  border-radius: 999px;
+  background: #17181b;
+  color: #fff;
+  font-size: 38px;
+  font-weight: 700;
+  text-wrap: balance;
+}
