@@ -5,9 +5,11 @@
 // Source: SCOWL via the `wordlist-english` package (permissive licence, see
 // worker/words/en/LICENSE). Output is committed so builds are reproducible.
 //
-// - answers.json: common five-letter words (SCOWL levels 10-35), with simple
-//   plurals, past tenses and a small blocklist removed. These can be the
-//   daily or unlimited answer.
+// - candidates.json: common five-letter words (SCOWL levels 10-35), with
+//   simple plurals, past tenses and a small blocklist removed. These are the
+//   words that can be an answer. Which word is used on which day is decided
+//   by a random shuffle the Worker makes once and keeps in D1, so it is never
+//   in this repository (see worker/answers.ts).
 // - allowed.json: every five-letter word we accept as a guess (levels 10-70,
 //   American + British + Canadian spellings). Answers are always allowed.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -61,10 +63,10 @@ const allowed = [...all].filter((w) => re.test(w) && !answers.includes(w)).sort(
 
 const out = join(root, 'worker/words/en');
 mkdirSync(out, { recursive: true });
-writeFileSync(join(out, 'answers.json'), JSON.stringify(answers) + '\n');
+writeFileSync(join(out, 'candidates.json'), JSON.stringify(answers) + '\n');
 writeFileSync(join(out, 'allowed.json'), JSON.stringify(allowed) + '\n');
 writeFileSync(
   join(out, 'LICENSE'),
   readFileSync(join(pkgDir, 'Copyright'), 'utf8'),
 );
-console.log(`en: ${answers.length} answers, ${allowed.length} extra allowed guesses`);
+console.log(`en: ${answers.length} candidate answers, ${allowed.length} extra allowed guesses`);
