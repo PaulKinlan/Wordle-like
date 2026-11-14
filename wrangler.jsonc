@@ -4,6 +4,11 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+  // Served at https://letterle.app (the zone is on Cloudflare; deploy keeps
+  // the custom domain attached). The workers.dev address keeps working too,
+  // and Previews need it.
+  "routes": [{ "pattern": "letterle.app", "custom_domain": true }],
+  "workers_dev": true,
   // Lets a bare `wrangler deploy` (e.g. Cloudflare Workers Builds with no
   // build command set) build first. After `vite build`, wrangler uses the
   // config the Vite plugin writes to dist/ instead.
