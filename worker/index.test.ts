@@ -99,3 +99,44 @@ describe('API', () => {
     expect(daily.puzzle).toBe('dh:2026-11-14');
   });
 });
+
+describe('languages', () => {
+  it('has word lists for every language, in the right shape', async () => {
+    const { LANGUAGES } = await import('../shared/languages');
+    const { normalizeWord } = await import('../shared/game');
+    const { getWords } = await import('./words');
+    for (const lang of LANGUAGES) {
+      const list = getWords(lang.code)!;
+      expect(list, lang.code).toBeDefined();
+      expect(list.candidates.length, lang.code).toBeGreaterThan(1000);
+      expect(list.rare.length, lang.code).toBeGreaterThan(100);
+      for (const w of [...list.candidates, ...list.rare]) {
+        const folded = normalizeWord(w, lang.code);
+        expect([...folded].length, w).toBe(lang.wordLength);
+        expect(list.guessable.has(folded), w).toBe(true);
+      }
+      for (const w of list.guessable) expect(normalizeWord(w, lang.code), w).toBe(w);
+    }
+  });
+
+  it('plays in Spanish with or without accents, and reveals the accented answer', async () => {
+    const puzzle = 'r:00000000000000aa';
+    const post = (guesses: string[]) =>
+      call('/api/v1/es/play', { method: 'POST', body: JSON.stringify({ puzzle, guesses }) }).then((r) => r.json() as any);
+    const { getWords } = await import('./words');
+    const filler = [...getWords('es')!.guessable][0];
+    const lost = await post(Array(6).fill(filler));
+    const answer = lost.answer as string;
+    if (!answer) return; // the filler happened to be the answer
+    const plain = answer.normalize('NFD').replace(/[̀-̂̈]/g, '').normalize('NFC');
+    const won = await post([plain.toUpperCase()]);
+    expect(won.status).toBe('won');
+    expect(won.answer).toBe(answer);
+  });
+
+  it('keeps each language in its own private order', async () => {
+    const res = await call('/api/v1/de/daily?date=2026-11-14');
+    expect(((await res.json()) as any).lang).toBe('de');
+    expect((await call('/api/v1/xx/daily')).status).toBe(404);
+  });
+});

@@ -149,7 +149,8 @@ export async function keyboardLanguageHints(): Promise<string[]> {
     if (k('KeyY') === 'z') return ['de'];
     if (k('Semicolon') === 'ö' && k('Quote') === 'ä') return ['sv', 'fi'];
     if (k('Semicolon') === 'æ' || k('Quote') === 'æ') return ['da', 'nb'];
-    if (k('Semicolon') === 'ò' || k('Semicolon') === 'ç') return ['it', 'pt'];
+    if (k('Semicolon') === 'ç') return ['pt'];
+    if (k('Semicolon') === 'ò') return ['it'];
     if (k('KeyQ') === 'q' && k('KeyW') === 'w' && k('KeyY') === 'y') return ['en'];
   } catch {
     // Permission policy or unsupported: fall back to navigator.languages.

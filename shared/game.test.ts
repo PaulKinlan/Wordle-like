@@ -54,3 +54,20 @@ describe('helpers', () => {
     ]);
   });
 });
+
+describe('accents', () => {
+  it('folds accents that are not their own letter', () => {
+    expect(normalizeWord('Árbol', 'es')).toBe('arbol');
+    expect(normalizeWord('niño', 'es')).toBe('niño');
+    expect(normalizeWord('ÉLÈVE', 'fr')).toBe('eleve');
+    expect(normalizeWord('garçon', 'fr')).toBe('garcon');
+    expect(normalizeWord('Größe', 'de')).toBe('größe');
+    expect(normalizeWord('café', 'en')).toBe('cafe');
+    expect(normalizeWord('a1 b-c', 'en')).toBe('abc');
+  });
+  it('scores folded guesses against accented answers', () => {
+    const answer = normalizeWord('línea', 'es');
+    expect(evaluate(normalizeWord('LINEA', 'es'), answer)).toEqual(Array(5).fill('correct'));
+    expect(evaluate('niños'.slice(0, 5), 'nonos')[1]).toBe('absent');
+  });
+});

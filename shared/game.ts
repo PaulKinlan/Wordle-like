@@ -71,12 +71,33 @@ export function describeViolation(v: HardModeViolation): string {
   return v.count > 1 ? `Guess must contain ${v.count} × ${L}` : `Guess must contain ${L}`;
 }
 
-/** Normalises typed text into a lowercase, letters-only word for a language. */
+import { getLanguage } from './languages';
+
+const alphabets = new Map<string, Set<string>>();
+
+/**
+ * Normalises typed text into a lowercase word for a language. Letters in the
+ * language's alphabet are kept; any other accented letter is folded to its
+ * base letter ("é" -> "e" in French, but "ñ" stays "ñ" in Spanish), so players
+ * can type with or without accents on their phone's keyboard. Anything else
+ * is dropped.
+ */
 export function normalizeWord(input: string, lang: string): string {
-  return input
-    .normalize('NFC')
-    .toLocaleLowerCase(lang)
-    .replace(/[^\p{L}]/gu, '');
+  let alphabet = alphabets.get(lang);
+  if (!alphabet) {
+    alphabet = new Set(getLanguage(lang)?.alphabet ?? 'abcdefghijklmnopqrstuvwxyz');
+    alphabets.set(lang, alphabet);
+  }
+  let out = '';
+  for (const ch of input.normalize('NFC').toLocaleLowerCase(lang)) {
+    if (alphabet.has(ch)) {
+      out += ch;
+      continue;
+    }
+    const base = ch.normalize('NFD').replace(/\p{M}/gu, '');
+    if (alphabet.has(base)) out += base;
+  }
+  return out;
 }
 
 export function statusAfter(marks: Mark[][], maxGuesses: number): GameStatus {

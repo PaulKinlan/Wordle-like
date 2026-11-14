@@ -7,6 +7,8 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
 - **Unlimited**: a fresh word whenever you want.
 - **Hard mode**: a rarely used word, and every revealed hint must be used in later
   guesses. It has its own daily word, saved game and stats.
+- **Seven languages**: English, Spanish, French, German, Italian, Portuguese and Dutch,
+  each with its own daily word. The picker lists your device's languages first.
 - **Share**: a spoiler-free emoji grid through the share sheet, or copied to the clipboard.
 - **Stats**: played, win rate, streaks and guess distribution, kept on your device.
 - **Installable PWA** that opens offline, with a strict Content Security Policy.
@@ -47,7 +49,7 @@ so Daily stays server-only.
 
 ### API
 
-All routes are under `/api/v1` and keyed by language code (only `en` today).
+All routes are under `/api/v1` and keyed by language code (`en`, `es`, `fr`, `de`, `it`, `pt`, `nl`).
 
 | Route | What it does |
 | --- | --- |
@@ -63,11 +65,36 @@ is 14 November 2026.
 
 ### Word lists
 
-`worker/words/<lang>/candidates.json` (common words that can be an answer),
-`rare.json` (rarely used words, the hard mode answers, from SCOWL's less frequent
-levels 40-50) and `allowed.json` (other accepted guesses). English comes from SCOWL via `wordlist-english`;
-rebuild with `npm run words`. To add a language later: add it to
-`shared/languages.ts`, add its two lists, and import them in `worker/words.ts`.
+Each language has three lists in `worker/words/<lang>/`:
+`candidates.json` (common words that can be an answer), `rare.json` (rarely
+used words, the hard mode answers) and `allowed.json` (other accepted guesses).
+Rebuild them with `npm run words` (or `npm run words -- es fr` for some).
+
+- **English** comes from SCOWL via `wordlist-english`: candidates from the common
+  levels, rare words from levels 40-50.
+- **Spanish, French, German, Italian, Portuguese, Dutch** combine word
+  frequencies counted from film subtitles
+  ([FrequencyWords](https://github.com/hermitdave/FrequencyWords), CC BY-SA 4.0,
+  downloaded by the script and not committed) with the Hunspell dictionaries
+  from [wooorm/dictionaries](https://github.com/wooorm/dictionaries) (the
+  `dictionary-xx` dev dependencies). Answers are dictionary headwords, so
+  mostly base forms rather than every conjugation; the most common ones are
+  candidates and the next ones are the rare pool. Any word the dictionary
+  accepts is a valid guess. Each folder has a `LICENSE` with its sources.
+
+To add a language: add it to `shared/languages.ts` (with its alphabet), add it
+to `INTL` in `scripts/build-wordlists.mjs`, run `npm run words -- <code>`, and
+import the three lists in `worker/words.ts`. The tests check every list.
+
+### Accents
+
+Each language lists the letters that count as their own letter (its
+`alphabet` in `shared/languages.ts`). Any other accented letter is folded to
+its base letter, so typing `é` or `e` is the same in French, while `ñ` stays
+separate in Spanish and `ä ö ü ß` in German. The folding is in `normalizeWord`
+(`shared/game.ts`), used for typing, the word lists and scoring. Answers are
+stored with their accents, so the real spelling (`LÍNEA`) is shown when a game
+ends, and German `ß` is shown as `ẞ` in a tile.
 
 ### Typing with the phone keyboard
 
@@ -121,7 +148,6 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 
 ## Ready for later steps
 
-- **More languages**: the API, storage keys, stats and picker are already per language.
 - **Multiplayer**: add a Durable Object for rooms under `/api/v1/rooms/*`;
   `shared/game.ts` already scores guesses on the server.
 - **Push notifications**: store subscriptions in the same D1 database, VAPID keys as Worker
