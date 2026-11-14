@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Keyboard test</title>
+<link rel="stylesheet" href="/kbtest/kbtest.css">
+<script type="module" src="/kbtest/kbtest.js"></script>
+</head>
+<body>
+<h1>Keyboard test</h1>
+<p>Each test opens the keyboard, waits, then tries one way to close it. Tests marked "timer" run with no tap (like the game after the server answers). Run them one at a time.</p>
+<input id="field" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" virtualkeyboardpolicy="manual" placeholder="test field">
+<div id="tests"></div>
+<p id="status">Keyboard height: <span id="h">?</span></p>
+<div class="row"><button id="copy" type="button">Copy log</button> <button id="clear" type="button">Clear</button></div>
+<pre id="log"></pre>
+</body>
+</html>
