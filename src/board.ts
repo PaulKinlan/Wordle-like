@@ -93,6 +93,11 @@ export class Board {
       this.enter.classList.toggle('ready', !!typing && letters.length >= this.cols);
     }
     const known = letterHints(showHints ? rows : []);
+    // The row being typed stands out; the empty rows below it step back.
+    this.rowEls.forEach((row, r) => {
+      row.classList.toggle('active', r === rows.length && active);
+      row.classList.toggle('upcoming', r > rows.length || (r === rows.length && !active));
+    });
     this.tiles.forEach((tiles, r) => {
       const done = rows[r];
       tiles.forEach((t, c) => {

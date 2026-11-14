@@ -385,6 +385,38 @@ body:not(.typing) .tile.cursor {
   border-color: var(--border);
 }
 
+/* Where to type: the active row is stronger, the empty rows below quieter. */
+.row.active .tile:not(.filled) {
+  border-color: var(--border-strong);
+}
+
+.row.upcoming .tile {
+  border-color: color-mix(in srgb, var(--border) 55%, transparent);
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
+}
+
+/* Keyboard down mid-game: the next tile pulses gently, inviting a tap. */
+body:not(.typing) .row.active .tile.cursor {
+  animation: tap-me 1.6s ease-in-out infinite;
+}
+
+@keyframes tap-me {
+  0%,
+  100% {
+    border-color: var(--border-strong);
+  }
+  50% {
+    border-color: var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:not(.typing) .row.active .tile.cursor {
+    animation: none;
+    border-color: var(--accent);
+  }
+}
+
 /* Hints on the row being typed: what earlier rows said about each letter.
    Kept quiet, never a fill, so they can't be mistaken for a scored row, and
    each has its own shape as well as colour: a strike for "not in the word",
