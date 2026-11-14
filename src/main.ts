@@ -56,7 +56,10 @@ const board = new Board(els.board);
 let game: SavedGame | null = null;
 let current = '';
 let busy = false;
-let lang = settings.lang ?? DEFAULT_LANGUAGE;
+/** A language landing page (/es/, /fr/, ...) sets the word and interface language until the player picks their own. */
+const pageLang = /^\/([a-z]{2})\/?$/.exec(location.pathname)?.[1];
+const pathLang = pageLang && getLanguage(pageLang) ? pageLang : null;
+let lang = settings.lang ?? pathLang ?? DEFAULT_LANGUAGE;
 const words = new Map<string, Set<string>>();
 
 const entry = new NativeEntry({
@@ -707,7 +710,7 @@ async function chooseLanguage() {
 async function init() {
   initDebug();
   showVersion();
-  const ui = savedUiLang();
+  const ui = savedUiLang() ?? pathLang;
   if (ui && ui !== 'en') {
     await setUiLanguage(ui);
     translatePage();

@@ -254,6 +254,18 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 - **Debug log:** open the game with `?debug` for a log panel at the bottom of the page (`src/debug.ts`).
 - **Bug reports:** "How to play" links to a new GitHub issue with the version, mode and browser filled in.
 
+## Search and link previews
+
+`scripts/seo.ts` is a Vite plugin that runs at build time:
+
+- **Language pages:** it writes `/es/`, `/fr/`, `/de/`, `/it/`, `/pt/` and `/nl/`. Each one is the game with its own title, description, canonical URL and `og:locale`. Opening one sets the word and interface language until the player picks their own.
+- **Shared head on every page:**
+  - `hreflang` links between all the languages, plus `x-default`;
+  - JSON-LD structured data: a `WebSite`, and a `VideoGame` / `WebApplication` that is free, single and multiplayer.
+- **Crawler files:** `robots.txt` (keeps crawlers out of `/api/` and `/dashboard/`) and `sitemap.xml` with the language alternates.
+
+To add a language page, add it to `PAGES` in `scripts/seo.ts`.
+
 ## Ready for later steps
 
 - **Push notifications**: store subscriptions in the same D1 database, VAPID keys made by the
