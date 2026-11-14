@@ -1,6 +1,7 @@
 // Daily reminder notifications (Web Push). The Worker sends them from an
 // hourly cron; see worker/push.ts. Everything here is a progressive
 // enhancement: the setting only shows up where it can work.
+import { debugLog } from './debug';
 
 const PREFS_KEY = 'letterly:v1:push';
 
@@ -17,9 +18,11 @@ export type PushAvailability = 'ok' | 'install-first' | 'unsupported' | 'off';
 async function serverKey(): Promise<string | null> {
   try {
     const res = await fetch('/api/v1/push/key');
+    debugLog('GET /push/key →', res.status);
     if (!res.ok) return null;
     return ((await res.json()) as { publicKey: string }).publicKey;
-  } catch {
+  } catch (e) {
+    debugLog('GET /push/key failed:', e);
     return null;
   }
 }
@@ -73,22 +76,31 @@ export async function enablePush(hour: number, lang: string, ui: string): Promis
   const key = await serverKey();
   if (!key) return 'push.unavailable';
   const permission = await Notification.requestPermission();
+  debugLog('permission:', permission);
   if (permission !== 'granted') return 'push.blocked';
+  let step = 'service worker';
   try {
     const reg = await registration();
-    const sub =
-      (await reg.pushManager.getSubscription()) ??
-      (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }));
+    debugLog('sw ready:', reg.scope);
+    step = 'existing subscription';
+    let sub = await reg.pushManager.getSubscription();
+    if (sub) debugLog('existing subscription:', new URL(sub.endpoint).host);
+    step = 'subscribe';
+    sub ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    debugLog('subscribed:', new URL(sub.endpoint).host);
     const prefs: PushPrefs = { hour, lang, ui, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' };
+    step = 'POST /push/subscribe';
     const res = await fetch('/api/v1/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub.toJSON(), ...prefs }),
     });
-    if (!res.ok) throw new Error('subscribe failed');
+    debugLog('POST /push/subscribe →', res.status, res.ok ? '' : await res.text().catch(() => ''));
+    if (!res.ok) throw new Error(`subscribe failed (${res.status})`);
     await savePrefs(prefs);
     return null;
-  } catch {
+  } catch (e) {
+    debugLog(`reminders failed at "${step}":`, e);
     return 'push.failed';
   }
 }

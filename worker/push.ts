@@ -27,6 +27,8 @@ export interface PushEnv {
 const PUSH_HOSTS = [
   /^fcm\.googleapis\.com$/,
   /^android\.googleapis\.com$/,
+  // Newer Chrome builds hand out endpoints like https://jmt17.google.com/fcm/send/...
+  /^jmt\d*\.google\.com$/,
   /(^|\.)push\.services\.mozilla\.com$/,
   /(^|\.)notify\.windows\.com$/,
   /(^|\.)push\.apple\.com$/,
