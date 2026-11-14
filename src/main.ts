@@ -307,6 +307,9 @@ function openDialog(id: string) {
   const dlg = $<HTMLDialogElement>(id);
   entry.setEnabled(false);
   dlg.showModal();
+  // Start focus on the sheet itself rather than its first button, so the
+  // close button doesn't open with a focus ring. Tab reaches it as usual.
+  dlg.focus();
 }
 
 for (const dlg of document.querySelectorAll('dialog')) {
