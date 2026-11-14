@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Zainstaluj",
 
   "help.title": "Jak grać",
-  "help.p1": "Odgadnij słowo w **sześciu** próbach. Dotknij planszy, pisz na klawiaturze telefonu i naciśnij Enter.",
+  "help.p1": "Odgadnij słowo w **{n}** próbach. Dotknij planszy, pisz na klawiaturze telefonu i naciśnij Enter.",
   "help.p2": "Po każdej próbie płytki zmieniają kolor:",
   "help.correct": "jest w słowie i na właściwym miejscu",
   "help.present": "jest w słowie, ale w innym miejscu",
@@ -133,6 +133,9 @@ const messages: Messages = {
   "race.others": "Pozostali gracze",
   "race.start": "Rozpocznij wyścig",
   "race.leave": "Opuść ten wyścig",
+  "race.cancel": "Anuluj ten wyścig",
+  "race.newCode": "Nowy kod",
+  "race.newCodeDone": "Nowy kod. Wyślij zaproszenie jeszcze raz.",
   "race.sub": "Wyścig {code}",
   "race.subIntro": "Graj przeciwko znajomym",
   "race.you": "{name} (ty)",

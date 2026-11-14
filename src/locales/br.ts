@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Staliañ",
 
   "help.title": "Penaos c'hoari",
-  "help.p1": "Kavit ar ger e **c'hwec'h** klask. Stokit an daolenn, skrivit gant klavier ho pellgomzer ha pouezit war Enter.",
+  "help.p1": "Kavit ar ger e **{n}** klask. Stokit an daolenn, skrivit gant klavier ho pellgomzer ha pouezit war Enter.",
   "help.p2": "Goude pep klask e cheñch liv ar pezhioù:",
   "help.correct": "er ger hag el lec'h mat",
   "help.present": "er ger met en ul lec'h all",
@@ -133,6 +133,9 @@ const messages: Messages = {
   "race.others": "C'hoarierien all",
   "race.start": "Kregiñ gant ar redadeg",
   "race.leave": "Kuitaat ar redadeg-mañ",
+  "race.cancel": "Nullañ ar redadeg-mañ",
+  "race.newCode": "Kaout ur c'hod nevez",
+  "race.newCodeDone": "Kod nevez. Kasit ar bedadenn en-dro.",
   "race.sub": "Redadeg {code}",
   "race.subIntro": "C'hoari a-enep ho mignoned",
   "race.you": "{name} (c'hwi)",

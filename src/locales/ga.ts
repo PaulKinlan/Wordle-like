@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Suiteáil",
 
   "help.title": "Conas imirt",
-  "help.p1": "Tomhais an focal i **sé** iarracht. Tapáil an clár, clóscríobh le méarchlár an fhóin, ansin brúigh Enter.",
+  "help.p1": "Tomhais an focal i **{n}** iarracht. Tapáil an clár, clóscríobh le méarchlár an fhóin, ansin brúigh Enter.",
   "help.p2": "Tar éis gach tomhais athraíonn dath na dtíleanna:",
   "help.correct": "san fhocal agus san áit cheart",
   "help.present": "san fhocal ach in áit eile",
@@ -133,6 +133,9 @@ const messages: Messages = {
   "race.others": "Imreoirí eile",
   "race.start": "Tosaigh an rás",
   "race.leave": "Fág an rás seo",
+  "race.cancel": "Cuir an rás seo ar ceal",
+  "race.newCode": "Faigh cód nua",
+  "race.newCodeDone": "Cód nua. Seol an cuireadh arís.",
   "race.sub": "Rás {code}",
   "race.subIntro": "Imir in aghaidh do chairde",
   "race.you": "{name} (tusa)",

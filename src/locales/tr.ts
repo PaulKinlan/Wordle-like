@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Yükle",
 
   "help.title": "Nasıl oynanır",
-  "help.p1": "Kelimeyi **altı** denemede bul. Tahtaya dokun, telefonunun klavyesiyle yaz ve Enter'a bas.",
+  "help.p1": "Kelimeyi **{n}** denemede bul. Tahtaya dokun, telefonunun klavyesiyle yaz ve Enter'a bas.",
   "help.p2": "Her tahminden sonra karelerin rengi değişir:",
   "help.correct": "kelimede var ve doğru yerde",
   "help.present": "kelimede var ama başka bir yerde",
@@ -133,6 +133,9 @@ const messages: Messages = {
   "race.others": "Diğer oyuncular",
   "race.start": "Yarışı başlat",
   "race.leave": "Bu yarıştan ayrıl",
+  "race.cancel": "Bu yarışı iptal et",
+  "race.newCode": "Yeni kod al",
+  "race.newCodeDone": "Yeni kod. Daveti yeniden gönder.",
   "race.sub": "Yarış {code}",
   "race.subIntro": "Arkadaşlarına karşı oyna",
   "race.you": "{name} (sen)",

@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Instal·la",
 
   "help.title": "Com es juga",
-  "help.p1": "Endevina la paraula en **sis** intents. Toca el tauler, escriu amb el teclat del mòbil i prem Retorn.",
+  "help.p1": "Endevina la paraula en **{n}** intents. Toca el tauler, escriu amb el teclat del mòbil i prem Retorn.",
   "help.p2": "Després de cada intent, les fitxes canvien de color:",
   "help.correct": "és a la paraula i al lloc correcte",
   "help.present": "és a la paraula però en un altre lloc",
@@ -133,6 +133,9 @@ const messages: Messages = {
   "race.others": "Altres jugadors",
   "race.start": "Comença la cursa",
   "race.leave": "Surt d'aquesta cursa",
+  "race.cancel": "Cancel·la aquesta cursa",
+  "race.newCode": "Obtén un codi nou",
+  "race.newCodeDone": "Codi nou. Torna a enviar la invitació.",
   "race.sub": "Cursa {code}",
   "race.subIntro": "Juga contra els amics",
   "race.you": "{name} (tu)",

@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Instalatu",
 
   "help.title": "Nola jokatu",
-  "help.p1": "Asmatu hitza **sei** saiakeratan. Ukitu taula, idatzi telefonoaren teklatuarekin eta sakatu Sartu.",
+  "help.p1": "Asmatu hitza **{n}** saiakeratan. Ukitu taula, idatzi telefonoaren teklatuarekin eta sakatu Sartu.",
   "help.p2": "Saiakera bakoitzaren ondoren fitxek kolorea aldatzen dute:",
   "help.correct": "hitzean dago eta leku egokian",
   "help.present": "hitzean dago, baina beste leku batean",
@@ -133,6 +133,9 @@ const messages: Messages = {
   "race.others": "Beste jokalariak",
   "race.start": "Hasi lasterketa",
   "race.leave": "Utzi lasterketa hau",
+  "race.cancel": "Bertan behera utzi lasterketa hau",
+  "race.newCode": "Lortu kode berria",
+  "race.newCodeDone": "Kode berria. Bidali gonbidapena berriro.",
   "race.sub": "{code} lasterketa",
   "race.subIntro": "Jokatu lagunen aurka",
   "race.you": "{name} (zu)",

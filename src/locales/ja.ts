@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "インストール",
 
   "help.title": "遊び方",
-  "help.p1": "決められた回数以内に単語を当てましょう（ふつうは**6回**、日本語は8回）。ボードをタップしてスマホのキーボードで入力し、Enter を押します。",
+  "help.p1": "**{n}回**以内に単語を当てましょう。ボードをタップしてスマホのキーボードで入力し、Enter を押します。",
   "help.p2": "回答のたびにタイルの色が変わります：",
   "help.correct": "単語に含まれ、位置も正しい",
   "help.present": "単語に含まれるが、位置が違う",
@@ -133,6 +133,9 @@ const messages: Messages = {
   "race.others": "ほかのプレイヤー",
   "race.start": "対戦を開始",
   "race.leave": "この対戦から抜ける",
+  "race.cancel": "この対戦を中止する",
+  "race.newCode": "新しいコードにする",
+  "race.newCodeDone": "新しいコードです。もう一度招待を送ってください。",
   "race.sub": "対戦 {code}",
   "race.subIntro": "友だちと対戦",
   "race.you": "{name}（あなた）",
