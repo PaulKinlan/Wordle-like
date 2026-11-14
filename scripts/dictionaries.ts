@@ -21,7 +21,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { brotliCompressSync, constants, zstdCompressSync } from 'node:zlib';
+import * as zlib from 'node:zlib';
 import type { Plugin } from 'vite';
 import { SITE } from './seo';
 
@@ -39,7 +39,7 @@ export interface Build {
 
 /** `file` as a dcz body: what changed since `dictionary`. */
 export function dcz(file: Buffer, dictionary: Buffer): Buffer {
-  const delta = zstdCompressSync(file, { params: { [constants.ZSTD_c_compressionLevel]: 19 }, dictionary });
+  const delta = zlib.zstdCompressSync(file, { params: { [zlib.constants.ZSTD_c_compressionLevel]: 19 }, dictionary });
   return Buffer.concat([DCZ_MAGIC, createHash('sha256').update(dictionary).digest(), delta]);
 }
 
@@ -70,7 +70,10 @@ export function dictionaries(): Plugin {
         // DICTIONARY_SOURCE: another site to read older builds from (for testing), or "off".
         const source = process.env.DICTIONARY_SOURCE ?? SITE;
         let older: Build[] = [];
-        if (source !== 'off') {
+        // Zstandard came to Node in 22.15: an older Node builds without deltas rather than failing.
+        if (typeof zlib.zstdCompressSync !== 'function') {
+          console.warn('dictionaries: this Node has no Zstandard, so no delta files');
+        } else if (source !== 'off') {
           const res = await get(`${source}/dictionaries.json`);
           const list: unknown = await res?.json().catch(() => null);
           if (Array.isArray(list)) older = list.filter((b): b is Build => !!b && typeof b === 'object').slice(0, KEEP - 1);
@@ -100,7 +103,7 @@ export function dictionaries(): Plugin {
             const dictionary = readFileSync(path);
             const delta = dcz(file, dictionary);
             // Never worth sending if plain Brotli is as small.
-            if (delta.length >= brotliCompressSync(file).length) continue;
+            if (delta.length >= zlib.brotliCompressSync(file).length) continue;
             const hash = createHash('sha256').update(dictionary).digest('hex');
             writeFileSync(join(dir, 'assets', 'delta', `${now}.${hash}.dcz`), delta);
             made++;
