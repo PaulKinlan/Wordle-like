@@ -46,6 +46,8 @@ const messages: Messages = {
   "card.won": "Trouvé !",
   "card.lost": "Presque",
   "card.play": "Joue toi aussi sur {host}",
+  "settings.version": "Version {version}",
+  "help.bug": "Un bug ? Signalez-le sur GitHub",
   "help.title": "Comment jouer",
   "help.p1": "Trouvez le mot en **six** essais. Touchez la grille, tapez avec le clavier du téléphone, puis appuyez sur Entrée.",
   "help.p2": "Après chaque essai, les cases changent de couleur :",

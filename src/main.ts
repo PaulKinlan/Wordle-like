@@ -8,6 +8,8 @@ import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
 import { initDebug } from './debug';
+import { initTelemetry } from './telemetry';
+import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
 import { shareCard, shareText, streakLine } from './share';
 import {
@@ -21,6 +23,9 @@ import {
   type Mode,
   type SavedGame,
 } from './storage';
+
+// First, so errors during start-up are caught too.
+initTelemetry();
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -603,6 +608,7 @@ async function chooseLanguage() {
 
 async function init() {
   initDebug();
+  showVersion();
   const ui = savedUiLang();
   if (ui && ui !== 'en') {
     await setUiLanguage(ui);
@@ -628,6 +634,42 @@ async function init() {
   if (matchMedia('(pointer: fine)').matches) entry.focus(false);
   if (firstVisit()) openDialog('dlg-help');
 }
+
+function showVersion() {
+  const a = $<HTMLAnchorElement>('app-version');
+  a.href = COMMIT_URL;
+  a.textContent = t('settings.version', { version: SHORT_COMMIT });
+}
+
+/** A new GitHub issue, filled in with what's useful for fixing it (never the answer). */
+function bugReportUrl() {
+  const g = game;
+  const ua = navigator.userAgent;
+  const body = [
+    '**What happened?**',
+    '',
+    '',
+    '**What did you expect?**',
+    '',
+    '',
+    '---',
+    `- Version: ${COMMIT}`,
+    `- Page: ${location.origin}${location.pathname}`,
+    `- Mode: ${race.isActive ? 'race' : (g?.mode ?? '?')}${g?.hard ? ' (hard)' : ''}, word language ${g?.lang ?? '?'}, interface ${uiLang()}`,
+    `- Browser: ${ua}`,
+    `- Screen: ${screen.width}x${screen.height}, installed: ${matchMedia('(display-mode: standalone)').matches}`,
+  ].join('\n');
+  const url = new URL(`${REPO_URL}/issues/new`);
+  url.searchParams.set('title', 'Bug: ');
+  url.searchParams.set('body', body);
+  url.searchParams.set('labels', 'bug');
+  return url.href;
+}
+
+// Built when tapped, so it describes the game as it is then.
+$<HTMLAnchorElement>('report-bug').addEventListener('click', (e) => {
+  (e.currentTarget as HTMLAnchorElement).href = bugReportUrl();
+});
 
 function openFromReminder(play: 'daily' | 'race') {
   for (const dlg of document.querySelectorAll<HTMLDialogElement>('dialog[open]')) dlg.close();

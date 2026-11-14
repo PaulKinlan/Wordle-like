@@ -2,6 +2,7 @@
 // hourly cron; see worker/push.ts. Everything here is a progressive
 // enhancement: the setting only shows up where it can work.
 import { debugLog } from './debug';
+import { reportError } from './telemetry';
 
 const PREFS_KEY = 'letterly:v1:push';
 
@@ -101,6 +102,7 @@ export async function enablePush(hour: number, lang: string, ui: string): Promis
     return null;
   } catch (e) {
     debugLog(`reminders failed at "${step}":`, e);
+    reportError(`reminders: ${step}`, e);
     return 'push.failed';
   }
 }

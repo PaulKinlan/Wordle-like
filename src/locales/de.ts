@@ -46,6 +46,8 @@ const messages: Messages = {
   "card.won": "Geschafft!",
   "card.lost": "Knapp daneben",
   "card.play": "Selbst spielen auf {host}",
+  "settings.version": "Version {version}",
+  "help.bug": "Fehler gefunden? Melde ihn auf GitHub",
   "help.title": "Spielanleitung",
   "help.p1": "Errate das Wort in **sechs** Versuchen. Tippe auf das Feld, schreib mit der Tastatur deines Handys und drück Enter.",
   "help.p2": "Nach jedem Versuch ändern die Felder ihre Farbe:",

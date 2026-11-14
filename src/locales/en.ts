@@ -53,6 +53,8 @@ const en = {
   'card.won': 'Got it!',
   'card.lost': 'So close',
   'card.play': 'Play your own at {host}',
+  'settings.version': 'Version {version}',
+  'help.bug': 'Found a bug? Report it on GitHub',
 
   'help.title': 'How to play',
   'help.p1': 'Guess the word in **six** tries. Tap the board and type with your phone\'s keyboard, then press Enter.',

@@ -46,6 +46,8 @@ const messages: Messages = {
   "card.won": "Geraden!",
   "card.lost": "Bijna",
   "card.play": "Speel zelf op {host}",
+  "settings.version": "Versie {version}",
+  "help.bug": "Een fout gevonden? Meld het op GitHub",
   "help.title": "Speluitleg",
   "help.p1": "Raad het woord in **zes** pogingen. Tik op het bord, typ met het toetsenbord van je telefoon en druk op Enter.",
   "help.p2": "Na elke poging veranderen de vakjes van kleur:",

@@ -46,6 +46,8 @@ const messages: Messages = {
   "card.won": "Indovinata!",
   "card.lost": "Quasi",
   "card.play": "Gioca anche tu su {host}",
+  "settings.version": "Versione {version}",
+  "help.bug": "Hai trovato un bug? Segnalalo su GitHub",
   "help.title": "Come si gioca",
   "help.p1": "Indovina la parola in **sei** tentativi. Tocca la griglia, scrivi con la tastiera del telefono e premi Invio.",
   "help.p2": "Dopo ogni tentativo le caselle cambiano colore:",
