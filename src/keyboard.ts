@@ -163,7 +163,10 @@ export class NativeEntry {
       return Promise.resolve();
     }
     input.readOnly = false;
-    if (!focused) input.focus({ preventScroll: true });
+    if (!focused) {
+      if (!this.enabled) input.inputMode = 'none';
+      input.focus({ preventScroll: true });
+    }
     try {
       vk?.hide();
     } catch (e) {
@@ -176,21 +179,22 @@ export class NativeEntry {
       const steps: [string, () => void | Promise<void>][] = [
         ['hide()', () => undefined], // already called above
         [
-          'auto policy, then blur',
+          // A field with inputmode="none" gets no keyboard: Chrome reads that
+          // when the field gains focus, so blur, let a frame pass, refocus.
+          'inputmode none, then refocus',
           async () => {
             input.inputMode = 'none';
+            input.blur();
+            await frames(2);
+            input.focus({ preventScroll: true });
+          },
+        ],
+        [
+          'auto policy, then blur',
+          async () => {
             input.setAttribute('virtualkeyboardpolicy', 'auto');
             await frames(2);
             input.blur();
-          },
-        ],
-        ['disable the field', () => void (input.disabled = true)],
-        [
-          'focus the board (not a text field)',
-          () => {
-            const board = this.o.form.querySelector<HTMLElement>('.board') ?? this.o.form;
-            if (!board.hasAttribute('tabindex')) board.tabIndex = -1;
-            board.focus({ preventScroll: true });
           },
         ],
         [
@@ -203,35 +207,7 @@ export class NativeEntry {
             parent.insertBefore(input, next);
           },
         ],
-        [
-          'overlaysContent off and on',
-          async () => {
-            if (!vk) return;
-            vk.overlaysContent = false;
-            await frames(2);
-            vk.overlaysContent = true;
-          },
-        ],
-        [
-          'focus, show() then hide()',
-          async () => {
-            input.disabled = false;
-            input.readOnly = false;
-            input.removeAttribute('inputmode');
-            input.setAttribute('virtualkeyboardpolicy', 'manual');
-            input.focus({ preventScroll: true });
-            await frames(1);
-            try {
-              vk?.show();
-              await frames(2);
-              vk?.hide();
-            } catch (e) {
-              debugLog('kb show/hide threw', e);
-            }
-            await frames(2);
-            input.blur();
-          },
-        ],
+        ['disable the field', () => void (input.disabled = true)],
       ];
       for (const [name, run] of steps) {
         if (name !== 'hide()') {
