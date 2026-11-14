@@ -51,10 +51,18 @@ export class NativeEntry {
       this.caretToEnd();
       document.body.classList.add('typing');
     });
-    input.addEventListener('blur', () => document.body.classList.remove('typing'));
+    input.addEventListener('blur', (e) => {
+      document.body.classList.remove('typing');
+      if (this.enabled) debugLog('kb field lost focus', { to: describe((e as FocusEvent).relatedTarget as Element | null), vk: vkHeight() });
+    });
     // Taps land on the form, not the field (it has pointer-events: none): a tap
     // into a text field makes Android show its cursor handle, a focus() call doesn't.
     form.addEventListener('pointerup', () => this.focus(true));
+    // A tap on the board isn't on anything focusable, so its mousedown would
+    // move focus off the field straight after pointerup focused it (the log
+    // showed focus lost and taken back on every open). Keep focus where it is.
+    form.addEventListener('pointerdown', (e) => e.preventDefault());
+    form.addEventListener('mousedown', (e) => e.preventDefault());
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       debugLog('kb submit', { gesture: gesture() });
@@ -297,7 +305,22 @@ function setupKeyboardInsets() {
   const root = document.documentElement;
   if (vk) {
     vk.overlaysContent = true;
-    vk.addEventListener('geometrychange', () => debugLog('kb geometry', vkHeight()));
+    // Logged once it settles, with the window sizes: they show which browser
+    // chrome (address bar top or bottom) is around the keyboard.
+    let settle = 0;
+    vk.addEventListener('geometrychange', () => {
+      clearTimeout(settle);
+      settle = window.setTimeout(() => {
+        const r = vk.boundingRect;
+        debugLog('kb geometry', {
+          h: Math.round(r.height),
+          y: Math.round(r.y),
+          inner: window.innerHeight,
+          vv: Math.round(window.visualViewport?.height ?? 0),
+          screen: screen.height,
+        });
+      }, 150);
+    });
     root.classList.add('vk-api'); // CSS uses env(keyboard-inset-height)
     return;
   }

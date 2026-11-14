@@ -24,7 +24,15 @@ const frames = (n) => new Promise((r) => { const s = () => (--n <= 0 ? r() : req
 
 if (vk) {
   vk.overlaysContent = true;
-  vk.addEventListener('geometrychange', () => { hEl.textContent = String(height()); log('geometry', height()); });
+  let settle = 0;
+  vk.addEventListener('geometrychange', () => {
+    hEl.textContent = String(height());
+    clearTimeout(settle);
+    settle = setTimeout(() => {
+      const r = vk.boundingRect;
+      log('geometry', { h: Math.round(r.height), y: Math.round(r.y), inner: innerHeight, vv: Math.round(visualViewport?.height ?? 0), screen: screen.height });
+    }, 150);
+  });
 } else log('no navigator.virtualKeyboard');
 log('ua', navigator.userAgent);
 
