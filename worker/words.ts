@@ -26,6 +26,27 @@ import itRare from './words/it/rare.json';
 import nlAllowed from './words/nl/allowed.json';
 import nlCandidates from './words/nl/candidates.json';
 import nlRare from './words/nl/rare.json';
+import caAllowed from './words/ca/allowed.json';
+import caCandidates from './words/ca/candidates.json';
+import caRare from './words/ca/rare.json';
+import euAllowed from './words/eu/allowed.json';
+import euCandidates from './words/eu/candidates.json';
+import euRare from './words/eu/rare.json';
+import brAllowed from './words/br/allowed.json';
+import brCandidates from './words/br/candidates.json';
+import brRare from './words/br/rare.json';
+import plAllowed from './words/pl/allowed.json';
+import plCandidates from './words/pl/candidates.json';
+import plRare from './words/pl/rare.json';
+import svAllowed from './words/sv/allowed.json';
+import svCandidates from './words/sv/candidates.json';
+import svRare from './words/sv/rare.json';
+import trAllowed from './words/tr/allowed.json';
+import trCandidates from './words/tr/candidates.json';
+import trRare from './words/tr/rare.json';
+import elAllowed from './words/el/allowed.json';
+import elCandidates from './words/el/candidates.json';
+import elRare from './words/el/rare.json';
 import ptAllowed from './words/pt/allowed.json';
 import ptCandidates from './words/pt/candidates.json';
 import ptRare from './words/pt/rare.json';
@@ -47,6 +68,13 @@ const bundled: Record<string, Raw> = {
   it: { candidates: itCandidates, rare: itRare, allowed: itAllowed },
   pt: { candidates: ptCandidates, rare: ptRare, allowed: ptAllowed },
   nl: { candidates: nlCandidates, rare: nlRare, allowed: nlAllowed },
+  ca: { candidates: caCandidates, rare: caRare, allowed: caAllowed },
+  eu: { candidates: euCandidates, rare: euRare, allowed: euAllowed },
+  br: { candidates: brCandidates, rare: brRare, allowed: brAllowed },
+  pl: { candidates: plCandidates, rare: plRare, allowed: plAllowed },
+  sv: { candidates: svCandidates, rare: svRare, allowed: svAllowed },
+  tr: { candidates: trCandidates, rare: trRare, allowed: trAllowed },
+  el: { candidates: elCandidates, rare: elRare, allowed: elAllowed },
 };
 
 const cache = new Map<string, WordList>();
@@ -59,7 +87,8 @@ export function getWords(lang: string): WordList | undefined {
   const fold = (w: string) => normalizeWord(w, lang);
   const list: WordList = {
     candidates: raw.candidates,
-    rare: raw.rare,
+    // A small language may have no rare words yet: hard mode then uses the common ones.
+    rare: raw.rare.length ? raw.rare : raw.candidates,
     guessable: new Set([...raw.candidates.map(fold), ...raw.rare.map(fold), ...raw.allowed]),
   };
   cache.set(lang, list);

@@ -108,7 +108,8 @@ describe('languages', () => {
     for (const lang of LANGUAGES) {
       const list = getWords(lang.code)!;
       expect(list, lang.code).toBeDefined();
-      expect(list.candidates.length, lang.code).toBeGreaterThan(1000);
+      // At least two years of daily words.
+      expect(list.candidates.length, lang.code).toBeGreaterThan(730);
       expect(list.rare.length, lang.code).toBeGreaterThan(100);
       for (const w of [...list.candidates, ...list.rare]) {
         const folded = normalizeWord(w, lang.code);

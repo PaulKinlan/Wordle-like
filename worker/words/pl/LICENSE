@@ -1,0 +1,11 @@
+Word lists for "pl", built by scripts/build-wordlists.mjs from:
+
+1. FrequencyWords by Hermit Dave (https://github.com/hermitdave/FrequencyWords),
+   word frequencies counted from OpenSubtitles. Content licensed CC BY-SA 4.0.
+
+2. The Hunspell dictionary in the npm package dictionary-pl@2.0.0
+   (https://github.com/wooorm/dictionaries), licensed (GPL-3.0 OR LGPL-3.0 OR MPL-2.0).
+   See that package for the full licence and its authors.
+
+These lists are a derived selection of words and are distributed under the
+same terms.

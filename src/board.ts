@@ -119,7 +119,14 @@ export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) 
   });
 }
 
+let tileLocale = 'en';
+
+/** The word language, for capitals: Turkish i is İ (and ı is I). */
+export function setTileLocale(lang: string) {
+  tileLocale = lang;
+}
+
 /** Uppercase for one tile. German ß has a capital (ẞ) that fits in one tile. */
 export function toUpper(letter: string) {
-  return letter === 'ß' ? 'ẞ' : letter.toLocaleUpperCase();
+  return letter === 'ß' ? 'ẞ' : letter.toLocaleUpperCase(tileLocale);
 }

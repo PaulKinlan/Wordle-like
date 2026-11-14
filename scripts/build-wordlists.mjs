@@ -129,6 +129,16 @@ const INTL = {
   it: { alphabet: 'abcdefghijklmnopqrstuvwxyz', answers: 1400, spellFreeCount: 20 },
   pt: { alphabet: 'abcdefghijklmnopqrstuvwxyz', answers: 1800, spellFreeCount: 20 },
   nl: { alphabet: 'abcdefghijklmnopqrstuvwxyz', answers: 1800 },
+  // Added November 2026. Keep the alphabets in step with shared/languages.ts.
+  // nspell is too slow on these dictionaries too, so they use spellFreeCount.
+  ca: { spellFreeCount: 20, alphabet: 'abcçdefghijklmnopqrstuvwxyz', answers: 1400 },
+  eu: { spellFreeCount: 20, alphabet: 'abcdefghijklmnñopqrstuvwxyz', answers: 1200 },
+  // Breton subtitles are scarce, so top up with dictionary headwords.
+  br: { spellFreeCount: 20, alphabet: 'abcdefghijklmnñopqrstuvwxyz', answers: 800, fillFromHeadwords: true },
+  pl: { spellFreeCount: 20, alphabet: 'aąbcćdeęfghijklłmnńoópqrsśtuvwxyzźż', answers: 1600 },
+  sv: { spellFreeCount: 20, alphabet: 'abcdefghijklmnopqrstuvwxyzåäö', answers: 1600 },
+  tr: { spellFreeCount: 20, alphabet: 'abcçdefgğhıijklmnoöprsştuüvyz', answers: 1600 },
+  el: { spellFreeCount: 20, alphabet: 'αβγδεζηθικλμνξοπρστυφχψω', fold: { ς: 'σ' }, answers: 1400 },
 };
 
 const FREQ_URL = (code) =>
@@ -156,7 +166,8 @@ async function buildIntl(code, cfg) {
   const alphabet = new Set(cfg.alphabet);
   const fold = (w) => {
     let out = '';
-    for (const ch of w.normalize('NFC').toLocaleLowerCase(code)) {
+    for (let ch of w.normalize('NFC').toLocaleLowerCase(code)) {
+      ch = cfg.fold?.[ch] ?? ch;
       if (alphabet.has(ch)) out += ch;
       else {
         const base = ch.normalize('NFD').replace(/\p{M}/gu, '');
@@ -202,6 +213,15 @@ async function buildIntl(code, cfg) {
     if (INTL_BLOCK.has(word) || INTL_BLOCK.has(folded) || cfg.skip?.(word)) continue;
     used.add(folded);
     (answers.length < cfg.answers ? answers : rare).push(word);
+  }
+  if (cfg.fillFromHeadwords) {
+    for (const [lower, word] of headwords) {
+      const folded = fold(lower);
+      if (!folded || used.has(folded) || INTL_BLOCK.has(lower)) continue;
+      used.add(folded);
+      if (answers.length < cfg.answers) answers.push(word);
+      else if (rare.length < 2000) rare.push(word);
+    }
   }
   // Every headword is a fine guess, even if it never came up in subtitles.
   for (const word of headwords.keys()) {

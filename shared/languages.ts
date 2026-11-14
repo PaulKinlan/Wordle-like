@@ -18,6 +18,8 @@ export interface LanguageInfo {
    * its own letter in Spanish and "ä" its own letter in German.
    */
   alphabet: string;
+  /** Letters that are written differently but count as one, like Greek final ς (σ). */
+  fold?: Record<string, string>;
 }
 
 const LATIN = 'abcdefghijklmnopqrstuvwxyz';
@@ -30,6 +32,13 @@ export const LANGUAGES: LanguageInfo[] = [
   { code: 'it', name: 'Italian', nativeName: 'Italiano', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
   { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
+  { code: 'ca', name: 'Catalan', nativeName: 'Català', wordLength: 5, maxGuesses: 6, alphabet: 'abcçdefghijklmnopqrstuvwxyz' },
+  { code: 'eu', name: 'Basque', nativeName: 'Euskara', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
+  { code: 'br', name: 'Breton', nativeName: 'Brezhoneg', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
+  { code: 'pl', name: 'Polish', nativeName: 'Polski', wordLength: 5, maxGuesses: 6, alphabet: 'aąbcćdeęfghijklłmnńoópqrsśtuvwxyzźż' },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnopqrstuvwxyzåäö' },
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', wordLength: 5, maxGuesses: 6, alphabet: 'abcçdefgğhıijklmnoöprsştuüvyz' },
+  { code: 'el', name: 'Greek', nativeName: 'Ελληνικά', wordLength: 5, maxGuesses: 6, alphabet: 'αβγδεζηθικλμνξοπρστυφχψω', fold: { ς: 'σ' } },
 ];
 
 export const DEFAULT_LANGUAGE = 'en';

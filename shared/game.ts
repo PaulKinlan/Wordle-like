@@ -88,8 +88,10 @@ export function normalizeWord(input: string, lang: string): string {
     alphabet = new Set(getLanguage(lang)?.alphabet ?? 'abcdefghijklmnopqrstuvwxyz');
     alphabets.set(lang, alphabet);
   }
+  const fold = getLanguage(lang)?.fold;
   let out = '';
-  for (const ch of input.normalize('NFC').toLocaleLowerCase(lang)) {
+  for (let ch of input.normalize('NFC').toLocaleLowerCase(lang)) {
+    ch = fold?.[ch] ?? ch;
     if (alphabet.has(ch)) {
       out += ch;
       continue;
