@@ -198,8 +198,9 @@ async function submit() {
     game.answer = res.answer;
     saveGame(game);
     current = '';
-    entry.clear();
+    // Typing off first, so clearing the field can't bring the keyboard back.
     if (game.status !== 'playing') entry.setEnabled(false);
+    entry.clear();
     draw(true);
     await board.reveal(row);
     drawTracker();
@@ -391,9 +392,13 @@ function openStats() {
   openDialog('dlg-stats');
 }
 
-function openDialog(id: string) {
+async function openDialog(id: string) {
   const dlg = $<HTMLDialogElement>(id);
   entry.setEnabled(false);
+  // Let the keyboard go down before the dialog makes the field inert, or
+  // Android drops the request and leaves it up over the dialog.
+  await entry.hideKeyboard();
+  if (dlg.open) return;
   dlg.showModal();
   // Start focus on the sheet itself rather than its first button, so the
   // close button doesn't open with a focus ring. Tab reaches it as usual.
