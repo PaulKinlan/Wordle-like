@@ -154,7 +154,7 @@
             <button class="secondary" id="btn-new" type="button">New word</button>
           </div>
           <p class="result-install" data-install-slot data-install-where="result" hidden>
-            <install><button class="link" type="button" data-install data-i18n="settings.install">Install the app</button></install>
+            <install hidden></install><button class="link" type="button" data-install data-i18n="settings.install">Install the app</button>
           </p>
         </div>
         <p class="type-hint" id="type-hint" data-i18n="board.hint">Tap the board and type with your keyboard</p>
@@ -217,7 +217,7 @@
         <p class="install-steps install-menu" data-i18n-rich="install.menu">Open your browser's menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
         <div class="install-actions">
           <button class="secondary" type="submit" value="later" data-i18n="install.notNow">Not now</button>
-          <install class="install-go"><button class="primary" type="button" data-install data-i18n="settings.installButton">Install</button></install>
+          <span class="install-go"><install hidden></install><button class="primary" type="button" data-install data-i18n="settings.installButton">Install</button></span>
         </div>
       </form>
     </dialog>
@@ -271,7 +271,7 @@
         </label>
         <div class="setting" id="install-row" data-install-slot data-install-where="settings" hidden>
           <span><strong data-i18n="settings.install">Install the app</strong><small data-i18n="settings.installNote">Open Letterle from your home screen, even offline</small></span>
-          <install><button type="button" class="secondary small" data-install data-i18n="settings.installButton">Install</button></install>
+          <install hidden></install><button type="button" class="secondary small" data-install data-i18n="settings.installButton">Install</button>
         </div>
         <p class="app-version"><a id="app-version" target="_blank" rel="noopener"></a></p>
       </form>

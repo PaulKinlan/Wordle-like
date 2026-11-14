@@ -1548,11 +1548,16 @@ body.osk-on .tile.cursor {
 
 /* ------------------------------------------------------------ install */
 
-/* <install> is drawn by the browser where supported (its children are then
-   hidden); elsewhere it's an unknown inline element around our own button. */
+/* <install> is drawn by the browser where supported; install.ts shows it or
+   our own button beside it, never both. */
 install {
   display: inline-flex;
   font: inherit;
+}
+
+install[hidden],
+[data-install][hidden] {
+  display: none;
 }
 
 .result-install {
