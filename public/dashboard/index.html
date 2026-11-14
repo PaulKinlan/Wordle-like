@@ -18,6 +18,8 @@
           <option value="1">Last 24 hours</option>
           <option value="7" selected>Last 7 days</option>
           <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">Last 12 months</option>
         </select>
         <button id="refresh" type="button">Refresh</button>
       </div>
@@ -30,6 +32,51 @@
     </form>
 
     <main id="main" hidden>
+      <section>
+        <h2>Audience <small>no cookies: a visitor is counted once a day, and can't be followed across days</small></h2>
+        <div id="live" class="health"></div>
+        <div id="totals" class="cards"></div>
+      </section>
+      <section>
+        <h2>Per day</h2>
+        <div id="daily"></div>
+      </section>
+      <section>
+        <h2>From visit to share <small>sessions that reached each step</small></h2>
+        <div id="funnel"></div>
+      </section>
+      <section>
+        <h2>Games <small>by mode and word language</small></h2>
+        <div id="games"></div>
+      </section>
+      <section class="grid2">
+        <div><h2>Guesses to win</h2><div id="guesses"></div></div>
+        <div><h2>Races</h2><div id="races"></div></div>
+      </section>
+      <section class="grid2">
+        <div><h2>Where visits came from</h2><div id="referrers"></div></div>
+        <div><h2>Campaigns <small>utm_source / medium / campaign</small></h2><div id="campaigns"></div></div>
+        <div><h2>How the app was opened</h2><div id="launch"></div></div>
+        <div><h2>Landing pages</h2><div id="pages"></div></div>
+        <div><h2>Countries</h2><div id="countries"></div></div>
+        <div><h2>Device languages</h2><div id="languages"></div></div>
+        <div><h2>Browsers</h2><div id="browsers"></div></div>
+        <div><h2>Devices</h2><div id="devices"></div></div>
+        <div><h2>Installed or in a tab</h2><div id="installed"></div></div>
+        <div><h2>Screens</h2><div id="screens"></div></div>
+        <div><h2>Connection</h2><div id="connection"></div></div>
+        <div><h2>Theme and motion</h2><div id="theme"></div></div>
+      </section>
+      <section class="grid2">
+        <div><h2>Actions</h2><div id="actions"></div></div>
+        <div><h2>Action details <small>settings changed, share method...</small></h2><div id="action-details"></div></div>
+        <div><h2>Time on page <small>visible time per visit</small></h2><div id="engagement"></div></div>
+        <div><h2>Reminder subscribers <small>right now</small></h2><div id="reminders"></div></div>
+      </section>
+      <section>
+        <h2>Hour of day <small>UTC</small></h2>
+        <div id="hours"></div>
+      </section>
       <section>
         <h2>Health</h2>
         <div id="health" class="health"></div>
@@ -63,7 +110,7 @@
         <div id="by-page"></div>
       </section>
       <section>
-        <h2>Volume</h2>
+        <h2>Error and vitals volume</h2>
         <div id="volume"></div>
       </section>
     </main>

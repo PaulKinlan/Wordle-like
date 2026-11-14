@@ -6,14 +6,29 @@ import { COMMIT } from '../shared/version';
 import { debugLog } from './debug';
 
 interface Event {
-  kind: 'vital' | 'error' | 'rejection' | 'csp' | 'report' | 'resource';
+  kind: 'vital' | 'error' | 'rejection' | 'csp' | 'report' | 'resource' | 'pageview' | 'action';
   name: string;
   value?: number;
   message?: string;
   detail?: unknown;
 }
 
-const MAX_PER_PAGE = 30;
+const MAX_PER_PAGE = 60;
+let enabled = false;
+
+/** A random id for this tab's visit (sessionStorage, gone when the tab closes): counts sessions, nothing more. */
+export const session = (() => {
+  try {
+    let id = sessionStorage.getItem('letterle:session');
+    if (!id) {
+      id = Math.random().toString(36).slice(2, 12);
+      sessionStorage.setItem('letterle:session', id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+})();
 let queue: Event[] = [];
 let sentCount = 0;
 const seen = new Set<string>();
@@ -21,7 +36,8 @@ const seen = new Set<string>();
 function add(e: Event) {
   // The same error over and over only counts once per page load.
   const key = `${e.kind}|${e.name}|${e.message ?? ''}`;
-  if (e.kind !== 'vital' && seen.has(key)) return;
+  if (!enabled) return;
+  if (e.kind !== 'vital' && e.kind !== 'action' && seen.has(key)) return;
   seen.add(key);
   if (sentCount + queue.length >= MAX_PER_PAGE) return;
   queue.push(e);
@@ -30,7 +46,7 @@ function add(e: Event) {
 
 function flush() {
   if (!queue.length) return;
-  const body = JSON.stringify({ commit: COMMIT, page: location.pathname, events: queue });
+  const body = JSON.stringify({ commit: COMMIT, page: location.pathname, session, events: queue });
   sentCount += queue.length;
   queue = [];
   try {
@@ -184,11 +200,64 @@ function watchErrors() {
   }
 }
 
+/** How long the page was actually visible, sent each time it's hidden. */
+function watchEngagement() {
+  let visibleSince = document.visibilityState === 'visible' ? performance.now() : 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') visibleSince = performance.now();
+    else if (visibleSince) {
+      const seconds = Math.round((performance.now() - visibleSince) / 1000);
+      visibleSince = 0;
+      if (seconds > 0) add({ kind: 'action', name: 'engaged', value: Math.min(seconds, 3600) });
+    }
+  }, true); // capture: runs before the flush listener
+}
+
+/** One page view: where the visit came from, and how the app was opened. */
+function pageview() {
+  const params = new URLSearchParams(location.search);
+  let ref: string | undefined;
+  try {
+    const r = document.referrer ? new URL(document.referrer) : null;
+    ref = r && r.host !== location.host ? r.host : undefined;
+  } catch {
+    ref = undefined;
+  }
+  const installed = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches;
+  add({
+    kind: 'pageview',
+    name: location.pathname,
+    detail: {
+      ref,
+      utm_source: params.get('utm_source') ?? undefined,
+      utm_medium: params.get('utm_medium') ?? undefined,
+      utm_campaign: params.get('utm_campaign') ?? undefined,
+      launch: params.has('race') ? 'race-invite' : (params.get('play') ?? (installed ? 'app' : 'web')),
+      installed,
+      langs: navigator.languages?.slice(0, 3),
+      screen: `${screen.width}x${screen.height}`,
+      dark: matchMedia('(prefers-color-scheme: dark)').matches,
+      reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+      connection: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType,
+    },
+  });
+}
+
 export function initTelemetry() {
   // Development builds don't report.
   if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+  enabled = true;
   watchErrors();
   watchVitals();
+  watchEngagement();
+  pageview();
+  // Send the page view soon, not only when the page is hidden, so live counts work.
+  setTimeout(flush, 3000);
+}
+
+/** A product event: a share, a setting changed, a race made... */
+export function track(name: string, detail?: Record<string, unknown>, value?: number) {
+  add({ kind: 'action', name, detail, value });
 }
 
 /** For errors the app catches itself but still wants to know about. */

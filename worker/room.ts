@@ -7,6 +7,7 @@ import { getLanguage } from '../shared/languages';
 import type { ClientMessage, ServerMessage } from '../shared/race';
 import { D1AnswerStore } from './answers';
 import { Race, RaceError, type RaceData } from './race';
+import { recordEvent } from './telemetry';
 import { getWords } from './words';
 import type { Env } from './index';
 
@@ -109,6 +110,7 @@ export class Room extends DurableObject<Env> {
       return;
     }
     const now = Date.now();
+    const before = race.data.status;
     const attachment = (ws.deserializeAttachment() as Attachment | null) ?? {};
     try {
       if (msg.t === 'ping') return this.send(ws, { t: 'pong' });
@@ -128,6 +130,7 @@ export class Room extends DurableObject<Env> {
           const answer = await this.pickAnswer(race);
           const ids = this.connectedIds();
           race.start(id, answer, Date.now(), (pid) => ids.has(pid));
+          this.usage('started');
         } else if (msg.t === 'guess') {
           race.guess(id, msg.word, now);
         } else {
@@ -139,8 +142,16 @@ export class Room extends DurableObject<Env> {
       console.error(e);
       return this.send(ws, { t: 'error', code: 'server_error', message: 'Something went wrong' });
     }
+    if (before === 'playing' && race.data.status === 'finished') this.usage('finished');
     await this.save();
     this.broadcast();
+  }
+
+  /** For the dashboard: races started and finished. */
+  private usage(name: 'started' | 'finished') {
+    const { lang, hard, round, players } = this.race!.data;
+    const value = players.filter((p) => p.inRound).length; // players in this round
+    this.ctx.waitUntil(recordEvent(this.env.DB, null, { kind: 'race', name, value, message: lang, detail: { hard, round } }));
   }
 
   /** A random answer from the private order, like unlimited play. */
@@ -176,7 +187,9 @@ export class Room extends DurableObject<Env> {
       this.race = undefined;
       return;
     }
+    const before = race.data.status;
     if (race.tick(now)) this.broadcast();
+    if (before === 'playing' && race.data.status === 'finished') this.usage('finished');
     await this.save();
   }
 }

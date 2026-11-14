@@ -18,8 +18,9 @@
   -webkit-text-size-adjust: 100%;
 }
 
+/* Dark follows the system unless Settings picks Light or Dark (data-theme, set by public/theme.js). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #121316;
     --surface: #1b1d21;
     --text: #eceef1;
@@ -31,6 +32,27 @@
     --absent: #3b3f46;
     --shadow: 0 10px 40px rgb(0 0 0 / 0.5);
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: #121316;
+  --surface: #1b1d21;
+  --text: #eceef1;
+  --muted: #9399a3;
+  --border: #2d3036;
+  --border-strong: #565b64;
+  --correct: #2f9a72;
+  --present: #c8951c;
+  --absent: #3b3f46;
+  --shadow: 0 10px 40px rgb(0 0 0 / 0.5);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 :root.high-contrast {
@@ -164,6 +186,40 @@ button {
   background: var(--surface);
   color: var(--text);
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+}
+
+/* The same pill look for a group of radio buttons (Settings: appearance). */
+.segmented.choice {
+  flex: none;
+}
+
+.segmented.choice label {
+  position: relative;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.segmented.choice input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented.choice label:has(input:checked) {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+}
+
+.segmented.choice label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .subtitle {
@@ -355,12 +411,27 @@ body:not(.typing) .tile.cursor {
     opacity 160ms,
     translate 160ms;
   z-index: 2;
-  white-space: nowrap;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  text-wrap: balance;
 }
 
 .toast.show {
   opacity: 1;
   translate: -50% 0;
+}
+
+/* Shown as a popover, the toast sits in the top layer: above an open dialog
+   and its blurred backdrop, not behind them. */
+.toast:popover-open {
+  position: fixed;
+  inset: auto;
+  top: var(--toast-top, 8px);
+  left: 50%;
+  margin: 0;
+  border: 0;
+  overflow: visible;
 }
 
 /* ------------------------------------------------------------ footer */
