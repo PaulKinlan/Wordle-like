@@ -53,6 +53,17 @@ export class NativeEntry {
       if (this.enabled) o.onSubmit();
     });
 
+    // The keyboard is only for the board: a tap anywhere else (a tab, a
+    // button, a menu, empty space) puts it away. This runs before the tap
+    // moves focus, while hide() still works (see hideKeyboard).
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!form.contains(e.target as Node)) this.hideKeyboard();
+      },
+      true,
+    );
+
     // A physical keyboard should work even if focus has wandered.
     document.addEventListener('keydown', (e) => {
       if (!this.enabled || document.activeElement === input || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -70,10 +81,21 @@ export class NativeEntry {
 
   setEnabled(on: boolean) {
     this.enabled = on;
+    if (!on) this.hideKeyboard();
     this.o.input.readOnly = !on;
-    if (!on) {
-      this.o.input.blur();
+  }
+
+  /**
+   * Puts the on-screen keyboard away. With virtualkeyboardpolicy="manual",
+   * hide() only works while the field is focused and editable, and blur()
+   * alone leaves the keyboard up, so hide first, then blur.
+   */
+  hideKeyboard() {
+    const { input } = this.o;
+    if (document.activeElement === input) {
+      input.readOnly = false;
       vk?.hide();
+      input.blur();
     }
   }
 

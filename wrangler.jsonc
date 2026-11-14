@@ -15,10 +15,10 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
-  // Keeps the private answer order (see worker/answers.ts). No database_id:
-  // Wrangler creates the database on the first deploy, and the Worker fills
-  // it on its first request.
-  "d1_databases": [{ "binding": "DB", "database_name": "wordle-like" }],
+  // Keeps the private answer order (see worker/answers.ts). The Worker fills
+  // it on its first request. database_id is needed for preview builds
+  // (versions upload can't create the database the way deploy does).
+  "d1_databases": [{ "binding": "DB", "database_name": "wordle-like", "database_id": "5a3db60e-ca35-4c19-82d1-c73140bca102" }],
   // Multiplayer: one Durable Object per race room (worker/room.ts), with
   // SQLite-backed storage. Created on deploy; nothing to set up by hand.
   "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
