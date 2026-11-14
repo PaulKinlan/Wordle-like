@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "試した文字・この位置で正解",
   "share": "シェア",
   "newWord": "新しい単語",
+  "skip": "スキップ",
+  "skip.confirm": "スキップ？もう一度タップ",
   "playUnlimited": "無制限で遊ぶ",
 
   "sub.daily": "No. {n} · {date}",

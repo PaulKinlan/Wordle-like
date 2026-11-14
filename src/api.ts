@@ -50,6 +50,9 @@ export const api = {
     call<PuzzleInfo>(`${lang}/daily?date=${encodeURIComponent(date)}${hard ? '&hard=1' : ''}`),
   random: (lang: string, hard: boolean) => call<PuzzleInfo>(`${lang}/random${hard ? '?hard=1' : ''}`, { method: 'POST' }),
   words: (lang: string) => call<string[]>(`${lang}/words`),
+  /** Unlimited only: gives up on this word and returns what it was. */
+  skip: (lang: string, puzzle: string) =>
+    call<{ answer: string }>(`${lang}/skip`, { method: 'POST', body: JSON.stringify({ puzzle }) }),
   play: (lang: string, puzzle: string, guesses: string[]) =>
     call<PlayResult>(`${lang}/play`, { method: 'POST', body: JSON.stringify({ puzzle, guesses }) }),
 };

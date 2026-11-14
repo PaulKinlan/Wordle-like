@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "wedi'i thrio, yn y lle iawn",
   "share": "Rhannu",
   "newWord": "Gair newydd",
+  "skip": "Hepgor",
+  "skip.confirm": "Hepgor? Tapiwch eto",
   "playUnlimited": "Chwarae'n ddiderfyn",
 
   "sub.daily": "Rhif {n} · {date}",

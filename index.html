@@ -51,7 +51,15 @@
           <button type="button" role="tab" id="mode-unlimited" aria-controls="panel" aria-selected="false" data-i18n="mode.unlimited">Unlimited</button>
           <button type="button" role="tab" id="mode-race" aria-controls="panel" aria-selected="false" data-i18n="mode.race">Race</button>
         </div>
-        <p class="subtitle" id="subtitle" aria-live="polite"></p>
+        <p class="subtitle">
+          <span id="subtitle" aria-live="polite"></span>
+          <!-- Unlimited, mid-game: give up on this word and get another. It
+               sits on the subtitle's line so it costs the board no height. -->
+          <button class="sub-link" id="btn-skip" type="button" data-keeps-keyboard hidden>
+            <span id="btn-skip-text" data-i18n="skip">Skip</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95M19 4v4h-4" /></svg>
+          </button>
+        </p>
       </nav>
 
       <main class="main">

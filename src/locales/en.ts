@@ -25,6 +25,8 @@ const en = {
   'tile.hint.correct': 'already tried, right here',
   'share': 'Share',
   'newWord': 'New word',
+  'skip': 'Skip',
+  'skip.confirm': 'Skip? Tap again',
   'playUnlimited': 'Play unlimited',
 
   'sub.daily': 'No. {n} · {date}',

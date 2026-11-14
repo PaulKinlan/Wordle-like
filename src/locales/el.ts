@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "δοκιμάστηκε, σωστή θέση εδώ",
   "share": "Κοινοποίηση",
   "newWord": "Νέα λέξη",
+  "skip": "Παράλειψη",
+  "skip.confirm": "Παράλειψη; Πατήστε ξανά",
   "playUnlimited": "Παίξε απεριόριστα",
 
   "sub.daily": "Αρ. {n} · {date}",

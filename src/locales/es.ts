@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "ya probada, va aquí",
   "share": "Compartir",
   "newWord": "Nueva palabra",
+  "skip": "Saltar",
+  "skip.confirm": "¿Saltar? Toca otra vez",
   "playUnlimited": "Jugar ilimitado",
   "sub.daily": "N.º {n} · {date}",
   "sub.unlimited": "Juega tantas como quieras",

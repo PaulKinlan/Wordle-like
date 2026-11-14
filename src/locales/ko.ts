@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "시도함, 이 자리가 맞음",
   "share": "공유",
   "newWord": "새 단어",
+  "skip": "건너뛰기",
+  "skip.confirm": "건너뛸까요? 한 번 더 누르세요",
   "playUnlimited": "무제한으로 하기",
 
   "sub.daily": "{n}번 · {date}",

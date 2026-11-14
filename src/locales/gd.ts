@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "air fheuchainn, san àite seo",
   "share": "Co-roinn",
   "newWord": "Facal ùr",
+  "skip": "Leum",
+  "skip.confirm": "Leum? Thoir gnogag eile",
   "playUnlimited": "Cluich gun chrìoch",
 
   "sub.daily": "Àir. {n} · {date}",
