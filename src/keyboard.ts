@@ -25,17 +25,24 @@ export interface EntryOptions {
   normalize: (text: string) => string;
   onChange: (letters: string) => void;
   onSubmit: () => void;
+  /** Called when typing is switched on or off (the game ended, a race is waiting...). */
+  onEnabled?: (on: boolean) => void;
 }
 
 export class NativeEntry {
   private maxLength = 5;
   private enabled = true;
+  /** The letters typed so far, one per tile. */
+  private letters = '';
+  /** The game's own on-screen keyboard is on: never raise the phone's. */
+  private ownKeyboard = false;
 
   constructor(private o: EntryOptions) {
     const { input, form } = o;
     input.addEventListener('input', (e) => {
       if ((e as InputEvent).isComposing) {
-        o.onChange(this.clean(input.value));
+        this.letters = this.clean(input.value);
+        o.onChange(this.letters);
         return;
       }
       this.sync();
@@ -83,13 +90,67 @@ export class NativeEntry {
   }
 
   setEnabled(on: boolean) {
+    const changed = on !== this.enabled;
     this.enabled = on;
     if (!on) this.hideKeyboard();
     this.o.input.readOnly = !on;
-    // inputmode="none" tells the browser this field never wants a keyboard,
-    // which takes it down on Android even if hide() was missed.
-    if (on) this.o.input.removeAttribute('inputmode');
+    this.syncInputMode();
+    if (changed) this.o.onEnabled?.(on);
+  }
+
+  get isEnabled() {
+    return this.enabled;
+  }
+
+  /** With the game's own keyboard, the phone's keyboard never comes up (a physical one still works). */
+  setOwnKeyboard(on: boolean) {
+    this.ownKeyboard = on;
+    if (on) this.hideKeyboard();
+    this.syncInputMode();
+  }
+
+  // inputmode="none" tells the browser this field never wants a keyboard,
+  // which takes it down on Android even if hide() was missed.
+  private syncInputMode() {
+    if (this.enabled && !this.ownKeyboard) this.o.input.removeAttribute('inputmode');
     else this.o.input.inputMode = 'none';
+  }
+
+  // ---- the on-screen keyboard types through these
+
+  /** Adds one tile's letter. */
+  type(letter: string) {
+    if (!this.enabled) return;
+    this.commit(this.letters + letter);
+  }
+
+  /** Removes the last tile. */
+  backspace() {
+    if (!this.enabled) return;
+    this.commit([...this.letters].slice(0, -1).join(''));
+  }
+
+  /** Swaps the last tile's letter (Japanese mark key). */
+  replaceLast(change: (letter: string) => string) {
+    const tiles = [...this.letters];
+    if (!this.enabled || !tiles.length) return;
+    tiles.push(change(tiles.pop()!));
+    this.commit(tiles.join(''));
+  }
+
+  submit() {
+    if (this.enabled) this.o.onSubmit();
+  }
+
+  /**
+   * Sets the tiles directly, without re-reading the field: a Welsh n then g
+   * tapped as two keys stays two tiles, where typed text would join them.
+   */
+  private commit(letters: string) {
+    this.letters = [...letters].slice(0, this.maxLength).join('');
+    this.o.input.value = expandWord(this.letters);
+    this.caretToEnd();
+    this.o.onChange(this.letters);
   }
 
   /**
@@ -118,12 +179,14 @@ export class NativeEntry {
 
   clear() {
     this.o.input.value = '';
+    this.letters = '';
     this.o.onChange('');
   }
 
   /** Focuses the field; with showKeyboard, also raises the on-screen keyboard. */
   focus(showKeyboard: boolean) {
     if (!this.enabled) return;
+    if (this.ownKeyboard) showKeyboard = false;
     this.o.input.focus({ preventScroll: true });
     if (showKeyboard) {
       this.raising = true;
@@ -143,6 +206,7 @@ export class NativeEntry {
     const text = expandWord(letters);
     if (input.value !== text) input.value = text;
     this.caretToEnd();
+    this.letters = letters;
     this.o.onChange(letters);
   }
 

@@ -3,7 +3,8 @@ import { dailyNumber, localDate } from '../shared/daily';
 import { checkHardMode, normalizeWord, type HardModeViolation } from '../shared/game';
 import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../shared/languages';
 import { api, ApiError } from './api';
-import { Board, renderTracker, setTileLocale, setTypingHints, toUpper } from './board';
+import { Board, onTrackerUpdate, renderTracker, setTileLocale, setTypingHints, toUpper } from './board';
+import { OnScreenKeyboard } from './osk';
 import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
@@ -75,7 +76,21 @@ const entry = new NativeEntry({
     draw();
   },
   onSubmit: () => (race.isActive ? race.submit() : void submit()),
+  onEnabled: () => syncOsk(),
 });
+
+// The game's own keyboard (Settings, off by default). Shown only while typing is possible.
+const osk = new OnScreenKeyboard($('osk'), entry);
+onTrackerUpdate((code, best) => {
+  osk.setLanguage(code);
+  osk.paint(best);
+});
+function syncOsk() {
+  const on = settings.onScreenKeyboard === true;
+  document.body.classList.toggle('osk-on', on);
+  entry.setOwnKeyboard(on);
+  $('osk').hidden = !on || !entry.isEnabled;
+}
 
 const race = new RaceClient({
   board,
@@ -562,6 +577,16 @@ setHintsBox.addEventListener('change', () => {
   setTypingHints(setHintsBox.checked);
   if (race.isActive) race.redraw();
   else draw(true);
+});
+
+const setOskBox = $<HTMLInputElement>('set-osk');
+setOskBox.checked = settings.onScreenKeyboard === true;
+syncOsk();
+setOskBox.addEventListener('change', () => {
+  track('setting', { onScreenKeyboard: setOskBox.checked });
+  settings.onScreenKeyboard = setOskBox.checked;
+  saveSettings(settings);
+  syncOsk();
 });
 
 // Install button, where the browser offers one (Chrome, Edge, Samsung).

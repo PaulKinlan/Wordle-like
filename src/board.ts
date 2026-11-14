@@ -101,6 +101,7 @@ function setTile(t: HTMLDivElement, letter: string, state: Mark | 'filled' | '',
 /** Shows which letters have been tried, without being a keyboard. */
 export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) {
   const { best } = letterHints(rows);
+  trackerListener?.(tileLocale, best);
   if (el.childElementCount !== alphabet.length) {
     el.replaceChildren(
       ...alphabet.map((ch) => {
@@ -113,6 +114,13 @@ export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) 
   [...el.children].forEach((s, i) => {
     s.className = best.get(alphabet[i]) ?? '';
   });
+}
+
+let trackerListener: ((lang: string, best: Map<string, Mark>) => void) | undefined;
+
+/** Called whenever the used letters are redrawn: the on-screen keyboard colours its keys from it. */
+export function onTrackerUpdate(fn: typeof trackerListener) {
+  trackerListener = fn;
 }
 
 let showHints = true;
