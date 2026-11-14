@@ -95,3 +95,13 @@ describe('Japanese kana', () => {
     expect(normalizeWord('k手か', 'ja')).toBe('か');
   });
 });
+
+describe('Korean jamo', () => {
+  it('splits syllables into the keys typed for them', async () => {
+    const { normalizeWord, evaluate } = await import('./game');
+    expect(normalizeWord('한국', 'ko')).toBe('ㅎㅏㄴㄱㅜㄱ');
+    expect(normalizeWord('과일', 'ko')).toBe('ㄱㅗㅏㅇㅣㄹ');
+    expect(normalizeWord('ㄱㅗㅏㅇㅣㄹ', 'ko')).toBe('ㄱㅗㅏㅇㅣㄹ');
+    expect(evaluate(normalizeWord('한국', 'ko'), normalizeWord('한글', 'ko'))).toEqual(['correct', 'correct', 'correct', 'correct', 'absent', 'absent']);
+  });
+});

@@ -1,3 +1,5 @@
+import { HANGUL_KEYS } from './hangul';
+
 // Supported languages. Adding a language means adding an entry here and a
 // word list under worker/words/<code>/ (see worker/words.ts and
 // scripts/build-wordlists.mjs).
@@ -26,6 +28,8 @@ export interface LanguageInfo {
    * (see digraphChar), so everything that counts letters just works.
    */
   digraphs?: string[];
+  /** Korean: syllable blocks are split into the letters typed for them (see shared/hangul.ts). */
+  hangul?: boolean;
 }
 
 /** The single character a digraph is stored as: U+E000 onwards, in the order of DIGRAPHS. */
@@ -67,6 +71,7 @@ export const LANGUAGES: LanguageInfo[] = [
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', wordLength: 5, maxGuesses: 6, alphabet: 'abcçdefgğhıijklmnoöprsştuüvyz' },
   { code: 'el', name: 'Greek', nativeName: 'Ελληνικά', wordLength: 5, maxGuesses: 6, alphabet: 'αβγδεζηθικλμνξοπρστυφχψω', fold: { ς: 'σ' } },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', wordLength: 4, maxGuesses: 8, alphabet: HIRAGANA, fold: KATAKANA_FOLD },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', wordLength: 6, maxGuesses: 6, alphabet: HANGUL_KEYS, hangul: true },
 ];
 
 export const DEFAULT_LANGUAGE = 'en';

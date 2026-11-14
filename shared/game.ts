@@ -71,6 +71,7 @@ export function describeViolation(v: HardModeViolation): string {
   return v.count > 1 ? `Guess must contain ${v.count} × ${L}` : `Guess must contain ${L}`;
 }
 
+import { splitHangul } from './hangul';
 import { digraphChar, DIGRAPHS, getLanguage } from './languages';
 
 const alphabets = new Map<string, Set<string>>();
@@ -89,6 +90,7 @@ export function normalizeWord(input: string, lang: string): string {
     alphabets.set(lang, alphabet);
   }
   const fold = getLanguage(lang)?.fold;
+  if (getLanguage(lang)?.hangul) input = splitHangul(input);
   let out = '';
   for (let ch of input.normalize('NFC').toLocaleLowerCase(lang)) {
     ch = fold?.[ch] ?? ch;
