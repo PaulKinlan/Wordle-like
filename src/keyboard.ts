@@ -118,8 +118,8 @@ export class NativeEntry {
 
   setEnabled(on: boolean): Promise<void> {
     const { input } = this.o;
+    if (this.enabled !== on) debugLog('kb enabled', on, { focused: document.activeElement === input, vk: vkHeight() });
     this.enabled = on;
-    debugLog('kb enabled', on, { focused: document.activeElement === input, vk: vkHeight() });
     if (on) {
       input.disabled = false;
       input.readOnly = false;
@@ -156,12 +156,12 @@ export class NativeEntry {
   hideKeyboard(): Promise<void> {
     const { input } = this.o;
     const focused = document.activeElement === input;
-    debugLog('kb hide start', { focused, vk: vkHeight(), active: describe(document.activeElement), gesture: gesture() });
     if (this.hiding) return this.hiding;
     if (!focused && !(vkHeight() > 0)) {
       if (!this.enabled) this.lockField();
-      return Promise.resolve();
+      return Promise.resolve(); // nothing to put away (not logged: every tap lands here)
     }
+    debugLog('kb hide start', { focused, vk: vkHeight(), active: describe(document.activeElement), gesture: gesture() });
     input.readOnly = false;
     if (!focused) {
       if (!this.enabled) input.inputMode = 'none';

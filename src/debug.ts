@@ -40,6 +40,15 @@ function saveLines() {
   }, 200);
 }
 let pre: HTMLPreElement | null = null;
+let title: HTMLSpanElement | null = null;
+
+function render() {
+  if (title) title.textContent = `Debug log (${lines.length})`;
+  if (!pre) return;
+  const atEnd = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 4;
+  pre.textContent = lines.join('\n');
+  if (atEnd) pre.scrollTop = pre.scrollHeight;
+}
 
 function enabled(): boolean {
   try {
@@ -64,7 +73,7 @@ export function debugLog(...parts: unknown[]) {
   pending.push(line);
   if (lines.length > MAX_LINES) lines.splice(0, lines.length - MAX_LINES);
   saveLines();
-  if (pre) pre.textContent = lines.join('\n');
+  render();
 }
 
 export function initDebug() {
@@ -73,9 +82,21 @@ export function initDebug() {
   if (!on) return;
   const panel = document.createElement('details');
   panel.className = 'debug-panel';
-  panel.open = true;
+  // Starts folded to one small bar, so it never covers the board. The Show
+  // button (not the whole bar) opens it, so a stray tap doesn't.
+  panel.open = false;
   const summary = document.createElement('summary');
-  summary.textContent = 'Debug log';
+  summary.addEventListener('click', (e) => e.preventDefault());
+  title = document.createElement('span');
+  title.className = 'debug-title';
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.textContent = 'Show';
+  toggle.addEventListener('click', () => {
+    panel.open = !panel.open;
+    toggle.textContent = panel.open ? 'Hide' : 'Show';
+    if (panel.open && pre) pre.scrollTop = pre.scrollHeight;
+  });
   const copy = document.createElement('button');
   copy.type = 'button';
   copy.textContent = 'Copy';
@@ -87,7 +108,13 @@ export function initDebug() {
     } catch {
       /* use this tab's lines */
     }
-    void navigator.clipboard?.writeText(all.join('\n')).catch(() => undefined);
+    void navigator.clipboard
+      ?.writeText(all.join('\n'))
+      .then(() => {
+        copy.textContent = 'Copied';
+        setTimeout(() => (copy.textContent = 'Copy'), 1500);
+      })
+      .catch(() => undefined);
   });
   const close = document.createElement('button');
   close.type = 'button';
@@ -111,11 +138,12 @@ export function initDebug() {
     } catch {
       /* ignore */
     }
-    if (pre) pre.textContent = '';
+    render();
   });
-  summary.append(' ', copy, ' ', clear, ' ', close);
+  summary.append(title, toggle, copy, clear, close);
   pre = document.createElement('pre');
   panel.append(summary, pre);
+  render();
   document.body.append(panel);
   addEventListener('error', (e) => debugLog('error:', e.message, `${e.filename}:${e.lineno}`));
   addEventListener('unhandledrejection', (e) => debugLog('unhandled:', e.reason));
