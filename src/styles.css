@@ -451,19 +451,26 @@ body.typing .type-hint {
 /* ------------------------------------------------------------ dialogs */
 
 dialog.sheet {
+  --pad: 24px;
   width: min(440px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
   border: 0;
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 0;
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
+  overscroll-behavior: contain;
+}
+
+/* The dialog itself takes focus when it opens, so no ring on it. */
+dialog.sheet:focus {
+  outline: none;
 }
 
 dialog.sheet::backdrop {
-  background: rgb(0 0 0 / 0.35);
-  backdrop-filter: blur(3px);
+  background: rgb(0 0 0 / 0.4);
+  backdrop-filter: blur(4px);
 }
 
 dialog.sheet[open] {
@@ -477,27 +484,67 @@ dialog.sheet[open] {
   }
 }
 
-dialog.sheet form {
-  padding: 8px 20px 20px;
+html:has(dialog[open]) {
+  overflow: hidden;
 }
 
-dialog.sheet header {
+dialog.sheet form {
+  padding: var(--pad);
+}
+
+.sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
 }
 
 dialog.sheet h2 {
-  font-size: 1.15rem;
-  margin: 8px 0;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  /* Pull the button out so the X itself lines up with the content edge. */
+  margin: -4px -6px -4px 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: var(--muted);
+}
+
+.close:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+}
+
+.close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+dialog.sheet p:first-of-type {
+  margin-top: 0;
 }
 
 dialog.sheet h3 {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--muted);
-  margin: 20px 0 8px;
+  margin: 24px 0 10px;
 }
 
 dialog.sheet p,
@@ -528,11 +575,11 @@ dialog.sheet li {
 .fineprint {
   color: var(--muted);
   font-size: 0.85rem;
-  margin: 0 0 12px;
+  margin: 0 0 16px;
 }
 
 .fineprint {
-  margin: 16px 0 0;
+  margin: 20px 0 0;
 }
 
 .stats-grid {
@@ -591,6 +638,7 @@ dialog.sheet li {
 
 .setting:last-child {
   border-bottom: 0;
+  padding-bottom: 0;
 }
 
 .setting small {
@@ -651,4 +699,8 @@ dialog.sheet li {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.close:focus-visible {
+  outline-offset: 1px;
 }
