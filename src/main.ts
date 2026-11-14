@@ -421,7 +421,7 @@ async function share() {
           { won: t('card.won'), lost: t('card.lost'), play: t('card.play', { host: location.host }) },
           streak,
         ) : null;
-    const file = blob ? new File([blob], 'letterly.png', { type: 'image/png' }) : null;
+    const file = blob ? new File([blob], 'letterle.png', { type: 'image/png' }) : null;
     if (file && navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file], text });
       return;

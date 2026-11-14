@@ -69,7 +69,7 @@ describe('VAPID keys', () => {
     const a = await getVapidKeys(env, 'https://letterly.example');
     const b = await getVapidKeys(env, 'https://other.example');
     expect(a).toEqual(b);
-    expect(a!.subject).toBe('https://letterly.example');
+    expect(a!.subject).toBe('https://letterle.app');
     expect(fromB64url(a!.publicKey)).toHaveLength(65);
     expect(await getVapidKeys(env)).toEqual(a);
     expect(await vapidAuthorization('https://fcm.googleapis.com/fcm/send/x', a!)).toMatch(/^vapid t=/);

@@ -22,17 +22,17 @@ const game: SavedGame = {
 describe('shareText', () => {
   it('shows the score and grid without letters', () => {
     const text = shareText(game, false, 'https://example.dev');
-    expect(text).toBe('Letterly #1 2/6 (hard)\n\n⬛🟩⬛⬛🟨\n🟩🟩🟩🟩🟩\n\nhttps://example.dev');
+    expect(text).toBe('Letterle #1 2/6 (hard)\n\n⬛🟩⬛⬛🟨\n🟩🟩🟩🟩🟩\n\nhttps://example.dev');
     expect(text).not.toMatch(/crane|brief/i);
   });
   it('marks a loss with X and uses high contrast squares', () => {
     const text = shareText({ ...game, status: 'lost', hard: false, mode: 'unlimited' }, true, 'u');
-    expect(text.split('\n')[0]).toBe('Letterly Unlimited X/6');
+    expect(text.split('\n')[0]).toBe('Letterle Unlimited X/6');
     expect(text).toContain('⬛🟧⬛⬛🟦');
   });
   it('adds the daily streak, and the language when not English', () => {
     const text = shareText({ ...game, lang: 'es' }, false, 'u', 5);
-    expect(text.split('\n').slice(0, 2)).toEqual(['Letterly ES #1 2/6 (hard)', '🔥 5 day streak']);
+    expect(text.split('\n').slice(0, 2)).toEqual(['Letterle ES #1 2/6 (hard)', '🔥 5 day streak']);
     expect(shareText(game, false, 'u', 1)).not.toContain('🔥');
     expect(shareText({ ...game, mode: 'unlimited' }, false, 'u', 9)).not.toContain('🔥');
   });

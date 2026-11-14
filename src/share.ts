@@ -1,7 +1,7 @@
 import type { Mark } from '../shared/game';
 import type { SavedGame } from './storage';
 
-const APP_NAME = 'Letterly';
+const APP_NAME = 'Letterle';
 
 const SQUARES: Record<'normal' | 'contrast', Record<Mark, string>> = {
   normal: { correct: '🟩', present: '🟨', absent: '⬛' },

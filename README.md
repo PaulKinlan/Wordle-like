@@ -1,4 +1,4 @@
-# Letterly
+# Letterle
 
 A daily five-letter word game for friends. No ads, no tracking, no on-screen
 keyboard: you type with your phone's own keyboard, one letter per tile.
@@ -22,8 +22,8 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
 - **Stats**: played, win rate, streaks and guess distribution, kept on your device.
 - **Installable PWA** that opens offline, with a strict Content Security Policy.
 
-The name "Letterly" is a placeholder; change it in `index.html`,
-`public/manifest.webmanifest` and `public/icons/icon.svg`.
+The game is Letterle, at https://letterle.app. The name appears in `index.html`,
+`public/manifest.webmanifest`, the locale files and the share card.
 
 ## How it fits together
 
@@ -121,13 +121,13 @@ Encryption (RFC 8291) and VAPID signing (RFC 8292) are done with WebCrypto in
 `worker/webpush.ts`, with no dependencies. The Worker only sends to the
 browser push services (Google, Mozilla, Apple, Microsoft).
 
-On iPhone and iPad, web push only works once Letterly is added to the Home
+On iPhone and iPad, web push only works once Letterle is added to the Home
 Screen; the setting says so.
 
 **Setup: none.** On the first request to `/api/v1/push/key`, the Worker makes
 its own VAPID key pair with WebCrypto and stores it in D1 (`push_config`). The
 private key never leaves the Worker; only the public key is served. The VAPID
-subject (the contact push services see) is the site's own URL. Keep the D1
+subject (the contact push services see) is https://letterle.app. Keep the D1
 database: if the keys are lost, everyone has to turn reminders off and on
 again.
 

@@ -34,12 +34,13 @@ const PUSH_HOSTS = [
 
 const MAX_SUBSCRIPTIONS = 5000;
 
-const FALLBACK_SUBJECT = 'https://github.com/PaulKinlan/Wordle-like';
+/** The site's home, used as the VAPID contact unless VAPID_SUBJECT is set. */
+export const SITE_URL = 'https://letterle.app';
 
 interface StoredVapid {
   publicKey: string;
   privateKey: string;
-  /** The site's origin when the keys were made, used as the VAPID subject. */
+  /** The site's origin when the keys were made (kept for reference). */
   origin?: string;
 }
 
@@ -75,7 +76,7 @@ export async function getVapidKeys(env: PushEnv, origin?: string): Promise<Vapid
     return {
       publicKey: env.VAPID_PUBLIC_KEY.trim(),
       privateKey: env.VAPID_PRIVATE_KEY.trim(),
-      subject: subject || origin || FALLBACK_SUBJECT,
+      subject: subject || SITE_URL,
     };
   }
   await ensureConfigTable(env.DB);
@@ -92,7 +93,7 @@ export async function getVapidKeys(env: PushEnv, origin?: string): Promise<Vapid
   return {
     publicKey: stored.publicKey,
     privateKey: stored.privateKey,
-    subject: subject || stored.origin || FALLBACK_SUBJECT,
+    subject: subject || SITE_URL,
   };
 }
 
@@ -282,7 +283,7 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
       status = await sendPush(
         { endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth },
         {
-          title: 'Letterly',
+          title: 'Letterle',
           body: (REMINDER[row.ui ?? 'en'] ?? REMINDER.en)(number, row.lang !== 'en' && name ? ` (${name})` : ''),
           url: '/',
           tag: 'daily',
