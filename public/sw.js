@@ -3,7 +3,7 @@
 // - API: always from the network, except the word list, which is cached so
 //   guesses can be checked instantly.
 // Bump VERSION to drop old caches.
-const VERSION = 'v2';
+const VERSION = 'v4';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
@@ -80,25 +80,55 @@ self.addEventListener('push', (event) => {
       body: data.body || "Today's word is ready",
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
+      // A big picture under the text, where supported (Chrome on Android,
+      // Windows and ChromeOS). Others just ignore it.
+      image: data.image || '/og.png',
       tag: data.tag || 'daily',
       data: { url: data.url || '/' },
+      // Buttons, where supported (Android shows the first two).
+      actions: data.actions
+        ? [
+            { action: 'play', title: data.actions.play },
+            { action: 'snooze', title: data.actions.snooze },
+            { action: 'race', title: data.actions.race },
+          ].slice(0, self.Notification?.maxActions ?? 3)
+        : [],
     }),
   );
 });
 
-// Tapping the notification opens the game, or focuses it if it's open.
+// Tapping the notification (or Play) opens today's word; Race opens the race
+// lobby; Snooze asks the server to send it again in about an hour.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  if (event.action === 'snooze') {
+    event.waitUntil(snooze());
+    return;
+  }
+  const play = event.action === 'race' ? 'race' : 'daily';
+  const url = new URL(`/?play=${play}`, self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const client of list) {
-        if (new URL(client.url).origin === self.location.origin && 'focus' in client) return client.focus();
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          client.postMessage({ type: 'play', play });
+          return client.focus();
+        }
       }
       return self.clients.openWindow(url);
     }),
   );
 });
+
+async function snooze() {
+  const sub = await self.registration.pushManager.getSubscription();
+  if (!sub) return;
+  await fetch('/api/v1/push/snooze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint: sub.endpoint }),
+  }).catch(() => undefined);
+}
 
 // The browser can rotate a subscription; keep the server's copy current.
 self.addEventListener('pushsubscriptionchange', (event) => {

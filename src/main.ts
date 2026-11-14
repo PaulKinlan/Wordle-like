@@ -615,10 +615,29 @@ async function init() {
     openRace(invited);
     return;
   }
+  // A reminder's buttons open /?play=daily or /?play=race.
+  const play = new URLSearchParams(location.search).get('play');
+  if (play === 'daily' || play === 'race') {
+    history.replaceState(null, '', location.pathname);
+    openFromReminder(play);
+    return;
+  }
   // On a computer, be ready to type straight away. Phones wait for a tap.
   if (matchMedia('(pointer: fine)').matches) entry.focus(false);
   if (firstVisit()) openDialog('dlg-help');
 }
+
+function openFromReminder(play: 'daily' | 'race') {
+  for (const dlg of document.querySelectorAll<HTMLDialogElement>('dialog[open]')) dlg.close();
+  if (play === 'race') openRace();
+  else void startMode('daily');
+}
+
+// The service worker asks an open tab to show what a reminder button picked.
+navigator.serviceWorker?.addEventListener('message', (e: MessageEvent) => {
+  const play = (e.data as { type?: string; play?: string } | null)?.play;
+  if ((e.data as { type?: string })?.type === 'play' && (play === 'daily' || play === 'race')) openFromReminder(play);
+});
 
 function firstVisit() {
   try {

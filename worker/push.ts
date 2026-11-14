@@ -151,9 +151,25 @@ async function ensureTable(db: D1Database) {
   if (!migrated) {
     // Added after the first release: the interface language for the message.
     await db.prepare('ALTER TABLE push_subs ADD COLUMN ui TEXT').run().catch(() => undefined);
+    // Snooze: when (ms since epoch) to send today's reminder again.
+    await db.prepare('ALTER TABLE push_subs ADD COLUMN snooze_until INTEGER').run().catch(() => undefined);
     migrated = true;
   }
 }
+
+/** Labels for the notification's buttons, in each interface language. */
+const ACTIONS: Record<string, { play: string; snooze: string; race: string }> = {
+  en: { play: 'Play', snooze: 'Snooze 1 hour', race: 'Race a friend' },
+  es: { play: 'Jugar', snooze: 'Posponer 1 hora', race: 'Reta a un amigo' },
+  fr: { play: 'Jouer', snooze: 'Rappeler dans 1 h', race: 'Défier un ami' },
+  de: { play: 'Spielen', snooze: '1 Stunde später', race: 'Freunde herausfordern' },
+  it: { play: 'Gioca', snooze: 'Rimanda di 1 ora', race: 'Sfida un amico' },
+  pt: { play: 'Jogar', snooze: 'Adiar 1 hora', race: 'Desafiar um amigo' },
+  nl: { play: 'Spelen', snooze: 'Over 1 uur', race: 'Daag iemand uit' },
+};
+
+/** A snoozed reminder goes out on the first hourly run at least this long after. */
+export const SNOOZE_MS = 55 * 60 * 1000;
 
 /** The reminder text in each interface language. */
 const REMINDER: Record<string, (n: number | null, name: string) => string> = {
@@ -229,7 +245,17 @@ export async function handlePush(
     if (typeof body.endpoint !== 'string' || typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
       return error(400, 'bad_request', 'Missing endpoint or date');
     }
-    await env.DB.prepare('UPDATE push_subs SET last_sent = ?2 WHERE endpoint = ?1').bind(body.endpoint, body.date).run();
+    await env.DB.prepare('UPDATE push_subs SET last_sent = ?2, snooze_until = NULL WHERE endpoint = ?1')
+      .bind(body.endpoint, body.date)
+      .run();
+    return json({ ok: true });
+  }
+
+  if (action === 'snooze') {
+    if (typeof body.endpoint !== 'string') return error(400, 'bad_request', 'Missing endpoint');
+    await env.DB.prepare('UPDATE push_subs SET snooze_until = ?2 WHERE endpoint = ?1')
+      .bind(body.endpoint, Date.now() + SNOOZE_MS)
+      .run();
     return json({ ok: true });
   }
 
@@ -251,6 +277,7 @@ interface SubRow {
   lang: string;
   last_sent: string | null;
   ui?: string | null;
+  snooze_until?: number | null;
 }
 
 /** Which subscribers are due now: their chosen hour, not yet sent today. */
@@ -260,6 +287,8 @@ export function due(rows: SubRow[], now: Date): { row: SubRow; date: string }[] 
     const t = localTime(isTimeZone(row.tz) ? row.tz : 'UTC', now);
     // At or after their hour (so a missed cron run catches up), once a day.
     if (t.hour >= row.hour && row.last_sent !== t.date) out.push({ row, date: t.date });
+    // Or again today, once a snooze runs out.
+    else if (row.snooze_until && now.getTime() >= row.snooze_until) out.push({ row, date: t.date });
   }
   return out;
 }
@@ -286,7 +315,9 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
           title: 'Letterle',
           body: (REMINDER[row.ui ?? 'en'] ?? REMINDER.en)(number, row.lang !== 'en' && name ? ` (${name})` : ''),
           url: '/',
+          image: '/og.png',
           tag: 'daily',
+          actions: ACTIONS[row.ui ?? 'en'] ?? ACTIONS.en,
         },
         keys,
         { topic: 'daily', ttl: 12 * 3600 },
@@ -300,7 +331,7 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
       removed++;
     } else {
       // Mark as sent even on other errors, so a broken subscription isn't retried every hour.
-      await env.DB.prepare('UPDATE push_subs SET last_sent = ?2 WHERE endpoint = ?1').bind(row.endpoint, date).run();
+      await env.DB.prepare('UPDATE push_subs SET last_sent = ?2, snooze_until = NULL WHERE endpoint = ?1').bind(row.endpoint, date).run();
       if (status >= 200 && status < 300) sent++;
       else if (status) console.warn('push status', status, new URL(row.endpoint).host);
     }
