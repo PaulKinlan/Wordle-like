@@ -1069,3 +1069,4 @@ dialog.sheet li {
   font-size: 0.9rem;
 }
 .help-bug a { color: inherit; }
+.secondary.small { padding: 6px 14px; flex: none; color: inherit; font: inherit; font-weight: 700; }

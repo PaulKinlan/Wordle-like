@@ -192,6 +192,10 @@
           <span><strong data-i18n="settings.contrast">High contrast colours</strong><small data-i18n="settings.contrastNote">Easier to tell apart for colour vision deficiency</small></span>
           <input type="checkbox" class="switch" id="set-contrast" />
         </label>
+        <label class="setting" id="haptics-row" hidden>
+          <span><strong data-i18n="settings.haptics">Vibration</strong><small data-i18n="settings.hapticsNote">A light buzz as tiles flip and when you win</small></span>
+          <input type="checkbox" class="switch" id="set-haptics" />
+        </label>
         <label class="setting">
           <span><strong data-i18n="settings.lang">Word language</strong><small data-i18n="settings.langNote">Word list for new games</small></span>
           <select id="set-lang"></select>
@@ -208,6 +212,10 @@
           <span><strong data-i18n="settings.pushTime">Reminder time</strong><small data-i18n="settings.pushTimeNote">Skipped on days you've already played</small></span>
           <select id="set-push-hour"></select>
         </label>
+        <div class="setting" id="install-row" hidden>
+          <span><strong data-i18n="settings.install">Install the app</strong><small data-i18n="settings.installNote">Open Letterle from your home screen, even offline</small></span>
+          <button type="button" class="secondary small" id="btn-install" data-i18n="settings.installButton">Install</button>
+        </div>
         <p class="app-version"><a id="app-version" target="_blank" rel="noopener"></a></p>
       </form>
     </dialog>

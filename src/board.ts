@@ -1,6 +1,7 @@
 import type { Mark } from '../shared/game';
 import { t as tr } from './i18n';
 import type { Row } from './storage';
+import { haptics } from './pwa';
 
 /** Draws the grid of tiles. Rebuilt only when the puzzle shape changes. */
 export class Board {
@@ -55,6 +56,7 @@ export class Board {
   async reveal(r: number) {
     const tiles = this.tiles[r];
     if (!tiles) return;
+    haptics.reveal(tiles.length);
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return;
     tiles.forEach((t, i) => {
@@ -70,12 +72,14 @@ export class Board {
   shake(r: number) {
     const row = this.rowEls[r];
     if (!row) return;
+    haptics.reject();
     row.classList.remove('shake');
     void row.offsetWidth;
     row.classList.add('shake');
   }
 
   bounce(r: number) {
+    haptics.win();
     this.tiles[r]?.forEach((t, i) => {
       t.style.setProperty('--i', String(i));
       t.classList.add('bounce');
