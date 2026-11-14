@@ -24,7 +24,24 @@ public/                 static files: _headers (CSP), manifest, service worker, 
 The Worker is the source of truth. The client never sees the answer until the
 game ends: each guess is sent with the earlier guesses to `/api/v1/<lang>/play`,
 which checks the word list and hard mode and returns the colours. The server
-keeps no game state, so there's no database to run.
+keeps no game state.
+
+### Keeping the answers private
+
+The repo is public, so it never contains the answers in order. It only has the
+*candidate* words. The first time a language is played, the Worker shuffles
+those candidates at random and stores the order in a D1 database. Daily puzzle
+*N* is row *N − 1* in that order, and an unlimited puzzle's random token picks a
+row. Nobody can work out a day's word from the code, and there's no secret to set.
+
+The D1 database is created automatically on the first deploy (the binding in
+`wrangler.jsonc` has no `database_id`), and the Worker creates its tables and
+fills them on the first request. Local dev gets its own local database and its
+own shuffle.
+
+A future **offline mode** would be a separate mode that ships its own word list
+to the client and picks words on the device. It would never use the daily order,
+so Daily stays server-only.
 
 ### API
 
@@ -38,14 +55,13 @@ All routes are under `/api/v1` and keyed by language code (only `en` today).
 | `GET /:lang/words` | Every accepted guess (cached by the service worker for instant checks) |
 | `POST /:lang/play` | `{ puzzle, guesses, hard }` → `{ rows, status, answer? }` |
 
-Puzzle ids are `d:<date>` (daily) or `r:<16 hex>` (unlimited). The answer is
-picked from the id mixed with the `PUZZLE_SECRET` secret, so it can't be worked
-out from the public word list. Daily puzzle #1 is 14 November 2026.
+Puzzle ids are `d:<date>` (daily) or `r:<16 hex>` (unlimited). Daily puzzle #1
+is 14 November 2026.
 
 ### Word lists
 
-`worker/words/<lang>/answers.json` (possible answers) and `allowed.json`
-(other accepted guesses). English comes from SCOWL via `wordlist-english`;
+`worker/words/<lang>/candidates.json` (words that can be an answer) and
+`allowed.json` (other accepted guesses). English comes from SCOWL via `wordlist-english`;
 rebuild with `npm run words`. To add a language later: add it to
 `shared/languages.ts`, add its two lists, and import them in `worker/words.ts`.
 
@@ -87,31 +103,15 @@ npm run preview    # production build served by wrangler
 
 ## Deploy
 
-Every push to `main` deploys to `https://wordle-like.<your-subdomain>.workers.dev`.
-Pick **one** of these:
+Every push to GitHub deploys through **Cloudflare Workers Builds**, which is
+connected to this repo in the Cloudflare dashboard. Pushes to `main` go to
+production at `https://wordle-like.<your-subdomain>.workers.dev`, and pull
+requests get a preview build. No API tokens or GitHub secrets are needed.
 
-**Option A: GitHub Actions (already set up in `.github/workflows/ci.yml`).**
-Add two repository secrets under *Settings → Secrets and variables → Actions*:
-
-- `CLOUDFLARE_ACCOUNT_ID`: from the Cloudflare dashboard, *Workers & Pages* sidebar.
-- `CLOUDFLARE_API_TOKEN`: create at *My Profile → API Tokens* with the
-  **Edit Cloudflare Workers** template.
-
-Until both exist, the deploy job is skipped and only the checks run.
-
-**Option B: Cloudflare Workers Builds (no GitHub secrets).** In the dashboard,
-*Workers & Pages → Create → Import a repository* and pick this repo. The default
-deploy command (`npx wrangler deploy`) works as is: `wrangler.jsonc` has a
-`build.command` that runs the Vite build first, so no build command is needed.
-If you use this, don't add the GitHub secrets, so the Actions deploy job stays
-skipped and nothing deploys twice.
-
-**Then, once:** set the puzzle secret so answers can't be predicted from the
-public repo (any long random string; changing it later changes every answer):
-
-```sh
-npx wrangler secret put PUZZLE_SECRET
-```
+The default deploy command (`npx wrangler deploy`) works as is:
+`wrangler.jsonc` has a `build.command` that runs the Vite build first, so the
+build command in the dashboard can stay empty. GitHub Actions only runs checks
+(typecheck, tests, build).
 
 To use a custom domain later, add it under the Worker's *Settings → Domains & Routes*.
 
@@ -120,5 +120,5 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 - **More languages**: the API, storage keys, stats and picker are already per language.
 - **Multiplayer**: add a Durable Object for rooms under `/api/v1/rooms/*`;
   `shared/game.ts` already scores guesses on the server.
-- **Push notifications**: add a subscriptions store, VAPID keys as Worker
+- **Push notifications**: store subscriptions in the same D1 database, VAPID keys as Worker
   secrets, a cron trigger in `wrangler.jsonc`, and a `push` handler in `public/sw.js`.
