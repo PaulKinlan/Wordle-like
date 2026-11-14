@@ -83,42 +83,72 @@ export class NativeEntry {
   }
 
   setEnabled(on: boolean) {
+    const { input } = this.o;
+    const was = this.enabled;
     this.enabled = on;
-    if (!on) this.hideKeyboard();
-    this.o.input.readOnly = !on;
+    if (on) {
+      input.readOnly = false;
+      input.removeAttribute('inputmode');
+      input.setAttribute('virtualkeyboardpolicy', 'manual');
+      return;
+    }
     // inputmode="none" tells the browser this field never wants a keyboard,
     // which takes it down on Android even if hide() was missed.
-    if (on) this.o.input.removeAttribute('inputmode');
-    else this.o.input.inputMode = 'none';
+    input.inputMode = 'none';
+    void this.hideKeyboard();
+    input.readOnly = true;
+    // Android can bring the keyboard back a moment later, when the keyboard
+    // app catches up with the Enter press or the field being cleared: check
+    // again once that has settled.
+    if (was) setTimeout(() => void this.hideKeyboard(), 400);
+  }
+
+  /** Whether the on-screen keyboard is up, as far as the browser can tell. */
+  private keyboardUp() {
+    return document.activeElement === this.o.input || !!(vk && vk.boundingRect.height > 0);
   }
 
   /**
-   * Puts the on-screen keyboard away. With virtualkeyboardpolicy="manual",
-   * hide() only works while the field is focused and editable, and blur()
-   * alone leaves the keyboard up. So: hide while focused, then blur a frame
-   * later, once the browser has acted on it. Where the VirtualKeyboard API
-   * exists, focusing doesn't raise the keyboard (manual policy), so this also
-   * refocuses briefly if focus has already moved on with the keyboard still up.
+   * Puts the on-screen keyboard away, and resolves once it has been asked to.
+   *
+   * With virtualkeyboardpolicy="manual" the browser never hides the keyboard
+   * by itself, not even on blur, and hide() only works while the field is
+   * focused and editable. So: hide while focused, then (when typing is off)
+   * switch the field to the "auto" policy and blur it a frame later, so the
+   * browser takes the keyboard down as it would for any other field. If focus
+   * has already moved on with the keyboard still up, refocus briefly first.
+   * Callers that move focus elsewhere (a dialog) should await this first:
+   * showModal() makes the field inert, and a hide() still pending is dropped.
    */
-  hideKeyboard() {
+  hideKeyboard(): Promise<void> {
     const { input } = this.o;
+    if (!this.keyboardUp()) return Promise.resolve();
     const focused = document.activeElement === input;
-    if (!focused && !(vk && vk.boundingRect.height > 0)) return;
     input.readOnly = false;
     if (!focused) input.focus({ preventScroll: true });
     vk?.hide();
-    requestAnimationFrame(() => {
-      if (document.activeElement === input && !this.raising) input.blur();
-      if (!this.enabled) input.readOnly = true;
-    });
+    return new Promise((resolve) =>
+      requestAnimationFrame(() => {
+        if (document.activeElement === input && !this.raising) {
+          if (!this.enabled) input.setAttribute('virtualkeyboardpolicy', 'auto');
+          input.blur();
+        }
+        if (!this.enabled) input.readOnly = true;
+        resolve();
+      }),
+    );
   }
 
   /** Set while focus(true) is raising the keyboard, so a pending hide doesn't undo it. */
   private raising = false;
 
   clear() {
-    this.o.input.value = '';
+    const { input } = this.o;
     this.o.onChange('');
+    // Changing a focused field's text makes Android restart the keyboard,
+    // which can bring it back up. Once typing is off, wait for the blur.
+    if (!this.enabled && document.activeElement === input) requestAnimationFrame(() => (input.value = ''));
+    else input.value = '';
   }
 
   /** Focuses the field; with showKeyboard, also raises the on-screen keyboard. */
