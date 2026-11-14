@@ -3,10 +3,13 @@
 //
 // Routes (all under /api/v1):
 //   GET  /languages            supported languages
-//   GET  /:lang/daily?date=    today's puzzle id for the player's local date
-//   POST /:lang/random         a new unlimited-play puzzle id
-//   GET  /:lang/words          every accepted guess, for instant validation
-//   POST /:lang/play           score guesses: { puzzle, guesses[], hard }
+//   GET  /:lang/daily?date=&hard=1   today's puzzle id for the player's local date
+//   POST /:lang/random?hard=1        a new unlimited-play puzzle id
+//   GET  /:lang/words                every accepted guess, for instant validation
+//   POST /:lang/play                 score guesses: { puzzle, guesses[] }
+//
+// Hard mode is part of the puzzle id: a rarely used answer, and revealed
+// hints must be reused.
 //
 // The answers are never in this code; see answers.ts.
 //
@@ -60,14 +63,15 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
 
   if (action === 'daily' && method === 'GET') {
     const date = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
-    const id = `d:${date}`;
+    const id = `d${url.searchParams.get('hard') === '1' ? 'h' : ''}:${date}`;
     const ref = parsePuzzleId(id);
     if (!ref) return error(400, 'bad_date', 'That date has no puzzle yet');
     return json({ puzzle: id, number: dailyNumber(date), date, ...shape(lang) });
   }
 
   if (action === 'random' && method === 'POST') {
-    return json({ puzzle: `r:${newRandomToken()}`, ...shape(lang) });
+    const prefix = url.searchParams.get('hard') === '1' ? 'rh' : 'r';
+    return json({ puzzle: `${prefix}:${newRandomToken()}`, ...shape(lang) });
   }
 
   if (action === 'words' && method === 'GET') {
@@ -75,7 +79,7 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
   }
 
   if (action === 'play' && method === 'POST') {
-    let body: { puzzle?: unknown; guesses?: unknown; hard?: unknown };
+    let body: { puzzle?: unknown; guesses?: unknown };
     try {
       body = await request.json();
     } catch {
@@ -86,8 +90,10 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
     if (!Array.isArray(body.guesses) || body.guesses.length < 1 || body.guesses.length > lang.maxGuesses) {
       return error(400, 'bad_request', 'Send between 1 and ' + lang.maxGuesses + ' guesses');
     }
-    const count = await answers.count(lang.code, list.candidates);
-    const answer = await answers.at(lang.code, answerIndex(ref, count));
+    // Each pool has its own private order: "en" and "en:rare".
+    const set = ref.hard ? `${lang.code}:rare` : lang.code;
+    const count = await answers.count(set, ref.hard ? list.rare : list.candidates);
+    const answer = await answers.at(set, answerIndex(ref, count));
     const rows: { guess: string; marks: Mark[] }[] = [];
     for (const raw of body.guesses) {
       const guess = typeof raw === 'string' ? normalizeWord(raw, lang.code) : '';
@@ -97,7 +103,7 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
       if (!list.guessable.has(guess)) {
         return error(422, 'not_in_list', 'Not in word list', { word: guess });
       }
-      if (body.hard === true) {
+      if (ref.hard) {
         const v = checkHardMode(rows, guess);
         if (v) return error(422, 'hard_mode', describeViolation(v), { word: guess, violation: v });
       }
@@ -108,6 +114,7 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
     return json({
       rows,
       status,
+      hard: ref.hard,
       ...(status === 'playing' ? {} : { answer }),
     });
   }

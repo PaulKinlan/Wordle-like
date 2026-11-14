@@ -9,10 +9,13 @@
 //   unlimited token  -> row (token mod count)
 
 export interface AnswerStore {
-  /** Number of answers for a language, shuffling them in on first use. */
-  count(lang: string, candidates: readonly string[]): Promise<number>;
-  /** The answer at a position in the private order. */
-  at(lang: string, index: number): Promise<string>;
+  /**
+   * Number of answers in a set ("en", or "en:rare" for hard mode),
+   * shuffling the candidates in on first use.
+   */
+  count(set: string, candidates: readonly string[]): Promise<number>;
+  /** The answer at a position in the set's private order. */
+  at(set: string, index: number): Promise<string>;
 }
 
 const SAFE_WORD = /^\p{L}+$/u;
@@ -89,7 +92,7 @@ export class D1AnswerStore implements AnswerStore {
     ];
     // D1 allows 100 bound parameters per query, so the rows are written as
     // literals. Every word has been checked to be letters only.
-    const quotedLang = lang.replace(/[^a-z-]/gi, '');
+    const quotedLang = lang.replace(/[^a-z:-]/gi, '');
     for (let i = 0; i < words.length; i += 400) {
       const values = words
         .slice(i, i + 400)

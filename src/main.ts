@@ -5,6 +5,7 @@ import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../sha
 import { api, ApiError } from './api';
 import { Board, renderTracker } from './board';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
+import { shareText } from './share';
 import {
   currentStreak,
   loadGame,
@@ -29,11 +30,12 @@ const els = {
   result: $('result'),
   resultText: $('result-text'),
   btnNew: $<HTMLButtonElement>('btn-new'),
+  btnShare: $<HTMLButtonElement>('btn-share'),
+  statsShare: $<HTMLButtonElement>('stats-share'),
   typeHint: $('type-hint'),
   tabDaily: $<HTMLButtonElement>('mode-daily'),
   tabUnlimited: $<HTMLButtonElement>('mode-unlimited'),
   setHard: $<HTMLInputElement>('set-hard'),
-  hardNote: $('hard-note'),
   setContrast: $<HTMLInputElement>('set-contrast'),
   setLang: $<HTMLSelectElement>('set-lang'),
 };
@@ -66,17 +68,21 @@ async function startMode(mode: Mode, fresh = false) {
   els.tabUnlimited.setAttribute('aria-selected', String(mode === 'unlimited'));
 
   const info = getLanguage(lang) ?? getLanguage(DEFAULT_LANGUAGE)!;
-  const saved = fresh ? null : loadGame(lang, mode);
+  const hard = settings.hard;
+  const saved = fresh ? null : loadGame(lang, mode, hard);
   const today = localDate();
+  const h = hard ? 'h' : '';
 
   if (mode === 'daily') {
     game =
       saved && saved.date === today
         ? saved
-        : newGame(`d:${today}`, mode, info, { date: today, number: dailyNumber(today) ?? undefined });
+        : newGame(`d${h}:${today}`, mode, info, { date: today, number: dailyNumber(today) ?? undefined });
   } else {
-    game = saved ?? newGame(`r:${randomToken()}`, mode, info);
+    game = saved ?? newGame(`r${h}:${randomToken()}`, mode, info);
   }
+  // Hard mode is part of the puzzle id.
+  game.hard = /^[dr]h:/.test(game.puzzle);
   saveGame(game);
   current = '';
   entry.clear();
@@ -135,21 +141,14 @@ async function submit() {
   const list = words.get(game.lang);
   if (list && !list.guessable.has(guess)) return reject(row, 'Not in word list');
 
-  const hard = row === 0 ? settings.hard : game.hard;
-  if (hard) {
+  if (game.hard) {
     const v = checkHardMode(game.rows, guess);
     if (v) return reject(row, describeViolation(v));
   }
 
   busy = true;
   try {
-    const res = await api.play(
-      game.lang,
-      game.puzzle,
-      [...game.rows.map((r) => r.guess), guess],
-      hard,
-    );
-    game.hard = hard;
+    const res = await api.play(game.lang, game.puzzle, [...game.rows.map((r) => r.guess), guess]);
     game.rows = res.rows;
     game.status = res.status;
     game.answer = res.answer;
@@ -200,7 +199,7 @@ function draw(skipTracker = false) {
 
   const info = getLanguage(game.lang);
   const langLabel = LANGUAGES.length > 1 && info ? ` · ${info.nativeName}` : '';
-  const hardLabel = game.hard && game.rows.length ? ' · Hard' : '';
+  const hardLabel = game.hard ? ' · Hard' : '';
   els.subtitle.textContent =
     game.mode === 'daily'
       ? `No. ${game.number ?? '?'} · ${formatDate(game.date)}${langLabel}${hardLabel}`
@@ -263,9 +262,16 @@ function toast(message: string, ms = 1600) {
 
 function openStats() {
   if (!game) return;
-  const s = loadStats(game.lang, game.mode, game.maxGuesses);
+  const s = loadStats(game.lang, game.mode, game.hard, game.maxGuesses);
   const info = getLanguage(game.lang);
-  $('stats-scope').textContent = `${game.mode === 'daily' ? 'Daily' : 'Unlimited'} · ${info?.nativeName ?? game.lang}`;
+  $('stats-scope').textContent = [
+    game.mode === 'daily' ? 'Daily' : 'Unlimited',
+    game.hard ? 'Hard' : '',
+    info?.nativeName ?? game.lang,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  els.statsShare.hidden = game.status === 'playing';
   const today = game.mode === 'daily' ? dailyNumber(localDate()) ?? undefined : undefined;
   const cells: [string, string][] = [
     [String(s.played), 'Played'],
@@ -321,12 +327,7 @@ for (const dlg of document.querySelectorAll('dialog')) {
 }
 
 function syncHardSetting() {
-  const locked = !!game && game.status === 'playing' && game.rows.length > 0;
-  els.setHard.checked = locked ? game!.hard : settings.hard;
-  els.setHard.disabled = locked;
-  els.hardNote.textContent = locked
-    ? 'You can change this before your first guess'
-    : 'Revealed hints must be used in later guesses';
+  els.setHard.checked = settings.hard;
 }
 
 // ---------------------------------------------------------------- wiring
@@ -342,14 +343,35 @@ els.btnNew.addEventListener('click', () => {
   entry.focus(true);
 });
 
+// Hard mode is a separate puzzle with its own saved game, so switching never
+// loses progress: each side picks up where it was left.
 els.setHard.addEventListener('change', () => {
   settings.hard = els.setHard.checked;
   saveSettings(settings);
-  if (game && game.rows.length === 0) {
-    game.hard = settings.hard;
-    saveGame(game);
-  }
+  void startMode(settings.mode);
 });
+
+els.btnShare.addEventListener('click', () => void share());
+els.statsShare.addEventListener('click', () => void share());
+
+async function share() {
+  if (!game || game.status === 'playing') return;
+  const text = shareText(game, settings.highContrast, location.origin);
+  try {
+    if (navigator.share && navigator.canShare?.({ text }) !== false) {
+      await navigator.share({ text });
+      return;
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') return; // closed the share sheet
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Copied to clipboard');
+  } catch {
+    toast("Couldn't share or copy");
+  }
+}
 
 const applyContrast = () => document.documentElement.classList.toggle('high-contrast', settings.highContrast);
 els.setContrast.checked = settings.highContrast;

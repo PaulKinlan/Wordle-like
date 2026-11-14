@@ -10,6 +10,7 @@
 //   words that can be an answer. Which word is used on which day is decided
 //   by a random shuffle the Worker makes once and keeps in D1, so it is never
 //   in this repository (see worker/answers.ts).
+// - rare.json: rarely used words (SCOWL levels 40-50), the hard mode answers.
 // - allowed.json: every five-letter word we accept as a guess (levels 10-70,
 //   American + British + Canadian spellings). Answers are always allowed.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -37,7 +38,7 @@ for (const l of [10, 20, 35]) for (const w of load('english', l)) if (re.test(w)
 
 // Words that would be a poor or unkind daily answer.
 const blocklist = new Set(
-  'bitch bitty boobs booby butts crack dicks dildo dyked dykes faggy fagot gooks hoes homos horny jizzy kikes lesbo nazis negro niggr penis porno pussy queer rapes raped rapey sluts slutty spick spics titty turds twats vulva whore wanks'.split(
+  'bitch bitty boobs booby butts crack dicks dildo dyked dykes faggy fagot gooks hoes homos horny jizzy kikes lesbo nazis negro niggr penis porno pussy queer rapes raped rapey sluts slutty spick spics titty turds twats vulva whore wanks butch homer roger sonny noway'.split(
     ' ',
   ),
 );
@@ -59,14 +60,22 @@ const isInflection = (w) => {
 };
 
 const answers = [...common].filter((w) => !blocklist.has(w) && !isInflection(w)).sort();
+
+// Hard mode answers: real but rarely used words (SCOWL levels 40-50, which
+// rank below the common levels by frequency), with the same filters.
+const rareSet = new Set();
+for (const l of [40, 50]) for (const w of load('english', l)) if (re.test(w)) rareSet.add(w);
+const rare = [...rareSet].filter((w) => !common.has(w) && !blocklist.has(w) && !isInflection(w)).sort();
+
 const allowed = [...all].filter((w) => re.test(w) && !answers.includes(w)).sort();
 
 const out = join(root, 'worker/words/en');
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, 'candidates.json'), JSON.stringify(answers) + '\n');
+writeFileSync(join(out, 'rare.json'), JSON.stringify(rare) + '\n');
 writeFileSync(join(out, 'allowed.json'), JSON.stringify(allowed) + '\n');
 writeFileSync(
   join(out, 'LICENSE'),
   readFileSync(join(pkgDir, 'Copyright'), 'utf8'),
 );
-console.log(`en: ${answers.length} candidate answers, ${allowed.length} extra allowed guesses`);
+console.log(`en: ${answers.length} candidate answers, ${rare.length} rare (hard mode), ${allowed.length} extra allowed guesses`);

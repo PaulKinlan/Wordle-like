@@ -63,17 +63,21 @@ export const loadSettings = () =>
   read<Settings>('settings', { hard: false, highContrast: false, lang: null, mode: 'daily' });
 export const saveSettings = (s: Settings) => write('settings', s);
 
-export const loadGame = (lang: string, mode: Mode) => read<SavedGame | null>(`game:${lang}:${mode}`, null);
-export const saveGame = (g: SavedGame) => write(`game:${g.lang}:${g.mode}`, g);
+// Hard mode is its own puzzle (a rarer word), so it keeps its own game and stats.
+const variant = (mode: Mode, hard: boolean) => (hard ? `${mode}-hard` : mode);
+
+export const loadGame = (lang: string, mode: Mode, hard: boolean) =>
+  read<SavedGame | null>(`game:${lang}:${variant(mode, hard)}`, null);
+export const saveGame = (g: SavedGame) => write(`game:${g.lang}:${variant(g.mode, g.hard)}`, g);
 
 const emptyStats = (n: number): Stats => ({ played: 0, wins: 0, streak: 0, maxStreak: 0, dist: Array(n).fill(0) });
 
-export const loadStats = (lang: string, mode: Mode, maxGuesses: number) =>
-  read<Stats>(`stats:${lang}:${mode}`, emptyStats(maxGuesses));
+export const loadStats = (lang: string, mode: Mode, hard: boolean, maxGuesses: number) =>
+  read<Stats>(`stats:${lang}:${variant(mode, hard)}`, emptyStats(maxGuesses));
 
 /** Records a finished game once and returns the updated stats. */
 export function recordResult(game: SavedGame): Stats {
-  const s = loadStats(game.lang, game.mode, game.maxGuesses);
+  const s = loadStats(game.lang, game.mode, game.hard, game.maxGuesses);
   const won = game.status === 'won';
   s.played++;
   if (won) {
@@ -87,7 +91,7 @@ export function recordResult(game: SavedGame): Stats {
     s.streak = 0;
   }
   if (game.number !== undefined) s.lastNumber = game.number;
-  write(`stats:${game.lang}:${game.mode}`, s);
+  write(`stats:${game.lang}:${variant(game.mode, game.hard)}`, s);
   return s;
 }
 

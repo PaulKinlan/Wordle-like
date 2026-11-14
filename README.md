@@ -5,7 +5,9 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
 
 - **Daily**: one word a day, the same for everyone, based on your local date.
 - **Unlimited**: a fresh word whenever you want.
-- **Hard mode**: every revealed hint must be used in later guesses.
+- **Hard mode**: a rarely used word, and every revealed hint must be used in later
+  guesses. It has its own daily word, saved game and stats.
+- **Share**: a spoiler-free emoji grid through the share sheet, or copied to the clipboard.
 - **Stats**: played, win rate, streaks and guess distribution, kept on your device.
 - **Installable PWA** that opens offline, with a strict Content Security Policy.
 
@@ -50,18 +52,20 @@ All routes are under `/api/v1` and keyed by language code (only `en` today).
 | Route | What it does |
 | --- | --- |
 | `GET /languages` | Supported languages |
-| `GET /:lang/daily?date=YYYY-MM-DD` | Puzzle id and number for a local date |
-| `POST /:lang/random` | A new unlimited puzzle id |
+| `GET /:lang/daily?date=YYYY-MM-DD&hard=1` | Puzzle id and number for a local date |
+| `POST /:lang/random?hard=1` | A new unlimited puzzle id |
 | `GET /:lang/words` | Every accepted guess (cached by the service worker for instant checks) |
-| `POST /:lang/play` | `{ puzzle, guesses, hard }` → `{ rows, status, answer? }` |
+| `POST /:lang/play` | `{ puzzle, guesses }` → `{ rows, status, hard, answer? }` |
 
-Puzzle ids are `d:<date>` (daily) or `r:<16 hex>` (unlimited). Daily puzzle #1
+Puzzle ids are `d:<date>` (daily) or `r:<16 hex>` (unlimited), with `dh:`/`rh:`
+for hard mode, which draws from the rare-word pool (`en:rare`, its own private order). Daily puzzle #1
 is 14 November 2026.
 
 ### Word lists
 
-`worker/words/<lang>/candidates.json` (words that can be an answer) and
-`allowed.json` (other accepted guesses). English comes from SCOWL via `wordlist-english`;
+`worker/words/<lang>/candidates.json` (common words that can be an answer),
+`rare.json` (rarely used words, the hard mode answers, from SCOWL's less frequent
+levels 40-50) and `allowed.json` (other accepted guesses). English comes from SCOWL via `wordlist-english`;
 rebuild with `npm run words`. To add a language later: add it to
 `shared/languages.ts`, add its two lists, and import them in `worker/words.ts`.
 

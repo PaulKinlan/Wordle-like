@@ -44,9 +44,10 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   languages: () => call<{ languages: LanguageInfo[] }>('languages').then((r) => r.languages),
-  daily: (lang: string, date: string) => call<PuzzleInfo>(`${lang}/daily?date=${encodeURIComponent(date)}`),
-  random: (lang: string) => call<PuzzleInfo>(`${lang}/random`, { method: 'POST' }),
+  daily: (lang: string, date: string, hard: boolean) =>
+    call<PuzzleInfo>(`${lang}/daily?date=${encodeURIComponent(date)}${hard ? '&hard=1' : ''}`),
+  random: (lang: string, hard: boolean) => call<PuzzleInfo>(`${lang}/random${hard ? '?hard=1' : ''}`, { method: 'POST' }),
   words: (lang: string) => call<string[]>(`${lang}/words`),
-  play: (lang: string, puzzle: string, guesses: string[], hard: boolean) =>
-    call<PlayResult>(`${lang}/play`, { method: 'POST', body: JSON.stringify({ puzzle, guesses, hard }) }),
+  play: (lang: string, puzzle: string, guesses: string[]) =>
+    call<PlayResult>(`${lang}/play`, { method: 'POST', body: JSON.stringify({ puzzle, guesses }) }),
 };
