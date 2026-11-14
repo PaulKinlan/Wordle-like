@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wordle-like",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  // Lets a bare `wrangler deploy` (e.g. Cloudflare Workers Builds with no
+  // build command set) build first. After `vite build`, wrangler uses the
+  // config the Vite plugin writes to dist/ instead.
+  "build": { "command": "npx vite build" },
+  "assets": {
+    "directory": "./dist/client",
+    // The PWA built by Vite. Only /api/* runs the Worker first; everything
+    // else is a static file, with index.html as the fallback.
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  }
+  // Later steps:
+  // - Multiplayer: add a Durable Object binding + migration for game rooms.
+  // - Push: add a KV/D1 binding for subscriptions, VAPID keys as secrets,
+  //   and a "triggers": { "crons": [...] } entry for the daily notification.
+}
