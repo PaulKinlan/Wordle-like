@@ -422,14 +422,13 @@ body.typing .type-hint {
 }
 
 .result {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
+  text-align: center;
 }
 
 .result-text {
@@ -438,14 +437,62 @@ body.typing .type-hint {
   font-variant-numeric: tabular-nums;
 }
 
-.primary {
+.result-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 0;
   border-radius: 999px;
-  padding: 10px 18px;
-  background: var(--accent);
-  color: #fff;
+  padding: 10px 16px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.secondary {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.primary svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stats-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.stats-foot .fineprint {
+  margin: 0;
+}
+
+dialog .primary {
+  flex: none;
+}
+
+.result-actions > * {
+  flex: 1;
+  justify-content: center;
 }
 
 /* ------------------------------------------------------------ dialogs */

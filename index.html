@@ -70,7 +70,13 @@
         <div class="tracker" id="tracker" aria-label="Letters you have tried"></div>
         <div class="result" id="result" hidden>
           <p class="result-text" id="result-text"></p>
-          <button class="primary" id="btn-new" type="button">New word</button>
+          <div class="result-actions">
+            <button class="primary" id="btn-share" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
+              Share
+            </button>
+            <button class="secondary" id="btn-new" type="button">New word</button>
+          </div>
         </div>
         <p class="type-hint" id="type-hint">Tap the board and type with your keyboard</p>
       </section>
@@ -87,7 +93,7 @@
           <li><span class="tile sample absent">Y</span> not in the word</li>
         </ul>
         <p><strong>Daily</strong> is one word a day, the same for everyone. <strong>Unlimited</strong> gives you a fresh word whenever you want.</p>
-        <p><strong>Hard mode</strong> makes you use every hint you've found in later guesses.</p>
+        <p><strong>Hard mode</strong> picks a rarer word, and you must use every hint you've found in later guesses. It has its own daily word and its own stats.</p>
       </form>
     </dialog>
 
@@ -98,7 +104,13 @@
         <div class="stats-grid" id="stats-grid"></div>
         <h3>Guess distribution</h3>
         <div class="dist" id="stats-dist"></div>
-        <p class="fineprint">Stats stay on this device.</p>
+        <div class="stats-foot">
+          <p class="fineprint">Stats stay on this device.</p>
+          <button class="primary" id="stats-share" type="button" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
+            Share
+          </button>
+        </div>
       </form>
     </dialog>
 
@@ -106,7 +118,7 @@
       <form method="dialog">
         <header class="sheet-head"><h2 id="settings-title">Settings</h2><button class="close" type="submit" value="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
         <label class="setting">
-          <span><strong>Hard mode</strong><small id="hard-note">Revealed hints must be used in later guesses</small></span>
+          <span><strong>Hard mode</strong><small>A rarer word, and every hint you find must be used in later guesses</small></span>
           <input type="checkbox" class="switch" id="set-hard" />
         </label>
         <label class="setting">

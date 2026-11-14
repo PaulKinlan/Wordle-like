@@ -24,9 +24,10 @@ describe('puzzle ids', () => {
     expect(parsePuzzleId('r:nothex', now)).toBeNull();
   });
   it('maps puzzles onto the private order', () => {
-    expect(answerIndex({ kind: 'daily', date: '', number: 1 }, 10)).toBe(0);
-    expect(answerIndex({ kind: 'daily', date: '', number: 12 }, 10)).toBe(1);
-    expect(answerIndex({ kind: 'random', token: 'ffffffffffffffff' }, 10)).toBe(5);
+    expect(answerIndex({ kind: 'daily', date: '', number: 1, hard: false }, 10)).toBe(0);
+    expect(answerIndex({ kind: 'daily', date: '', number: 12, hard: false }, 10)).toBe(1);
+    expect(answerIndex({ kind: 'random', token: 'ffffffffffffffff', hard: true }, 10)).toBe(5);
+    expect(parsePuzzleId('dh:2026-11-14', Date.parse('2026-11-14T00:00:00Z'))).toMatchObject({ hard: true, number: 1 });
   });
   it('shuffles every word exactly once', () => {
     const words = Array.from({ length: 500 }, (_, i) => 'w' + i);
@@ -73,9 +74,28 @@ describe('API', () => {
     // A guess that reveals a green first letter, then one that ignores it.
     const first = words.find((w) => w[0] === answer[0] && w !== answer)!;
     const second = words.find((w) => w[0] !== answer[0])!;
-    const r = await play({ puzzle, guesses: [first, second], hard: true });
+    // Hard mode is part of the puzzle id; the normal puzzle doesn't enforce it.
+    expect((await play({ puzzle, guesses: [first, second] })).status).toBe(200);
+    const hardPuzzle = 'rh:0123456789abcdef';
+    const hardAnswer = (await play({ puzzle: hardPuzzle, guesses: Array(6).fill('fuzzy') })).body.answer as string;
+    const h1 = words.find((w) => w[0] === hardAnswer[0] && w !== hardAnswer)!;
+    const h2 = words.find((w) => w[0] !== hardAnswer[0])!;
+    const r = await play({ puzzle: hardPuzzle, guesses: [h1, h2] });
     expect(r.status).toBe(422);
     expect(r.body).toMatchObject({ error: 'hard_mode', violation: { kind: 'position', position: 0 } });
-    expect((await play({ puzzle, guesses: [first, second] })).status).toBe(200);
+  });
+
+  it('draws hard mode answers from the rare words', async () => {
+    const rare = new Set((await import('./words/en/rare.json')).default as string[]);
+    const common = new Set((await import('./words/en/candidates.json')).default as string[]);
+    for (const date of ['2026-11-14', '2026-11-15']) {
+      const hard = (await play({ puzzle: `dh:${date}`, guesses: Array(6).fill('fuzzy') })).body;
+      const normal = (await play({ puzzle: `d:${date}`, guesses: Array(6).fill('fuzzy') })).body;
+      expect(hard.hard).toBe(true);
+      expect(rare.has(hard.answer) || hard.answer === undefined).toBe(true);
+      expect(common.has(normal.answer) || normal.answer === undefined).toBe(true);
+    }
+    const daily = (await (await call('/api/v1/en/daily?date=2026-11-14&hard=1')).json()) as any;
+    expect(daily.puzzle).toBe('dh:2026-11-14');
   });
 });
