@@ -300,6 +300,59 @@ body:not(.typing) .tile.cursor {
   border-color: var(--border);
 }
 
+/* Hints on the row being typed: what earlier rows said about each letter.
+   Kept quiet, never a fill, so they can't be mistaken for a scored row, and
+   each has its own shape as well as colour: a strike for "not in the word",
+   a dot for "somewhere in the word", a bar for "right here". */
+.tile {
+  position: relative;
+}
+
+.tile[class*='hint-']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+.tile.hint-absent {
+  color: color-mix(in srgb, var(--text) 38%, transparent);
+  border-style: dashed;
+}
+.tile.hint-absent::after {
+  top: 50%;
+  width: 62%;
+  height: max(2px, calc(var(--tile) * 0.04));
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text) 45%, transparent);
+  rotate: -18deg;
+}
+
+.tile.hint-present,
+.tile.hint-correct {
+  border-color: color-mix(in srgb, var(--hint) 60%, var(--border-strong));
+}
+.tile.hint-present {
+  --hint: var(--present);
+}
+.tile.hint-correct {
+  --hint: var(--correct);
+}
+.tile.hint-present::after,
+.tile.hint-correct::after {
+  bottom: 9%;
+  height: max(4px, calc(var(--tile) * 0.09));
+  border-radius: 999px;
+  background: var(--hint);
+}
+.tile.hint-present::after {
+  width: max(4px, calc(var(--tile) * 0.09));
+}
+.tile.hint-correct::after {
+  width: 42%;
+}
+
 .tile.correct,
 .tile.present,
 .tile.absent {
