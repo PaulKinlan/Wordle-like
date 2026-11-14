@@ -96,7 +96,8 @@ function syncOsk() {
 
 // A visible Enter button under the board, for players who type with the
 // phone's keyboard and don't spot its Enter key. The game's own keyboard has
-// one already. It lights up once the row is full.
+// one already. It fades in once the row is full; its space is kept meanwhile,
+// so the board doesn't resize as it comes and goes.
 const submitRow = $('submit-row');
 const submitBtn = $<HTMLButtonElement>('btn-submit');
 function syncSubmit() {

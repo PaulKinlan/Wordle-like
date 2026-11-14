@@ -572,7 +572,7 @@ body:not(.typing) .tile.cursor {
   text-decoration: line-through;
 }
 
-/* The Enter button under the board: quiet until the row is full. */
+/* The Enter button under the board: appears once the row is full. */
 .submit-row {
   display: flex;
   justify-content: center;
@@ -586,8 +586,9 @@ body:not(.typing) .tile.cursor {
   padding: 8px 18px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface);
-  color: var(--muted);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
   font: inherit;
   font-size: 0.9rem;
   font-weight: 700;
@@ -595,9 +596,9 @@ body:not(.typing) .tile.cursor {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition:
-    background-color 160ms,
-    border-color 160ms,
-    color 160ms,
+    opacity 160ms,
+    translate 160ms,
+    visibility 160ms,
     scale 100ms;
 }
 
@@ -611,10 +612,10 @@ body:not(.typing) .tile.cursor {
   stroke-linejoin: round;
 }
 
-.submit-btn.ready {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+.submit-btn:not(.ready) {
+  visibility: hidden;
+  opacity: 0;
+  translate: 0 4px;
 }
 
 .submit-btn:active {
