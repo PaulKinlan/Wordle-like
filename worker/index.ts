@@ -26,7 +26,7 @@ import { checkHardMode, describeViolation, evaluate, normalizeWord, statusAfter,
 import { getLanguage, LANGUAGES } from '../shared/languages';
 import { D1AnswerStore, type AnswerStore } from './answers';
 import { dailyIndex, dailyNumber, newRandomToken, parsePuzzleId, randomIndex } from './puzzles';
-import { getWords } from './words';
+import { getWords, hasWords } from './words';
 import { handlePush, sendDailyReminders, type PushEnv } from './push';
 import { handleTelemetry, health, pruneTelemetry, recordEvent, recordServerError, type TelemetryEnv, type UsageEvent } from './telemetry';
 import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
@@ -77,7 +77,7 @@ export async function handleApi(request: Request, answers: AnswerStore, onEvent:
 
   const lang = first ? getLanguage(first) : undefined;
   if (!lang || parts.length !== 4) return error(404, 'not_found', 'Unknown API route');
-  const list = getWords(lang.code);
+  const list = await getWords(lang.code);
   if (!list) return error(404, 'not_found', 'No word list for this language');
 
   if (action === 'daily' && method === 'GET') {
@@ -168,7 +168,7 @@ export async function handleRooms(request: Request, rooms: DurableObjectNamespac
   if (parts.length === 3 && request.method === 'POST') {
     const body: { lang?: unknown; hard?: unknown } = await readObject(request, 1024);
     const lang = typeof body.lang === 'string' ? getLanguage(body.lang) : undefined;
-    if (!lang || !getWords(lang.code)) return error(400, 'bad_language', 'Unknown language');
+    if (!lang || !hasWords(lang.code)) return error(400, 'bad_language', 'Unknown language');
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = newRoomCode();
       const stub = rooms.get(rooms.idFromName(code));
@@ -271,14 +271,16 @@ export default {
     return env.ASSETS.fetch(request);
   },
 
-  /** Hourly cron (wrangler.jsonc): daily reminder notifications, and tidying old telemetry. */
-  async scheduled(_controller, env, ctx) {
+  /** Cron, every ten minutes (wrangler.jsonc): daily reminder notifications, and tidying old telemetry once an hour. */
+  async scheduled(controller, env, ctx) {
     ctx.waitUntil(
       sendDailyReminders(env).then(
         (r) => console.log('daily reminders', r),
         (e) => console.error('daily reminders failed', e),
       ),
     );
-    ctx.waitUntil(pruneTelemetry(env.DB).catch((e) => console.error('telemetry prune failed', e)));
+    if (new Date(controller.scheduledTime).getUTCMinutes() < 10) {
+      ctx.waitUntil(pruneTelemetry(env.DB).catch((e) => console.error('telemetry prune failed', e)));
+    }
   },
 } satisfies ExportedHandler<Env>;

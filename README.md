@@ -114,7 +114,7 @@ room replies with `welcome`, `state` (each player's own view) and `error`.
 
 Players can turn on a daily reminder in Settings and pick the hour. The browser
 subscribes with Web Push, and the Worker stores the subscription, time zone
-and hour in D1 (`push_subs`). A cron trigger runs every hour
+and hour in D1 (`push_subs`). A cron trigger runs every ten minutes
 (`wrangler.jsonc`), and each subscriber gets one notification a day at or
 after their hour, unless they've already finished that day's word.
 Subscriptions the push service reports as gone (404/410) are deleted.
@@ -140,8 +140,8 @@ win over the stored keys, and changing keys means everyone has to turn
 reminders off and on again. For local development, put them in `.dev.vars`
 (git-ignored).
 
-The free Workers plan allows 50 outgoing requests per run, so each hourly run
-sends at most 40 reminders, and anyone left over is picked up the next hour.
+The free Workers plan allows 50 outgoing requests per run, so each run
+sends at most 40 reminders (240 an hour), and anyone left over is picked up ten minutes later.
 
 ### Word lists
 

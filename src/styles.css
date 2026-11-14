@@ -238,9 +238,14 @@ button {
 
 /* ------------------------------------------------------------ board */
 
+.main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+}
+
 .play {
   position: relative;
-  flex: 1;
   min-height: 0;
   display: grid;
 }
@@ -526,6 +531,21 @@ body:not(.typing) .tile.cursor {
   font-weight: 700;
   color: var(--muted);
   background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+/* Big alphabets (Japanese kana): smaller cells in an even grid, so the strip
+   stays a few rows high. */
+.tracker.dense {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17px, 1fr));
+  gap: 2px;
+}
+
+.tracker.dense span {
+  min-width: 0;
+  padding: 1px 0;
+  border-radius: 4px;
+  font-size: 0.6875rem;
 }
 
 .tracker span.correct {

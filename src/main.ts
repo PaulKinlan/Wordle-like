@@ -111,6 +111,7 @@ function selectTab(tab: 'daily' | 'unlimited' | 'race') {
   els.tabDaily.setAttribute('aria-selected', String(tab === 'daily'));
   els.tabUnlimited.setAttribute('aria-selected', String(tab === 'unlimited'));
   els.tabRace.setAttribute('aria-selected', String(tab === 'race'));
+  $('panel').setAttribute('aria-labelledby', `mode-${tab}`);
 }
 
 function openRace(code?: string | null) {

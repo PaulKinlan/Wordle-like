@@ -102,6 +102,7 @@ function setTile(t: HTMLDivElement, letter: string, state: Mark | 'filled' | '',
 export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) {
   const { best } = letterHints(rows);
   trackerListener?.(tileLocale, best);
+  el.classList.toggle('dense', alphabet.length > 40);
   if (el.childElementCount !== alphabet.length) {
     el.replaceChildren(
       ...alphabet.map((ch) => {

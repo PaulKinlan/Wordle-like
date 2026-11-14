@@ -1,4 +1,6 @@
-// Word lists, keyed by language code. Bundled into the Worker.
+// Word lists, keyed by language code. Bundled into the Worker, but each
+// language is its own chunk and only loaded when someone plays in it, so a
+// cold start doesn't parse all of them.
 //
 // candidates: common words that can be an answer (order is private, see answers.ts)
 // rare:       rarely used words, the answers in hard mode
@@ -8,63 +10,6 @@
 // a game ends. Guesses are compared in folded form ("arbol"), see
 // normalizeWord in shared/game.ts.
 import { normalizeWord } from '../shared/game';
-import deAllowed from './words/de/allowed.json';
-import deCandidates from './words/de/candidates.json';
-import deRare from './words/de/rare.json';
-import enAllowed from './words/en/allowed.json';
-import enCandidates from './words/en/candidates.json';
-import enRare from './words/en/rare.json';
-import esAllowed from './words/es/allowed.json';
-import esCandidates from './words/es/candidates.json';
-import esRare from './words/es/rare.json';
-import frAllowed from './words/fr/allowed.json';
-import frCandidates from './words/fr/candidates.json';
-import frRare from './words/fr/rare.json';
-import itAllowed from './words/it/allowed.json';
-import itCandidates from './words/it/candidates.json';
-import itRare from './words/it/rare.json';
-import nlAllowed from './words/nl/allowed.json';
-import nlCandidates from './words/nl/candidates.json';
-import nlRare from './words/nl/rare.json';
-import caAllowed from './words/ca/allowed.json';
-import caCandidates from './words/ca/candidates.json';
-import caRare from './words/ca/rare.json';
-import euAllowed from './words/eu/allowed.json';
-import euCandidates from './words/eu/candidates.json';
-import euRare from './words/eu/rare.json';
-import brAllowed from './words/br/allowed.json';
-import brCandidates from './words/br/candidates.json';
-import brRare from './words/br/rare.json';
-import plAllowed from './words/pl/allowed.json';
-import plCandidates from './words/pl/candidates.json';
-import plRare from './words/pl/rare.json';
-import svAllowed from './words/sv/allowed.json';
-import svCandidates from './words/sv/candidates.json';
-import svRare from './words/sv/rare.json';
-import trAllowed from './words/tr/allowed.json';
-import trCandidates from './words/tr/candidates.json';
-import trRare from './words/tr/rare.json';
-import elAllowed from './words/el/allowed.json';
-import elCandidates from './words/el/candidates.json';
-import elRare from './words/el/rare.json';
-import gaAllowed from './words/ga/allowed.json';
-import gaCandidates from './words/ga/candidates.json';
-import gaRare from './words/ga/rare.json';
-import gdAllowed from './words/gd/allowed.json';
-import gdCandidates from './words/gd/candidates.json';
-import gdRare from './words/gd/rare.json';
-import koAllowed from './words/ko/allowed.json';
-import koCandidates from './words/ko/candidates.json';
-import koRare from './words/ko/rare.json';
-import jaAllowed from './words/ja/allowed.json';
-import jaCandidates from './words/ja/candidates.json';
-import jaRare from './words/ja/rare.json';
-import cyAllowed from './words/cy/allowed.json';
-import cyCandidates from './words/cy/candidates.json';
-import cyRare from './words/cy/rare.json';
-import ptAllowed from './words/pt/allowed.json';
-import ptCandidates from './words/pt/candidates.json';
-import ptRare from './words/pt/rare.json';
 
 export interface WordList {
   candidates: readonly string[];
@@ -75,42 +20,55 @@ export interface WordList {
 
 type Raw = { candidates: string[]; rare: string[]; allowed: string[] };
 
-const bundled: Record<string, Raw> = {
-  en: { candidates: enCandidates, rare: enRare, allowed: enAllowed },
-  es: { candidates: esCandidates, rare: esRare, allowed: esAllowed },
-  fr: { candidates: frCandidates, rare: frRare, allowed: frAllowed },
-  de: { candidates: deCandidates, rare: deRare, allowed: deAllowed },
-  it: { candidates: itCandidates, rare: itRare, allowed: itAllowed },
-  pt: { candidates: ptCandidates, rare: ptRare, allowed: ptAllowed },
-  nl: { candidates: nlCandidates, rare: nlRare, allowed: nlAllowed },
-  ca: { candidates: caCandidates, rare: caRare, allowed: caAllowed },
-  eu: { candidates: euCandidates, rare: euRare, allowed: euAllowed },
-  br: { candidates: brCandidates, rare: brRare, allowed: brAllowed },
-  pl: { candidates: plCandidates, rare: plRare, allowed: plAllowed },
-  sv: { candidates: svCandidates, rare: svRare, allowed: svAllowed },
-  tr: { candidates: trCandidates, rare: trRare, allowed: trAllowed },
-  cy: { candidates: cyCandidates, rare: cyRare, allowed: cyAllowed },
-  ja: { candidates: jaCandidates, rare: jaRare, allowed: jaAllowed },
-  ko: { candidates: koCandidates, rare: koRare, allowed: koAllowed },
-  ga: { candidates: gaCandidates, rare: gaRare, allowed: gaAllowed },
-  gd: { candidates: gdCandidates, rare: gdRare, allowed: gdAllowed },
-  el: { candidates: elCandidates, rare: elRare, allowed: elAllowed },
+const load = async (
+  candidates: Promise<{ default: string[] }>,
+  rare: Promise<{ default: string[] }>,
+  allowed: Promise<{ default: string[] }>,
+): Promise<Raw> => ({ candidates: (await candidates).default, rare: (await rare).default, allowed: (await allowed).default });
+
+// Spelled out one by one so the bundler can see every file.
+const bundled: Record<string, () => Promise<Raw>> = {
+  en: () => load(import('./words/en/candidates.json'), import('./words/en/rare.json'), import('./words/en/allowed.json')),
+  es: () => load(import('./words/es/candidates.json'), import('./words/es/rare.json'), import('./words/es/allowed.json')),
+  fr: () => load(import('./words/fr/candidates.json'), import('./words/fr/rare.json'), import('./words/fr/allowed.json')),
+  de: () => load(import('./words/de/candidates.json'), import('./words/de/rare.json'), import('./words/de/allowed.json')),
+  it: () => load(import('./words/it/candidates.json'), import('./words/it/rare.json'), import('./words/it/allowed.json')),
+  pt: () => load(import('./words/pt/candidates.json'), import('./words/pt/rare.json'), import('./words/pt/allowed.json')),
+  nl: () => load(import('./words/nl/candidates.json'), import('./words/nl/rare.json'), import('./words/nl/allowed.json')),
+  ca: () => load(import('./words/ca/candidates.json'), import('./words/ca/rare.json'), import('./words/ca/allowed.json')),
+  eu: () => load(import('./words/eu/candidates.json'), import('./words/eu/rare.json'), import('./words/eu/allowed.json')),
+  br: () => load(import('./words/br/candidates.json'), import('./words/br/rare.json'), import('./words/br/allowed.json')),
+  pl: () => load(import('./words/pl/candidates.json'), import('./words/pl/rare.json'), import('./words/pl/allowed.json')),
+  sv: () => load(import('./words/sv/candidates.json'), import('./words/sv/rare.json'), import('./words/sv/allowed.json')),
+  tr: () => load(import('./words/tr/candidates.json'), import('./words/tr/rare.json'), import('./words/tr/allowed.json')),
+  cy: () => load(import('./words/cy/candidates.json'), import('./words/cy/rare.json'), import('./words/cy/allowed.json')),
+  ja: () => load(import('./words/ja/candidates.json'), import('./words/ja/rare.json'), import('./words/ja/allowed.json')),
+  ko: () => load(import('./words/ko/candidates.json'), import('./words/ko/rare.json'), import('./words/ko/allowed.json')),
+  ga: () => load(import('./words/ga/candidates.json'), import('./words/ga/rare.json'), import('./words/ga/allowed.json')),
+  gd: () => load(import('./words/gd/candidates.json'), import('./words/gd/rare.json'), import('./words/gd/allowed.json')),
+  el: () => load(import('./words/el/candidates.json'), import('./words/el/rare.json'), import('./words/el/allowed.json')),
 };
 
-const cache = new Map<string, WordList>();
+const cache = new Map<string, Promise<WordList>>();
 
-export function getWords(lang: string): WordList | undefined {
+/** Whether there is a word list for this language (without loading it). */
+export const hasWords = (lang: string) => Object.hasOwn(bundled, lang);
+
+export function getWords(lang: string): Promise<WordList | undefined> {
   const hit = cache.get(lang);
   if (hit) return hit;
-  const raw = bundled[lang];
-  if (!raw) return undefined;
+  if (!hasWords(lang)) return Promise.resolve(undefined);
   const fold = (w: string) => normalizeWord(w, lang);
-  const list: WordList = {
-    candidates: raw.candidates,
-    // A small language may have no rare words yet: hard mode then uses the common ones.
-    rare: raw.rare.length ? raw.rare : raw.candidates,
-    guessable: new Set([...raw.candidates.map(fold), ...raw.rare.map(fold), ...raw.allowed]),
-  };
+  const list = bundled[lang]().then(
+    (raw): WordList => ({
+      candidates: raw.candidates,
+      // A small language may have no rare words yet: hard mode then uses the common ones.
+      rare: raw.rare.length ? raw.rare : raw.candidates,
+      guessable: new Set([...raw.candidates.map(fold), ...raw.rare.map(fold), ...raw.allowed]),
+    }),
+  );
+  // A failed load is tried again next time.
+  list.catch(() => cache.delete(lang));
   cache.set(lang, list);
   return list;
 }
