@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { due, isPushEndpoint, isTimeZone, localTime } from './push';
+import { due, generateVapidKeys, getVapidKeys, isPushEndpoint, isTimeZone, localTime } from './push';
+import { fromB64url, vapidAuthorization } from './webpush';
 
 const row = (tz: string, hour: number, last_sent: string | null = null) => ({
   endpoint: 'https://fcm.googleapis.com/x',
@@ -44,5 +45,44 @@ describe('daily reminders', () => {
     expect(isPushEndpoint('https://fcm.googleapis.com:8443/x')).toBe(false);
     expect(isTimeZone('Europe/London')).toBe(true);
     expect(isTimeZone('Mars/Olympus')).toBe(false);
+  });
+});
+
+/** Just enough of D1 for push_config. */
+function fakeDb() {
+  const rows = new Map<string, string>();
+  const stmt = (sql: string, args: unknown[] = []) => ({
+    bind: (...a: unknown[]) => stmt(sql, a),
+    run: async () => {
+      if (sql.startsWith('INSERT OR IGNORE') && !rows.has('vapid')) rows.set('vapid', args[0] as string);
+      return {};
+    },
+    first: async () => (rows.has('vapid') ? { v: rows.get('vapid') } : null),
+  });
+  return { prepare: (sql: string) => stmt(sql) } as unknown as D1Database;
+}
+
+describe('VAPID keys', () => {
+  it('makes keys on first use, keeps them, and signs with them', async () => {
+    const env = { DB: fakeDb() };
+    expect(await getVapidKeys(env)).toBeNull(); // the cron can't make them
+    const a = await getVapidKeys(env, 'https://letterly.example');
+    const b = await getVapidKeys(env, 'https://other.example');
+    expect(a).toEqual(b);
+    expect(a!.subject).toBe('https://letterly.example');
+    expect(fromB64url(a!.publicKey)).toHaveLength(65);
+    expect(await getVapidKeys(env)).toEqual(a);
+    expect(await vapidAuthorization('https://fcm.googleapis.com/fcm/send/x', a!)).toMatch(/^vapid t=/);
+  });
+
+  it('prefers Worker secrets', async () => {
+    const own = await generateVapidKeys();
+    const env = {
+      DB: fakeDb(),
+      VAPID_PUBLIC_KEY: own.publicKey,
+      VAPID_PRIVATE_KEY: own.privateKey,
+      VAPID_SUBJECT: 'mailto:me@example.com',
+    };
+    expect(await getVapidKeys(env, 'https://x.example')).toEqual({ ...own, subject: 'mailto:me@example.com' });
   });
 });

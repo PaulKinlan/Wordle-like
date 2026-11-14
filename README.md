@@ -65,7 +65,7 @@ All routes are under `/api/v1` and keyed by language code (`en`, `es`, `fr`, `de
 | `GET /:lang/words` | Every accepted guess (cached by the service worker for instant checks) |
 | `POST /:lang/play` | `{ puzzle, guesses }` → `{ rows, status, hard, answer? }` |
 
-| `GET /push/key` | VAPID public key, or 404 if reminders aren't set up |
+| `GET /push/key` | VAPID public key (made on first use) |
 | `POST /push/subscribe` | `{ subscription, tz, hour, lang }`: turn on the daily reminder |
 | `POST /push/played` | `{ endpoint, date }`: played today, skip today's reminder |
 | `POST /push/unsubscribe` | `{ endpoint }` |
@@ -121,21 +121,20 @@ browser push services (Google, Mozilla, Apple, Microsoft).
 On iPhone and iPad, web push only works once Letterly is added to the Home
 Screen; the setting says so.
 
-**One-time setup** (until then the setting stays hidden and the cron does nothing):
+**Setup: none.** On the first request to `/api/v1/push/key`, the Worker makes
+its own VAPID key pair with WebCrypto and stores it in D1 (`push_config`). The
+private key never leaves the Worker; only the public key is served. The VAPID
+subject (the contact push services see) is the site's own URL. Keep the D1
+database: if the keys are lost, everyone has to turn reminders off and on
+again.
 
-1. Run `npm run vapid`. It prints `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`.
-2. In the Cloudflare dashboard, open **Workers & Pages → wordle-like → Settings →
-   Variables and Secrets**, and add three variables of type **Secret**:
-   - `VAPID_PUBLIC_KEY`: the public key from step 1
-   - `VAPID_PRIVATE_KEY`: the private key from step 1
-   - `VAPID_SUBJECT`: a contact for push services, like `mailto:you@example.com`
-
-   Use the Secret type, not plain text: deploys from Workers Builds keep secrets
-   but replace plain-text variables that aren't in `wrangler.jsonc`.
-3. Deploy (or wait for the next push to `main`). Keep the same keys from then
-   on: changing them means everyone has to turn reminders off and on again.
-
-For local development, put the same three values in `.dev.vars` (git-ignored).
+**Optional override.** To use your own keys or contact instead, run
+`npm run vapid` and add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and/or
+`VAPID_SUBJECT` (like `mailto:you@example.com`) as **Secret** variables in
+**Workers & Pages → wordle-like → Settings → Variables and Secrets**. Secrets
+win over the stored keys, and changing keys means everyone has to turn
+reminders off and on again. For local development, put them in `.dev.vars`
+(git-ignored).
 
 The free Workers plan allows 50 outgoing requests per run, so each hourly run
 sends at most 40 reminders, and anyone left over is picked up the next hour.
@@ -225,5 +224,5 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 
 ## Ready for later steps
 
-- **Push notifications**: store subscriptions in the same D1 database, VAPID keys as Worker
-  secrets, a cron trigger in `wrangler.jsonc`, and a `push` handler in `public/sw.js`.
+- **Push notifications**: store subscriptions in the same D1 database, VAPID keys made by the
+  Worker and kept in D1, a cron trigger in `wrangler.jsonc`, and a `push` handler in `public/sw.js`.

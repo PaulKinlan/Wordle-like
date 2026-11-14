@@ -1,4 +1,5 @@
-// Makes a VAPID key pair for Web Push (daily reminders).
+// Optional: makes a VAPID key pair for Web Push (daily reminders). The Worker
+// makes and stores its own keys, so this is only needed to override them.
 //
 //   node scripts/vapid-keys.mjs
 //
