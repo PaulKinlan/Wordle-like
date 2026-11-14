@@ -38,7 +38,7 @@ export class Board {
   /** Paints finished rows, the row being typed, and empty rows below. */
   render(rows: Row[], current: string, active: boolean) {
     const letters = [...current];
-    const known = letterHints(rows);
+    const known = letterHints(showHints ? rows : []);
     this.tiles.forEach((tiles, r) => {
       const done = rows[r];
       tiles.forEach((t, c) => {
@@ -113,6 +113,13 @@ export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) 
   [...el.children].forEach((s, i) => {
     s.className = best.get(alphabet[i]) ?? '';
   });
+}
+
+let showHints = true;
+
+/** Turns the already-tried hints on the typing row on or off (Settings). */
+export function setTypingHints(on: boolean) {
+  showHints = on;
 }
 
 let tileLocale = 'en';

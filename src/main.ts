@@ -3,7 +3,7 @@ import { dailyNumber, localDate } from '../shared/daily';
 import { checkHardMode, normalizeWord, type HardModeViolation } from '../shared/game';
 import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../shared/languages';
 import { api, ApiError } from './api';
-import { Board, renderTracker, setTileLocale, toUpper } from './board';
+import { Board, renderTracker, setTileLocale, setTypingHints, toUpper } from './board';
 import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
@@ -549,6 +549,19 @@ setHapticsBox.addEventListener('change', () => {
   settings.haptics = setHapticsBox.checked;
   saveSettings(settings);
   setHaptics(setHapticsBox.checked);
+});
+
+// Already-tried hints on the row being typed: on unless turned off.
+const setHintsBox = $<HTMLInputElement>('set-hints');
+setTypingHints(settings.typingHints !== false);
+setHintsBox.checked = settings.typingHints !== false;
+setHintsBox.addEventListener('change', () => {
+  track('setting', { typingHints: setHintsBox.checked });
+  settings.typingHints = setHintsBox.checked;
+  saveSettings(settings);
+  setTypingHints(setHintsBox.checked);
+  if (race.isActive) race.redraw();
+  else draw(true);
 });
 
 // Install button, where the browser offers one (Chrome, Edge, Samsung).
