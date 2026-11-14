@@ -482,6 +482,46 @@ els.setContrast.addEventListener('change', () => {
 });
 applyContrast();
 
+// Appearance: Auto (follow the system), Light or Dark. public/theme.js applies
+// the saved choice before first paint; this keeps it in step when changed.
+type Theme = 'system' | 'light' | 'dark';
+const THEME_KEY = 'letterle:theme';
+const THEME_COLORS = { light: '#f6f6f3', dark: '#121316' };
+function savedTheme(): Theme {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === 'light' || v === 'dark' ? v : 'system';
+  } catch {
+    return 'system';
+  }
+}
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+  if (theme === 'system') delete root.dataset.theme;
+  else root.dataset.theme = theme;
+  for (const m of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    // Each meta has a media query for its scheme; with a fixed theme both say the same colour.
+    const own = m.media.includes('dark') ? THEME_COLORS.dark : THEME_COLORS.light;
+    m.content = theme === 'system' ? own : THEME_COLORS[theme];
+  }
+  document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]')!.content = theme === 'system' ? 'light dark' : theme;
+}
+for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="theme"]')) {
+  radio.checked = radio.value === savedTheme();
+  radio.addEventListener('change', () => {
+    const theme = radio.value as Theme;
+    try {
+      if (theme === 'system') localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* private mode: still applies for this visit */
+    }
+    applyTheme(theme);
+    track('setting', { theme });
+  });
+}
+applyTheme(savedTheme());
+
 // Vibration (Android): on unless turned off.
 const setHapticsBox = $<HTMLInputElement>('set-haptics');
 setHaptics(settings.haptics !== false);

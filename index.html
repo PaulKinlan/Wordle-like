@@ -25,6 +25,7 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <script src="/theme.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
@@ -188,6 +189,14 @@
           <span><strong data-i18n="settings.hard">Hard mode</strong><small data-i18n="settings.hardNote">A rarer word, and every hint you find must be used in later guesses</small></span>
           <input type="checkbox" class="switch" id="set-hard" />
         </label>
+        <div class="setting">
+          <span id="theme-label"><strong data-i18n="settings.theme">Appearance</strong></span>
+          <div class="segmented choice" role="radiogroup" aria-labelledby="theme-label">
+            <label><input type="radio" name="theme" value="system" /><span data-i18n="settings.themeSystem">Auto</span></label>
+            <label><input type="radio" name="theme" value="light" /><span data-i18n="settings.themeLight">Light</span></label>
+            <label><input type="radio" name="theme" value="dark" /><span data-i18n="settings.themeDark">Dark</span></label>
+          </div>
+        </div>
         <label class="setting">
           <span><strong data-i18n="settings.contrast">High contrast colours</strong><small data-i18n="settings.contrastNote">Easier to tell apart for colour vision deficiency</small></span>
           <input type="checkbox" class="switch" id="set-contrast" />
