@@ -3,7 +3,7 @@
 // - API: always from the network, except the word list, which is cached so
 //   guesses can be checked instantly.
 // Bump VERSION to drop old caches.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
@@ -21,7 +21,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== SHELL && k !== DATA).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k !== SHELL && k !== DATA && k !== 'prefs').map((k) => caches.delete(k))),
+      )
       .then(() => self.clients.claim()),
   );
 });
@@ -65,4 +67,56 @@ async function staleWhileRevalidate(req, cacheName) {
   return cached || network;
 }
 
-// Step 4 adds a 'push' handler here for the daily notification.
+// Daily reminder (sent by the Worker's hourly cron, see worker/push.ts).
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data?.text() };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Letterly', {
+      body: data.body || "Today's word is ready",
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: data.tag || 'daily',
+      data: { url: data.url || '/' },
+    }),
+  );
+});
+
+// Tapping the notification opens the game, or focuses it if it's open.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) return client.focus();
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});
+
+// The browser can rotate a subscription; keep the server's copy current.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      const res = await fetch('/api/v1/push/key');
+      if (!res.ok) return;
+      const { publicKey } = await res.json();
+      const sub = await self.registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey,
+      });
+      const prefs = (await caches.open('prefs').then((c) => c.match('/push-prefs')).then((r) => r?.json())) || {};
+      await fetch('/api/v1/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON(), ...prefs }),
+      });
+    })(),
+  );
+});

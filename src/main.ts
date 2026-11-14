@@ -6,7 +6,8 @@ import { api, ApiError } from './api';
 import { Board, renderTracker } from './board';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
-import { shareText } from './share';
+import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
+import { shareCard, shareText, streakLine } from './share';
 import {
   currentStreak,
   loadGame,
@@ -204,6 +205,7 @@ const PRAISE = ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!',
 function finish() {
   if (!game) return;
   recordResult(game);
+  if (game.mode === 'daily' && game.date) void markPlayedToday(game.date);
   if (game.status === 'won') {
     board.bounce(game.rows.length - 1);
     toast(PRAISE[Math.min(game.rows.length, PRAISE.length) - 1]);
@@ -252,8 +254,10 @@ function showResult() {
   const outcome = g.status === 'won' ? `Solved in ${g.rows.length}/${g.maxGuesses}.` : `The word was ${word}.`;
   if (g.mode === 'daily') {
     els.btnNew.textContent = 'Play unlimited';
+    const stats = loadStats(g.lang, g.mode, g.hard, g.maxGuesses);
+    const fire = streakLine(g, currentStreak(stats, g.mode, g.number));
     const tick = () => {
-      els.resultText.textContent = `${outcome} Next word in ${untilMidnight()}`;
+      els.resultText.textContent = `${outcome}${fire ? ` ${fire}.` : ''} Next word in ${untilMidnight()}`;
     };
     tick();
     countdown = window.setInterval(tick, 1000);
@@ -385,8 +389,18 @@ els.statsShare.addEventListener('click', () => void share());
 
 async function share() {
   if (!game || game.status === 'playing') return;
-  const text = shareText(game, settings.highContrast, location.origin);
+  const g = game;
+  const stats = loadStats(g.lang, g.mode, g.hard, g.maxGuesses);
+  const streak = currentStreak(stats, g.mode, g.mode === 'daily' ? (dailyNumber(localDate()) ?? undefined) : undefined);
+  const text = shareText(g, settings.highContrast, location.origin, streak);
   try {
+    // A picture of the grid where the share sheet takes files, with the text alongside.
+    const blob = 'canShare' in navigator ? await shareCard(g, settings.highContrast, location.host, streak) : null;
+    const file = blob ? new File([blob], 'letterly.png', { type: 'image/png' }) : null;
+    if (file && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], text });
+      return;
+    }
     if (navigator.share && navigator.canShare?.({ text }) !== false) {
       await navigator.share({ text });
       return;
@@ -417,6 +431,61 @@ els.setLang.addEventListener('change', () => {
   saveSettings(settings);
   if (race.isActive) race.show();
   else void startMode(settings.mode);
+});
+
+// ---------------------------------------------------------------- reminders
+
+const pushRow = $('push-row');
+const pushHourRow = $('push-hour-row');
+const pushSwitch = $<HTMLInputElement>('set-push');
+const pushHour = $<HTMLSelectElement>('set-push-hour');
+
+async function setupReminders() {
+  const availability = await pushAvailability();
+  if (availability === 'unsupported' || availability === 'off') return;
+  pushRow.hidden = false;
+  if (availability === 'install-first') {
+    $('push-note').textContent = 'Add Letterly to your Home Screen first (Share, then Add to Home Screen)';
+    pushSwitch.disabled = true;
+    return;
+  }
+  pushHour.replaceChildren(
+    ...Array.from({ length: 24 }, (_, h) => {
+      const o = document.createElement('option');
+      o.value = String(h);
+      o.textContent = new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      return o;
+    }),
+  );
+  const prefs = loadPushPrefs();
+  pushSwitch.checked = !!prefs && Notification.permission === 'granted';
+  pushHour.value = String(prefs?.hour ?? 9);
+  pushHourRow.hidden = !pushSwitch.checked;
+}
+
+async function updateReminders() {
+  pushSwitch.disabled = true;
+  try {
+    if (pushSwitch.checked) {
+      const problem = await enablePush(Number(pushHour.value), lang);
+      if (problem) {
+        pushSwitch.checked = false;
+        toast(problem, 3000);
+      } else {
+        toast(`Reminder set for ${pushHour.selectedOptions[0]?.textContent ?? ''}`);
+      }
+    } else {
+      await disablePush();
+    }
+  } finally {
+    pushSwitch.disabled = false;
+    pushHourRow.hidden = !pushSwitch.checked;
+  }
+}
+
+pushSwitch.addEventListener('change', () => void updateReminders());
+pushHour.addEventListener('change', () => {
+  if (pushSwitch.checked) void updateReminders();
 });
 
 // A new day brings a new daily word.
@@ -453,6 +522,7 @@ async function chooseLanguage() {
 }
 
 async function init() {
+  void setupReminders();
   await chooseLanguage();
   await startMode(settings.mode);
   // An invite link (/?race=CODE) opens the race straight away.

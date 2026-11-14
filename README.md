@@ -12,7 +12,10 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
 - **Race**: play friends on the same word in real time (up to 4 players). Share an
   invite link; when someone finishes a row, everyone else has 5 seconds to finish
   theirs. First to find the word wins, otherwise the best single row on points.
-- **Share**: a spoiler-free emoji grid through the share sheet, or copied to the clipboard.
+- **Share**: a picture of your grid (made on the device) plus a spoiler-free emoji grid,
+  through the share sheet, or the text copied to the clipboard. Daily shares include your streak.
+- **Daily reminder**: an optional notification at the time you choose, skipped on days
+  you've already played.
 - **Stats**: played, win rate, streaks and guess distribution, kept on your device.
 - **Installable PWA** that opens offline, with a strict Content Security Policy.
 
@@ -62,6 +65,10 @@ All routes are under `/api/v1` and keyed by language code (`en`, `es`, `fr`, `de
 | `GET /:lang/words` | Every accepted guess (cached by the service worker for instant checks) |
 | `POST /:lang/play` | `{ puzzle, guesses }` → `{ rows, status, hard, answer? }` |
 
+| `GET /push/key` | VAPID public key, or 404 if reminders aren't set up |
+| `POST /push/subscribe` | `{ subscription, tz, hour, lang }`: turn on the daily reminder |
+| `POST /push/played` | `{ endpoint, date }`: played today, skip today's reminder |
+| `POST /push/unsubscribe` | `{ endpoint }` |
 | `POST /rooms` | `{ lang, hard }` → `{ code }`: a new race room |
 | `GET /rooms/:code/socket` | WebSocket for one player in a race (see below) |
 
@@ -98,6 +105,40 @@ The rules live in `worker/race.ts` (pure code, unit tested) and
 
 Messages are JSON: the client sends `join`, `start`, `guess` and `ping`; the
 room replies with `welcome`, `state` (each player's own view) and `error`.
+
+### Daily notifications
+
+Players can turn on a daily reminder in Settings and pick the hour. The browser
+subscribes with Web Push, and the Worker stores the subscription, time zone
+and hour in D1 (`push_subs`). A cron trigger runs every hour
+(`wrangler.jsonc`), and each subscriber gets one notification a day at or
+after their hour, unless they've already finished that day's word.
+Subscriptions the push service reports as gone (404/410) are deleted.
+Encryption (RFC 8291) and VAPID signing (RFC 8292) are done with WebCrypto in
+`worker/webpush.ts`, with no dependencies. The Worker only sends to the
+browser push services (Google, Mozilla, Apple, Microsoft).
+
+On iPhone and iPad, web push only works once Letterly is added to the Home
+Screen; the setting says so.
+
+**One-time setup** (until then the setting stays hidden and the cron does nothing):
+
+1. Run `npm run vapid`. It prints `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`.
+2. In the Cloudflare dashboard, open **Workers & Pages → wordle-like → Settings →
+   Variables and Secrets**, and add three variables of type **Secret**:
+   - `VAPID_PUBLIC_KEY`: the public key from step 1
+   - `VAPID_PRIVATE_KEY`: the private key from step 1
+   - `VAPID_SUBJECT`: a contact for push services, like `mailto:you@example.com`
+
+   Use the Secret type, not plain text: deploys from Workers Builds keep secrets
+   but replace plain-text variables that aren't in `wrangler.jsonc`.
+3. Deploy (or wait for the next push to `main`). Keep the same keys from then
+   on: changing them means everyone has to turn reminders off and on again.
+
+For local development, put the same three values in `.dev.vars` (git-ignored).
+
+The free Workers plan allows 50 outgoing requests per run, so each hourly run
+sends at most 40 reminders, and anyone left over is picked up the next hour.
 
 ### Word lists
 

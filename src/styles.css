@@ -683,7 +683,8 @@ dialog.sheet li {
   border-bottom: 1px solid var(--border);
 }
 
-.setting:last-child {
+.setting:last-child,
+.setting:not(:has(~ .setting:not([hidden]))) {
   border-bottom: 0;
   padding-bottom: 0;
 }
@@ -696,6 +697,8 @@ dialog.sheet li {
 }
 
 .setting select {
+  flex: none;
+  max-width: 52%;
   font: inherit;
   padding: 6px 10px;
   border-radius: 8px;

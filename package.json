@@ -11,6 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc -b",
     "words": "node scripts/build-wordlists.mjs",
+    "vapid": "node scripts/vapid-keys.mjs",
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {

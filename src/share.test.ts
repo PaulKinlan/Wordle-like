@@ -30,4 +30,10 @@ describe('shareText', () => {
     expect(text.split('\n')[0]).toBe('Letterly Unlimited X/6');
     expect(text).toContain('⬛🟧⬛⬛🟦');
   });
+  it('adds the daily streak, and the language when not English', () => {
+    const text = shareText({ ...game, lang: 'es' }, false, 'u', 5);
+    expect(text.split('\n').slice(0, 2)).toEqual(['Letterly ES #1 2/6 (hard)', '🔥 5 day streak']);
+    expect(shareText(game, false, 'u', 1)).not.toContain('🔥');
+    expect(shareText({ ...game, mode: 'unlimited' }, false, 'u', 9)).not.toContain('🔥');
+  });
 });

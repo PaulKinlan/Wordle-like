@@ -17,17 +17,19 @@
 //   POST /rooms                 { lang, hard } -> { code }
 //   GET  /rooms/:code/socket    WebSocket for one player
 //
-// Web Push subscriptions will go under /api/v1/push/*.
+// Daily reminders by Web Push, see push.ts:
+//   GET  /push/key, POST /push/subscribe, POST /push/unsubscribe
 import { checkHardMode, describeViolation, evaluate, normalizeWord, statusAfter, type Mark } from '../shared/game';
 import { getLanguage, LANGUAGES } from '../shared/languages';
 import { D1AnswerStore, type AnswerStore } from './answers';
 import { answerIndex, dailyNumber, newRandomToken, parsePuzzleId } from './puzzles';
 import { getWords } from './words';
+import { handlePush, sendDailyReminders, type PushEnv } from './push';
 import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
 
 export { Room } from './room';
 
-export interface Env {
+export interface Env extends PushEnv {
   ASSETS: Fetcher;
   /** Holds the private answer order. Created automatically on first deploy. */
   DB: D1Database;
@@ -186,6 +188,7 @@ export default {
     if (url.pathname.startsWith('/api/')) {
       try {
         if (url.pathname.startsWith('/api/v1/rooms')) return await handleRooms(request, env.ROOMS);
+        if (url.pathname.startsWith('/api/v1/push/')) return await handlePush(request, env, json, error);
         return await handleApi(request, new D1AnswerStore(env.DB));
       } catch (e) {
         console.error(e);
@@ -193,5 +196,15 @@ export default {
       }
     }
     return env.ASSETS.fetch(request);
+  },
+
+  /** Hourly cron (wrangler.jsonc): daily reminder notifications. */
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(
+      sendDailyReminders(env).then(
+        (r) => console.log('daily reminders', r),
+        (e) => console.error('daily reminders failed', e),
+      ),
+    );
   },
 } satisfies ExportedHandler<Env>;

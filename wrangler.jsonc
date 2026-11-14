@@ -22,8 +22,9 @@
   // Multiplayer: one Durable Object per race room (worker/room.ts), with
   // SQLite-backed storage. Created on deploy; nothing to set up by hand.
   "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
-  // Later steps:
-  // - Push: store subscriptions in the same D1 database, VAPID keys as secrets,
-  //   and a "triggers": { "crons": [...] } entry for the daily notification.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  // Daily reminders (worker/push.ts): every hour, notify subscribers whose
+  // chosen local hour has come. Needs the VAPID_PUBLIC_KEY and
+  // VAPID_PRIVATE_KEY secrets (see the README); without them it does nothing.
+  "triggers": { "crons": ["0 * * * *"] }
 }
