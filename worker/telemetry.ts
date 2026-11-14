@@ -3,7 +3,7 @@
 //   POST /api/v1/telemetry          batches from src/telemetry.ts (errors, Web Vitals, ...)
 //   POST /api/v1/reports            the browser's Reporting API (CSP, deprecations,
 //                                   interventions, crashes) and legacy CSP reports
-//   GET  /api/v1/telemetry/summary  the dashboard's data (needs the dashboard key)
+//   GET  /api/v1/telemetry/summary  the dashboard's data (needs the key, or a Cloudflare Access sign-in)
 //   GET  /health                    a quick health check, with the build's commit
 //
 // Nothing personal is stored: no IP address, no user agent string (only a
@@ -12,10 +12,11 @@
 // IP + user agent + a random salt that changes every day and is then
 // deleted, so a visitor can be counted within a day but never followed
 // across days, and the hash can't be turned back into an IP. No cookies.
+import { accessEnabled, verifyAccess, type AccessEnv } from './access';
 import { BUILT, COMMIT, COMMIT_URL, REPO_URL } from '../shared/version';
 import { BadBody, readText } from './http';
 
-export interface TelemetryEnv {
+export interface TelemetryEnv extends AccessEnv {
   DB: D1Database;
   /** Optional: a fixed key for the dashboard instead of the generated one. */
   DASHBOARD_KEY?: string;
@@ -377,8 +378,13 @@ export async function handleTelemetry(request: Request, env: TelemetryEnv, json:
   }
 
   if (url.pathname === '/api/v1/telemetry/summary' && request.method === 'GET') {
-    const auth = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? '';
-    if (!auth || !sameKey(auth, await dashboardKey(env))) return error(401, 'unauthorized', 'Wrong or missing key');
+    // With Cloudflare Access set up, its sign-in replaces the key entirely.
+    if (accessEnabled(env)) {
+      if (!(await verifyAccess(request, env))) return error(401, 'access_required', 'Sign in with Cloudflare Access');
+    } else {
+      const auth = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+      if (!auth || !sameKey(auth, await dashboardKey(env))) return error(401, 'unauthorized', 'Wrong or missing key');
+    }
     // Errors and vitals only go back 30 days; usage goes back 13 months.
     const days = Math.min(USAGE_RETENTION_DAYS, Math.max(1, Number(url.searchParams.get('days')) || 7));
     const [health, use] = await Promise.all([summary(env.DB, Math.min(days, RETENTION_DAYS)), usage(env.DB, days)]);

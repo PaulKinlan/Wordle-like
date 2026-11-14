@@ -39,7 +39,10 @@
       </section>
       <section>
         <h2>Per day</h2>
-        <div id="daily"></div>
+        <div id="daily-chart" class="chart"></div>
+        <h3>Win rate</h3>
+        <div id="winrate-chart" class="chart"></div>
+        <details class="tview"><summary>Table</summary><div id="daily"></div></details>
       </section>
       <section>
         <h2>From visit to share <small>sessions that reached each step</small></h2>
@@ -47,10 +50,11 @@
       </section>
       <section>
         <h2>Games <small>by mode and word language</small></h2>
-        <div id="games"></div>
+        <div id="lang-chart" class="chart"></div>
+        <details class="tview"><summary>Table</summary><div id="games"></div></details>
       </section>
       <section class="grid2">
-        <div><h2>Guesses to win</h2><div id="guesses"></div></div>
+        <div><h2>Guesses to win</h2><div id="guesses-chart" class="chart"></div><details class="tview"><summary>Table</summary><div id="guesses"></div></details></div>
         <div><h2>Races</h2><div id="races"></div></div>
       </section>
       <section class="grid2">
@@ -74,8 +78,9 @@
         <div><h2>Reminder subscribers <small>right now</small></h2><div id="reminders"></div></div>
       </section>
       <section>
-        <h2>Hour of day <small>UTC</small></h2>
-        <div id="hours"></div>
+        <h2>Hour of day <small>UTC, page views</small></h2>
+        <div id="hours-chart" class="chart"></div>
+        <details class="tview"><summary>Table</summary><div id="hours"></div></details>
       </section>
       <section>
         <h2>Health</h2>
@@ -87,6 +92,7 @@
       </section>
       <section>
         <h2>Problems <small>errors, rejections, CSP violations, browser reports</small></h2>
+        <div id="problems-chart" class="chart"></div>
         <div id="problems"></div>
       </section>
       <section>
@@ -111,7 +117,7 @@
       </section>
       <section>
         <h2>Error and vitals volume</h2>
-        <div id="volume"></div>
+        <details class="tview"><summary>Table</summary><div id="volume"></div></details>
       </section>
     </main>
   </body>

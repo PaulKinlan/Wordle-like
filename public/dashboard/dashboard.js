@@ -1,6 +1,9 @@
 // Letterle dashboard: real-user errors and Web Vitals from /api/v1/telemetry/summary.
-// The key comes from the link (#key=...), so it never reaches server logs, and
-// is remembered on this device. Built with DOM nodes only (the CSP has Trusted Types).
+// Signed in by Cloudflare Access when that's set up (ACCESS_TEAM and ACCESS_AUD);
+// otherwise the key comes from the link (#key=...), so it never reaches server
+// logs, and is remembered on this device. Charts are in charts.js. Built with DOM nodes only (the CSP has Trusted Types).
+
+import { columnChart, dayLabel, dayRange, lineChart, sparkline, stackBars } from './charts.js';
 
 const KEY = 'letterle:dashboard-key';
 const $ = (id) => document.getElementById(id);
@@ -89,9 +92,16 @@ function vitalsCards(data) {
           el('span', { class: 'bg-ni', style: `width:${count ? 100 - good - poor : 0}%` }),
           el('span', { class: 'bg-poor', style: `width:${poor}%` }),
         ),
+        trend(name, data),
       );
     }),
   );
+}
+
+/** The vital's 75th percentile per day, against the "good" line. */
+function trend(name, data) {
+  const days = dayRange(Math.min(data.days, 30));
+  return sparkline(days.map((d) => data.vitalsByDay[d]?.[name]?.p75 ?? null), data.thresholds[name]?.[0]);
 }
 
 function vitalsTable(id, groups, data, sortKeys) {
@@ -156,6 +166,27 @@ function pretty(s) {
   } catch {
     return s;
   }
+}
+
+const PROBLEM_KINDS = new Set(['error', 'rejection', 'csp', 'report', 'server', 'resource']);
+
+function problemsChart(data) {
+  const days = dayRange(Math.min(data.days, 30));
+  const per = {};
+  for (const r of data.volume) if (PROBLEM_KINDS.has(r.kind)) (per[r.day] ??= {})[r.kind] = r.count;
+  if (days.length < 2) return $('problems-chart').replaceChildren();
+  columnChart($('problems-chart'), {
+    bars: days.map((d) => {
+      const kinds = Object.entries(per[d] ?? {}).sort((a, b) => b[1] - a[1]);
+      const value = kinds.reduce((t, [, n]) => t + n, 0);
+      return {
+        label: dayLabel(d),
+        value,
+        cls: 'poor',
+        tip: [el('b', {}, `${dayLabel(d)}: ${value} problems`), ...kinds.map(([k, n]) => el('div', {}, `${k} `, el('strong', {}, n)))],
+      };
+    }),
+  });
 }
 
 function volume(data) {
@@ -239,6 +270,7 @@ function usageSection(u) {
       ),
     ),
   );
+  usageCharts(u);
   const f = u.funnel;
   const steps = [
     ['Opened the game', f.visited],
@@ -316,6 +348,80 @@ function usageSection(u) {
   );
 }
 
+function usageCharts(u) {
+  const days = dayRange(u.daily.length ? Number($('days').value) : 0);
+  const byDay = Object.fromEntries(u.daily.map((d) => [d.day, d]));
+  const col = (k) => days.map((d) => n0(byDay[d]?.[k]));
+  const labels = days.map(dayLabel);
+  if (days.length > 1) {
+    lineChart($('daily-chart'), {
+      labels,
+      series: [
+        { name: 'Visitors', cls: 's1', values: col('visitors') },
+        { name: 'Started', cls: 's2', values: col('started') },
+        { name: 'Finished', cls: 's3', values: col('finished') },
+      ],
+    });
+    lineChart($('winrate-chart'), {
+      labels,
+      yMax: 100,
+      H: 130,
+      fmtY: (v) => `${v}%`,
+      fmtV: (v) => `${Math.round(v)}%`,
+      series: [{ name: 'Won', cls: 's1', values: days.map((d) => (n0(byDay[d]?.finished) ? (n0(byDay[d].won) / n0(byDay[d].finished)) * 100 : null)) }],
+    });
+  } else {
+    $('daily-chart').replaceChildren();
+    $('winrate-chart').replaceChildren();
+  }
+
+  // Finished games per word language, won and not won.
+  const langs = {};
+  for (const g of u.games) {
+    const l = (langs[g.lang] ??= { won: 0, games: 0 });
+    l.won += n0(g.won);
+    l.games += n0(g.games);
+  }
+  stackBars(
+    $('lang-chart'),
+    Object.entries(langs)
+      .sort((a, b) => b[1].games - a[1].games)
+      .map(([lang, l]) => ({ label: lang.toUpperCase(), parts: [l.won, l.games - l.won], note: `${l.games} · ${pct(l.won, l.games)} won` })),
+    [
+      { name: 'Won', cls: 's1' },
+      { name: 'Not won', cls: 'rest' },
+    ],
+  );
+
+  const total = u.guesses.reduce((t, r) => t + n0(r.n), 0);
+  const g = Object.fromEntries(u.guesses.map((r) => [String(r.k), n0(r.n)]));
+  const tries = Math.max(6, ...Object.keys(g).filter((k) => k !== 'X').map(Number));
+  columnChart($('guesses-chart'), {
+    valueLabels: true,
+    every: 1,
+    bars: [...Array.from({ length: tries }, (_, i) => String(i + 1)), 'X'].map((k) => ({
+      label: k === 'X' ? 'Lost' : k,
+      value: g[k] ?? 0,
+      cls: k === 'X' ? 'rest' : 's1',
+      tip: [el('b', {}, k === 'X' ? 'Lost' : `Won in ${k}`), el('div', {}, el('strong', {}, g[k] ?? 0), ` games · ${pct(g[k], total)}`)],
+    })),
+  });
+
+  const hours = Object.fromEntries(u.hours.map((h) => [h.hour, h]));
+  columnChart($('hours-chart'), {
+    every: 3,
+    bars: Array.from({ length: 24 }, (_, h) => {
+      const label = `${String(h).padStart(2, '0')}:00`;
+      const r = hours[h];
+      return {
+        label,
+        value: n0(r?.pageviews),
+        tip: [el('b', {}, label), el('div', {}, 'Page views ', el('strong', {}, n0(r?.pageviews))), el('div', {}, 'Games ', el('strong', {}, n0(r?.games)))],
+      };
+    }),
+  });
+}
+
 async function health() {
   try {
     const res = await fetch('/health', { cache: 'no-store' });
@@ -324,34 +430,47 @@ async function health() {
       el('span', { class: h.status === 'ok' ? 'good' : 'poor' }, h.status === 'ok' ? '● Healthy' : `● ${h.status}`),
       el('span', {}, 'Live version ', el('a', { href: h.commitUrl, target: '_blank', rel: 'noopener' }, h.shortCommit)),
       el('span', {}, `Database ${h.checks.database} (${h.checks.databaseMs} ms)`),
-      h.built ? el('span', {}, `Built ${new Date(h.built).toLocaleString()}`) : null,
+      ...(h.built ? [el('span', {}, `Built ${new Date(h.built).toLocaleString()}`)] : []),
     );
   } catch (e) {
     $('health').replaceChildren(el('span', { class: 'poor' }, `● /health failed: ${e.message}`));
   }
 }
 
+/** Cloudflare Access signs in on a full page load, so reloading is the way back in. */
+function needSignIn() {
+  $('login').hidden = true;
+  $('main').hidden = true;
+  $('status').replaceChildren('Your sign-in has run out. ', el('a', { href: '/dashboard/', class: 'signin' }, 'Sign in again'));
+}
+
 async function load() {
+  // With Cloudflare Access in front, no key is needed; without it, the server asks for one.
   const key = getKey();
-  if (!key) {
-    $('login').hidden = false;
-    $('main').hidden = true;
-    $('status').textContent = 'Open this page with your dashboard link, or paste the key.';
-    return;
-  }
   $('status').textContent = 'Loading…';
   void health();
   const res = await fetch(`/api/v1/telemetry/summary?days=${$('days').value}`, {
-    headers: { Authorization: `Bearer ${key}` },
+    headers: key ? { Authorization: `Bearer ${key}` } : {},
     cache: 'no-store',
-  });
+    // An expired Access session answers with a redirect to Cloudflare's sign-in page.
+    redirect: 'manual',
+  }).catch(() => null);
+  if (!res) {
+    $('status').textContent = "Couldn't reach the server.";
+    return;
+  }
+  if (res.type === 'opaqueredirect') return needSignIn();
   if (res.status === 401) {
-    try {
-      localStorage.removeItem(KEY);
-    } catch {}
+    const body = await res.json().catch(() => ({}));
+    if (body.error === 'access_required') return needSignIn();
+    if (key) {
+      try {
+        localStorage.removeItem(KEY);
+      } catch {}
+    }
     $('login').hidden = false;
     $('main').hidden = true;
-    $('status').textContent = 'That key was not accepted.';
+    $('status').textContent = key ? 'That key was not accepted.' : 'Open this page with your dashboard link, or paste the key.';
     return;
   }
   if (!res.ok) {
@@ -364,6 +483,7 @@ async function load() {
   $('status').textContent = `Updated ${new Date(data.generatedAt).toLocaleTimeString()}`;
   if (data.usage) usageSection(data.usage);
   vitalsCards(data);
+  problemsChart(data);
   problems(data);
   vitalsTable('by-day', data.vitalsByDay, data, (a, b) => b.localeCompare(a));
   vitalsTable('by-device', data.vitalsByDevice, data);
