@@ -689,7 +689,7 @@ body:not(.typing) .row.active .tile.cursor {
   gap: 4px;
 }
 
-.tracker span {
+.tracker > * {
   min-width: 22px;
   padding: 3px 0;
   border-radius: 6px;
@@ -708,22 +708,22 @@ body:not(.typing) .row.active .tile.cursor {
   gap: 2px;
 }
 
-.tracker.dense span {
+.tracker.dense > * {
   min-width: 0;
   padding: 1px 0;
   border-radius: 4px;
   font-size: 0.6875rem;
 }
 
-.tracker span.correct {
+.tracker > *.correct {
   background: var(--correct);
   color: var(--on-mark);
 }
-.tracker span.present {
+.tracker > *.present {
   background: var(--present);
   color: var(--on-mark);
 }
-.tracker span.absent {
+.tracker > *.absent {
   opacity: 0.35;
   text-decoration: line-through;
 }
@@ -1601,7 +1601,7 @@ install[hidden],
     corner-shape: squircle;
   }
   .osk-key,
-  .tracker span,
+  .tracker > *,
   .result,
   .toast,
   dialog.sheet {
@@ -1694,5 +1694,116 @@ install[hidden],
 @media (prefers-reduced-motion: reduce) {
   .confetti {
     display: none;
+  }
+}
+
+/* Tracker letters as buttons (interest invokers): look exactly like the
+   plain ones. */
+.tracker > button {
+  border: 0;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The long-press tip: above the letter, in the top layer. */
+.letter-tip {
+  position-anchor: --letter-tip;
+  position-area: top;
+  inset: auto;
+  position-try-fallbacks: flip-block;
+  margin: 0 0 8px;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  corner-shape: squircle;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+}
+
+/* Settings pickers drawn by the page: grouped, with the native name large
+   and the English name small. Other browsers keep the system picker. */
+@supports (appearance: base-select) {
+  .setting select,
+  .setting select::picker(select) {
+    appearance: base-select;
+  }
+  .setting select {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 6px 10px 6px 12px;
+    border-radius: 12px;
+    corner-shape: squircle;
+  }
+  .setting select::picker-icon {
+    color: var(--muted);
+    transition: rotate 150ms;
+  }
+  .setting select:open::picker-icon {
+    rotate: 180deg;
+  }
+  .setting select::picker(select) {
+    margin-block: 6px;
+    min-width: anchor-size(width);
+    max-height: min(60dvh, 420px);
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    corner-shape: squircle;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+    position-try-fallbacks: flip-block;
+  }
+  .setting optgroup {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 8px 10px 4px;
+  }
+  .setting optgroup + optgroup {
+    margin-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+  .setting option {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .setting select button {
+    display: contents;
+  }
+  .setting selectedcontent small {
+    display: none;
+  }
+  .setting option small {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .setting option:hover,
+  .setting option:focus-visible {
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    outline: none;
+  }
+  .setting option:checked {
+    font-weight: 700;
+  }
+  .setting option::checkmark {
+    order: 1;
+    margin-left: auto;
+    color: var(--accent);
   }
 }
