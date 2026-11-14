@@ -155,7 +155,7 @@ export class NativeEntry {
   hideKeyboard(): Promise<void> {
     const { input } = this.o;
     const focused = document.activeElement === input;
-    debugLog('kb hide start', { focused, vk: vkHeight() });
+    debugLog('kb hide start', { focused, vk: vkHeight(), active: describe(document.activeElement) });
     if (this.hiding) return this.hiding;
     if (!focused && !(vkHeight() > 0)) {
       if (!this.enabled) this.lockField();
@@ -170,21 +170,81 @@ export class NativeEntry {
     }
     if (this.enabled) return Promise.resolve(); // a tap elsewhere mid-game: the field keeps its policy
     this.hiding = (async () => {
-      if (!(await this.closed())) {
-        debugLog('kb hide() left it up: auto policy, then blur', { vk: vkHeight() });
-        input.inputMode = 'none';
-        input.setAttribute('virtualkeyboardpolicy', 'auto');
-        await frames(2);
-        input.blur();
-        if (!(await this.closed())) {
-          debugLog('kb still up after blur: disabling the field', { vk: vkHeight() });
-          input.disabled = true;
-          await this.closed();
+      // Each lever in turn, stopping at the first that works. The ?debug log
+      // names the one that did, so the list can be trimmed once we know.
+      const steps: [string, () => void | Promise<void>][] = [
+        ['hide()', () => undefined], // already called above
+        [
+          'auto policy, then blur',
+          async () => {
+            input.inputMode = 'none';
+            input.setAttribute('virtualkeyboardpolicy', 'auto');
+            await frames(2);
+            input.blur();
+          },
+        ],
+        ['disable the field', () => void (input.disabled = true)],
+        [
+          'focus the board (not a text field)',
+          () => {
+            const board = this.o.form.querySelector<HTMLElement>('.board') ?? this.o.form;
+            if (!board.hasAttribute('tabindex')) board.tabIndex = -1;
+            board.focus({ preventScroll: true });
+          },
+        ],
+        [
+          'take the field out of the page and put it back',
+          () => {
+            const parent = input.parentNode;
+            const next = input.nextSibling;
+            if (!parent) return;
+            input.remove();
+            parent.insertBefore(input, next);
+          },
+        ],
+        [
+          'overlaysContent off and on',
+          async () => {
+            if (!vk) return;
+            vk.overlaysContent = false;
+            await frames(2);
+            vk.overlaysContent = true;
+          },
+        ],
+        [
+          'focus, show() then hide()',
+          async () => {
+            input.disabled = false;
+            input.readOnly = false;
+            input.removeAttribute('inputmode');
+            input.setAttribute('virtualkeyboardpolicy', 'manual');
+            input.focus({ preventScroll: true });
+            await frames(1);
+            try {
+              vk?.show();
+              await frames(2);
+              vk?.hide();
+            } catch (e) {
+              debugLog('kb show/hide threw', e);
+            }
+            await frames(2);
+            input.blur();
+          },
+        ],
+      ];
+      for (const [name, run] of steps) {
+        if (name !== 'hide()') {
+          debugLog(`kb try: ${name}`, { vk: vkHeight(), active: describe(document.activeElement) });
+          await run();
+        }
+        if (await this.closed()) {
+          debugLog(`kb closed by: ${name}`);
+          break;
         }
       }
       if (document.activeElement === input) input.blur();
       if (!this.enabled) this.lockField();
-      debugLog('kb hide done', { focused: document.activeElement === input, vk: vkHeight() });
+      debugLog('kb hide done', { vk: vkHeight(), active: describe(document.activeElement) });
     })().finally(() => {
       this.hiding = null;
     });
@@ -262,6 +322,10 @@ export class NativeEntry {
     }
   }
 }
+
+/** A short name for an element in the debug log, like "input#entry". */
+const describe = (el: Element | null) =>
+  el ? el.tagName.toLowerCase() + (el.id ? `#${el.id}` : '') + (el.className && typeof el.className === 'string' ? `.${el.className.split(' ')[0]}` : '') : 'none';
 
 const frames = (n: number) =>
   new Promise<void>((resolve) => {

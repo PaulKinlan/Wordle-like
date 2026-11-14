@@ -254,6 +254,10 @@ button {
   place-items: center;
 }
 
+.board:focus {
+  outline: none; /* focused only to put the keyboard away (see keyboard.ts) */
+}
+
 .board {
   --gap: 6px;
   /* Tiles grow to fill the space, whatever the keyboard leaves us. */
