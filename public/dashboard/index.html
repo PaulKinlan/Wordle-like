@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Letterle dashboard</title>
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/dashboard/dashboard.css" />
+    <script type="module" src="/dashboard/dashboard.js"></script>
+  </head>
+  <body>
+    <header class="top">
+      <h1>Letterle dashboard</h1>
+      <div class="controls">
+        <select id="days" aria-label="Period">
+          <option value="1">Last 24 hours</option>
+          <option value="7" selected>Last 7 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+        <button id="refresh" type="button">Refresh</button>
+      </div>
+    </header>
+    <p id="status" class="status"></p>
+
+    <form id="login" class="login" hidden>
+      <label>Dashboard key <input id="key" type="password" autocomplete="off" /></label>
+      <button type="submit">Open</button>
+    </form>
+
+    <main id="main" hidden>
+      <section>
+        <h2>Health</h2>
+        <div id="health" class="health"></div>
+      </section>
+      <section>
+        <h2>Core Web Vitals <small>75th percentile, what Google judges a site on</small></h2>
+        <div id="vitals" class="cards"></div>
+      </section>
+      <section>
+        <h2>Problems <small>errors, rejections, CSP violations, browser reports</small></h2>
+        <div id="problems"></div>
+      </section>
+      <section>
+        <h2>Vitals by day</h2>
+        <div id="by-day"></div>
+      </section>
+      <section>
+        <h2>Vitals by device</h2>
+        <div id="by-device"></div>
+      </section>
+      <section>
+        <h2>Vitals by browser</h2>
+        <div id="by-browser"></div>
+      </section>
+      <section>
+        <h2>Vitals by version</h2>
+        <div id="by-commit"></div>
+      </section>
+      <section>
+        <h2>Vitals by page</h2>
+        <div id="by-page"></div>
+      </section>
+      <section>
+        <h2>Volume</h2>
+        <div id="volume"></div>
+      </section>
+    </main>
+  </body>
+</html>

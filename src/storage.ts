@@ -8,6 +8,8 @@ export interface Settings {
   highContrast: boolean;
   lang: string | null; // null = pick automatically
   mode: Mode;
+  /** Vibrate on tile flips and wins, where the phone can. Missing means on. */
+  haptics?: boolean;
 }
 
 export interface Row {

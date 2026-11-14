@@ -53,6 +53,13 @@ const en = {
   'card.won': 'Got it!',
   'card.lost': 'So close',
   'card.play': 'Play your own at {host}',
+  'settings.version': 'Version {version}',
+  'help.bug': 'Found a bug? Report it on GitHub',
+  'settings.haptics': "Vibration",
+  'settings.hapticsNote': "A light buzz as tiles flip and when you win",
+  'settings.install': "Install the app",
+  'settings.installNote': "Open Letterle from your home screen, even offline",
+  'settings.installButton': "Install",
 
   'help.title': 'How to play',
   'help.p1': 'Guess the word in **six** tries. Tap the board and type with your phone\'s keyboard, then press Enter.',

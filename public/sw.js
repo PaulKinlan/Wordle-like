@@ -3,7 +3,7 @@
 // - API: always from the network, except the word list, which is cached so
 //   guesses can be checked instantly.
 // Bump VERSION to drop old caches.
-const VERSION = 'v4';
+const VERSION = 'v6';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
@@ -32,6 +32,8 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  // The dashboard and health check are always live, and never the app shell.
+  if (url.pathname.startsWith('/dashboard') || url.pathname === '/health') return;
 
   if (url.pathname.startsWith('/api/')) {
     if (/^\/api\/v1\/[^/]+\/words$/.test(url.pathname)) event.respondWith(staleWhileRevalidate(req, DATA));
@@ -75,6 +77,8 @@ self.addEventListener('push', (event) => {
   } catch {
     data = { body: event.data?.text() };
   }
+  // A dot on the app icon until today's word is played (Chrome, installed apps).
+  self.navigator.setAppBadge?.().catch(() => undefined);
   event.waitUntil(
     self.registration.showNotification(data.title || 'Letterle', {
       body: data.body || "Today's word is ready",

@@ -244,6 +244,15 @@ build command in the dashboard can stay empty. GitHub Actions only runs checks
 
 To use a custom domain later, add it under the Worker's *Settings → Domains & Routes*.
 
+## Health, version and observability
+
+- **Version:** Settings shows the build's commit (e.g. "Version da70376"), linking to it on GitHub. Vite fills it in at build time from `WORKERS_CI_COMMIT_SHA` (Workers Builds) or `git rev-parse HEAD` (`shared/version.ts`).
+- **`/health`** returns `{ status, commit, commitUrl, built, checks: { database } }`, with a 503 if D1 can't be reached.
+- **Real-user monitoring** (`src/telemetry.ts`, no third parties): JavaScript errors, unhandled rejections, failed resources, CSP violations, deprecation and intervention reports, and Core Web Vitals (LCP, INP, CLS, FCP, TTFB). They are sent with `sendBeacon` to `POST /api/v1/telemetry` when the page is hidden. The browser's Reporting API also posts to `/api/v1/reports` (the CSP's `report-to` and the `Reporting-Endpoints` header), which also catches crash reports. Nothing personal is stored: no IP address or user agent string, only the browser family, device class, page path and commit. The rows live in D1 (`telemetry`), and the hourly cron deletes anything older than 30 days.
+- **Dashboard** at `/dashboard/` shows Web Vitals at the 75th percentile (overall, and by day, device, browser, version and page), grouped problems with details, and daily volume. It needs a key: the Worker makes one on first use and keeps it in D1 (`app_config`, `dashboard_key`). Open `/dashboard/#key=<key>` once, and the device remembers it. A `DASHBOARD_KEY` secret overrides it.
+- **Debug log:** open the game with `?debug` for a log panel at the bottom of the page (`src/debug.ts`).
+- **Bug reports:** "How to play" links to a new GitHub issue with the version, mode and browser filled in.
+
 ## Ready for later steps
 
 - **Push notifications**: store subscriptions in the same D1 database, VAPID keys made by the

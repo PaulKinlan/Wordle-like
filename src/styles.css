@@ -1049,3 +1049,24 @@ dialog.sheet li {
 .debug-panel summary { cursor: pointer; color: #fff; }
 .debug-panel button { font: inherit; padding: 2px 8px; border-radius: 6px; border: 1px solid #555; background: #222; color: #fff; }
 .debug-panel pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; }
+
+.app-version {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+}
+.app-version a {
+  color: var(--muted, #6b6f78);
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+.app-version a:hover { text-decoration: underline; }
+
+.help-bug {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.help-bug a { color: inherit; }
+.secondary.small { padding: 6px 14px; flex: none; color: inherit; font: inherit; font-weight: 700; }

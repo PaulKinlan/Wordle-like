@@ -15,6 +15,7 @@ import type { Board } from './board';
 import { renderTracker, toUpper } from './board';
 import { t, type MessageKey } from './i18n';
 import type { NativeEntry } from './keyboard';
+import { keepAwake } from './pwa';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -147,6 +148,7 @@ export class RaceClient {
 
   hide() {
     this.active = false;
+    void keepAwake(false);
     cancelAnimationFrame(this.timerFrame ?? 0);
     this.els.lobby.hidden = true;
     this.els.bar.hidden = true;
@@ -323,6 +325,8 @@ export class RaceClient {
       this.host.entry.clear();
     }
     this.sending = false;
+    // Keep the screen on while the race runs (the 5-second row clock).
+    void keepAwake(this.active && s.status === 'playing');
     this.draw();
     if (newRow && this.active) {
       const row = s.mine.length - 1;

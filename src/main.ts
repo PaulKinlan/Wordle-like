@@ -8,6 +8,9 @@ import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
 import { initDebug } from './debug';
+import { initTelemetry } from './telemetry';
+import { canVibrate, promptInstall, setHaptics, setUnplayedBadge, watchInstall } from './pwa';
+import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
 import { shareCard, shareText, streakLine } from './share';
 import {
@@ -21,6 +24,9 @@ import {
   type Mode,
   type SavedGame,
 } from './storage';
+
+// First, so errors during start-up are caught too.
+initTelemetry();
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -226,6 +232,7 @@ function reject(row: number, message: string) {
 function finish() {
   if (!game) return;
   recordResult(game);
+  if (game.mode === 'daily') updateBadge();
   if (game.mode === 'daily' && game.date) void markPlayedToday(game.date);
   if (game.status === 'won') {
     board.bounce(game.rows.length - 1);
@@ -451,6 +458,29 @@ els.setContrast.addEventListener('change', () => {
 });
 applyContrast();
 
+// Vibration (Android): on unless turned off.
+const setHapticsBox = $<HTMLInputElement>('set-haptics');
+setHaptics(settings.haptics !== false);
+setHapticsBox.checked = settings.haptics !== false;
+$('haptics-row').hidden = !canVibrate();
+setHapticsBox.addEventListener('change', () => {
+  settings.haptics = setHapticsBox.checked;
+  saveSettings(settings);
+  setHaptics(setHapticsBox.checked);
+});
+
+// Install button, where the browser offers one (Chrome, Edge, Samsung).
+watchInstall((available) => ($('install-row').hidden = !available));
+$('btn-install').addEventListener('click', () => {
+  void promptInstall().then(() => ($('install-row').hidden = true));
+});
+
+/** A dot on the app icon while today's word (in the current language and mode) is unplayed. */
+function updateBadge() {
+  const g = loadGame(lang, 'daily', settings.hard);
+  setUnplayedBadge(!(g && g.date === localDate() && g.status !== 'playing'));
+}
+
 els.setLang.addEventListener('change', () => {
   settings.lang = els.setLang.value;
   lang = settings.lang;
@@ -603,6 +633,7 @@ async function chooseLanguage() {
 
 async function init() {
   initDebug();
+  showVersion();
   const ui = savedUiLang();
   if (ui && ui !== 'en') {
     await setUiLanguage(ui);
@@ -617,9 +648,10 @@ async function init() {
     openRace(invited);
     return;
   }
-  // A reminder's buttons open /?play=daily or /?play=race.
+  updateBadge();
+  // Reminder buttons and app shortcuts open /?play=daily, unlimited or race.
   const play = new URLSearchParams(location.search).get('play');
-  if (play === 'daily' || play === 'race') {
+  if (play === 'daily' || play === 'unlimited' || play === 'race') {
     history.replaceState(null, '', location.pathname);
     openFromReminder(play);
     return;
@@ -629,16 +661,54 @@ async function init() {
   if (firstVisit()) openDialog('dlg-help');
 }
 
-function openFromReminder(play: 'daily' | 'race') {
+function showVersion() {
+  const a = $<HTMLAnchorElement>('app-version');
+  a.href = COMMIT_URL;
+  a.textContent = t('settings.version', { version: SHORT_COMMIT });
+}
+
+/** A new GitHub issue, filled in with what's useful for fixing it (never the answer). */
+function bugReportUrl() {
+  const g = game;
+  const ua = navigator.userAgent;
+  const body = [
+    '**What happened?**',
+    '',
+    '',
+    '**What did you expect?**',
+    '',
+    '',
+    '---',
+    `- Version: ${COMMIT}`,
+    `- Page: ${location.origin}${location.pathname}`,
+    `- Mode: ${race.isActive ? 'race' : (g?.mode ?? '?')}${g?.hard ? ' (hard)' : ''}, word language ${g?.lang ?? '?'}, interface ${uiLang()}`,
+    `- Browser: ${ua}`,
+    `- Screen: ${screen.width}x${screen.height}, installed: ${matchMedia('(display-mode: standalone)').matches}`,
+  ].join('\n');
+  const url = new URL(`${REPO_URL}/issues/new`);
+  url.searchParams.set('title', 'Bug: ');
+  url.searchParams.set('body', body);
+  url.searchParams.set('labels', 'bug');
+  return url.href;
+}
+
+// Built when tapped, so it describes the game as it is then.
+$<HTMLAnchorElement>('report-bug').addEventListener('click', (e) => {
+  (e.currentTarget as HTMLAnchorElement).href = bugReportUrl();
+});
+
+function openFromReminder(play: 'daily' | 'unlimited' | 'race') {
   for (const dlg of document.querySelectorAll<HTMLDialogElement>('dialog[open]')) dlg.close();
   if (play === 'race') openRace();
-  else void startMode('daily');
+  else void startMode(play);
 }
 
 // The service worker asks an open tab to show what a reminder button picked.
 navigator.serviceWorker?.addEventListener('message', (e: MessageEvent) => {
   const play = (e.data as { type?: string; play?: string } | null)?.play;
-  if ((e.data as { type?: string })?.type === 'play' && (play === 'daily' || play === 'race')) openFromReminder(play);
+  if ((e.data as { type?: string })?.type === 'play' && (play === 'daily' || play === 'unlimited' || play === 'race')) {
+    openFromReminder(play);
+  }
 });
 
 function firstVisit() {

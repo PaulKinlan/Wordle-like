@@ -19,17 +19,21 @@
 //
 // Daily reminders by Web Push, see push.ts:
 //   GET  /push/key, POST /push/subscribe, POST /push/unsubscribe
+//
+// Observability, see telemetry.ts:
+//   POST /telemetry, POST /reports, GET /telemetry/summary, and GET /health
 import { checkHardMode, describeViolation, evaluate, normalizeWord, statusAfter, type Mark } from '../shared/game';
 import { getLanguage, LANGUAGES } from '../shared/languages';
 import { D1AnswerStore, type AnswerStore } from './answers';
 import { answerIndex, dailyNumber, newRandomToken, parsePuzzleId } from './puzzles';
 import { getWords } from './words';
 import { handlePush, sendDailyReminders, type PushEnv } from './push';
+import { handleTelemetry, health, pruneTelemetry, recordServerError, type TelemetryEnv } from './telemetry';
 import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
 
 export { Room } from './room';
 
-export interface Env extends PushEnv {
+export interface Env extends PushEnv, TelemetryEnv {
   ASSETS: Fetcher;
   /** Holds the private answer order. Created automatically on first deploy. */
   DB: D1Database;
@@ -183,22 +187,27 @@ export async function handleRooms(request: Request, rooms: DurableObjectNamespac
 }
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === '/health') return health(env.DB, json);
     if (url.pathname.startsWith('/api/')) {
       try {
         if (url.pathname.startsWith('/api/v1/rooms')) return await handleRooms(request, env.ROOMS);
         if (url.pathname.startsWith('/api/v1/push/')) return await handlePush(request, env, json, error);
+        if (url.pathname.startsWith('/api/v1/telemetry') || url.pathname === '/api/v1/reports') {
+          return await handleTelemetry(request, env, json, error);
+        }
         return await handleApi(request, new D1AnswerStore(env.DB));
       } catch (e) {
         console.error(e);
+        ctx.waitUntil(recordServerError(env.DB, request, e));
         return error(500, 'server_error', 'Something went wrong');
       }
     }
     return env.ASSETS.fetch(request);
   },
 
-  /** Hourly cron (wrangler.jsonc): daily reminder notifications. */
+  /** Hourly cron (wrangler.jsonc): daily reminder notifications, and tidying old telemetry. */
   async scheduled(_controller, env, ctx) {
     ctx.waitUntil(
       sendDailyReminders(env).then(
@@ -206,5 +215,6 @@ export default {
         (e) => console.error('daily reminders failed', e),
       ),
     );
+    ctx.waitUntil(pruneTelemetry(env.DB).catch((e) => console.error('telemetry prune failed', e)));
   },
 } satisfies ExportedHandler<Env>;
