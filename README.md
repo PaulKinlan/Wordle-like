@@ -9,7 +9,16 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
   guesses. It has its own daily word, saved game and stats.
 - **Seven languages**: English, Spanish, French, German, Italian, Portuguese and Dutch,
   each with its own daily word. The picker lists your device's languages first.
-- **Share**: a spoiler-free emoji grid through the share sheet, or copied to the clipboard.
+- **Race**: play friends on the same word in real time (up to 4 players). Share an
+  invite link; when someone finishes a row, everyone else has 5 seconds to finish
+  theirs. First to find the word wins, otherwise the best single row on points.
+- **Interface language**: menus and messages in English, Spanish, French, German,
+  Italian, Portuguese or Dutch, chosen separately from the word language. English is
+  the default; your device's languages are listed first.
+- **Share**: a picture of your grid (made on the device) plus a spoiler-free emoji grid,
+  through the share sheet, or the text copied to the clipboard. Daily shares include your streak.
+- **Daily reminder**: an optional notification at the time you choose, skipped on days
+  you've already played.
 - **Stats**: played, win rate, streaks and guess distribution, kept on your device.
 - **Installable PWA** that opens offline, with a strict Content Security Policy.
 
@@ -59,9 +68,80 @@ All routes are under `/api/v1` and keyed by language code (`en`, `es`, `fr`, `de
 | `GET /:lang/words` | Every accepted guess (cached by the service worker for instant checks) |
 | `POST /:lang/play` | `{ puzzle, guesses }` → `{ rows, status, hard, answer? }` |
 
+| `GET /push/key` | VAPID public key, or 404 if reminders aren't set up |
+| `POST /push/subscribe` | `{ subscription, tz, hour, lang }`: turn on the daily reminder |
+| `POST /push/played` | `{ endpoint, date }`: played today, skip today's reminder |
+| `POST /push/unsubscribe` | `{ endpoint }` |
+| `POST /rooms` | `{ lang, hard }` → `{ code }`: a new race room |
+| `GET /rooms/:code/socket` | WebSocket for one player in a race (see below) |
+
 Puzzle ids are `d:<date>` (daily) or `r:<16 hex>` (unlimited), with `dh:`/`rh:`
 for hard mode, which draws from the rare-word pool (`en:rare`, its own private order). Daily puzzle #1
 is 14 November 2026.
+
+### Multiplayer races
+
+Each race room is a [Durable Object](https://developers.cloudflare.com/durable-objects/)
+(`worker/room.ts`), named by its 6-character code, with SQLite storage. The
+binding and migration are in `wrangler.jsonc`, so Cloudflare creates it on
+deploy; there's nothing to set up. Players connect over a WebSocket using the
+hibernation API, so a quiet room costs nothing, and keep-alive pings are
+answered without waking it. Rooms delete themselves after a day without activity.
+
+The rules live in `worker/race.ts` (pure code, unit tested) and
+`shared/race.ts` (scoring and message types):
+
+- The host starts a round once at least one friend is connected. The room picks
+  a random word from the same private order as unlimited play.
+- Every guess is checked and scored on the server. Other players only ever see
+  your colours, never your letters, and nobody sees the answer until the end.
+- When a player finishes row *k*, everyone who hasn't finished row *k* has
+  5 seconds to do it, counted from when they finished their previous row if
+  that was later. A row that runs out is lost (shown hatched). The room uses a
+  Durable Object alarm for the clock, so it's enforced even if a phone is asleep.
+- The first player to find the word wins. If nobody does, each player's best
+  single row scores 2 points per green and 1 per yellow; a tie goes to whoever
+  reached that score first.
+- Players rejoin with a token kept on their device, so a reload or a dropped
+  connection puts them back where they were. Someone who joins mid-round plays
+  from the next round, and the host can start another round with a new word.
+
+Messages are JSON: the client sends `join`, `start`, `guess` and `ping`; the
+room replies with `welcome`, `state` (each player's own view) and `error`.
+
+### Daily notifications
+
+Players can turn on a daily reminder in Settings and pick the hour. The browser
+subscribes with Web Push, and the Worker stores the subscription, time zone
+and hour in D1 (`push_subs`). A cron trigger runs every hour
+(`wrangler.jsonc`), and each subscriber gets one notification a day at or
+after their hour, unless they've already finished that day's word.
+Subscriptions the push service reports as gone (404/410) are deleted.
+Encryption (RFC 8291) and VAPID signing (RFC 8292) are done with WebCrypto in
+`worker/webpush.ts`, with no dependencies. The Worker only sends to the
+browser push services (Google, Mozilla, Apple, Microsoft).
+
+On iPhone and iPad, web push only works once Letterly is added to the Home
+Screen; the setting says so.
+
+**One-time setup** (until then the setting stays hidden and the cron does nothing):
+
+1. Run `npm run vapid`. It prints `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`.
+2. In the Cloudflare dashboard, open **Workers & Pages → wordle-like → Settings →
+   Variables and Secrets**, and add three variables of type **Secret**:
+   - `VAPID_PUBLIC_KEY`: the public key from step 1
+   - `VAPID_PRIVATE_KEY`: the private key from step 1
+   - `VAPID_SUBJECT`: a contact for push services, like `mailto:you@example.com`
+
+   Use the Secret type, not plain text: deploys from Workers Builds keep secrets
+   but replace plain-text variables that aren't in `wrangler.jsonc`.
+3. Deploy (or wait for the next push to `main`). Keep the same keys from then
+   on: changing them means everyone has to turn reminders off and on again.
+
+For local development, put the same three values in `.dev.vars` (git-ignored).
+
+The free Workers plan allows 50 outgoing requests per run, so each hourly run
+sends at most 40 reminders, and anyone left over is picked up the next hour.
 
 ### Word lists
 
@@ -85,6 +165,25 @@ Rebuild them with `npm run words` (or `npm run words -- es fr` for some).
 To add a language: add it to `shared/languages.ts` (with its alphabet), add it
 to `INTL` in `scripts/build-wordlists.mjs`, run `npm run words -- <code>`, and
 import the three lists in `worker/words.ts`. The tests check every list.
+
+### Interface language
+
+The interface language is a separate setting from the word language, so you
+can play Spanish words with English menus. It stays English until the player
+picks another. The picker lists languages that match the keyboard layout and
+`navigator.languages` first, then the rest (the same ordering as the word
+language picker, which also defaults to English).
+
+Messages live in `src/locales/<code>.ts`. `en.ts` is the source; the type
+check fails if another locale misses a key, and a unit test checks that
+placeholders like `{n}` match. Static text in `index.html` is marked with
+`data-i18n` (text), `data-i18n-rich` (with `**bold**`, rendered as
+`<strong>` without using HTML, so Trusted Types stay happy) and
+`data-i18n-aria` (aria-label). Other locales load on demand as small chunks.
+The non-English translations were machine-assisted; corrections from native
+speakers are welcome. To add one, copy `es.ts`, translate it and add it to
+`UI_LANGUAGES` and `loaders` in `src/i18n.ts`. Daily reminder texts are in
+`worker/push.ts`.
 
 ### Accents
 
@@ -148,7 +247,5 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 
 ## Ready for later steps
 
-- **Multiplayer**: add a Durable Object for rooms under `/api/v1/rooms/*`;
-  `shared/game.ts` already scores guesses on the server.
 - **Push notifications**: store subscriptions in the same D1 database, VAPID keys as Worker
   secrets, a cron trigger in `wrangler.jsonc`, and a `push` handler in `public/sw.js`.

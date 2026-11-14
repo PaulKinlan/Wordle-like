@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryAnswerStore, shuffle } from './answers';
-import { handleApi } from './index';
+import { handleApi, handleRooms } from './index';
 import { answerIndex, dailyNumber, parsePuzzleId } from './puzzles';
 
 const store = new MemoryAnswerStore();
@@ -138,5 +138,34 @@ describe('languages', () => {
     const res = await call('/api/v1/de/daily?date=2026-11-14');
     expect(((await res.json()) as any).lang).toBe('de');
     expect((await call('/api/v1/xx/daily')).status).toBe(404);
+  });
+});
+
+describe('race rooms API', () => {
+  const calls: string[] = [];
+  const rooms = {
+    idFromName: (name: string) => name,
+    get: (id: string) => ({
+      fetch: async (input: RequestInfo, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.url;
+        calls.push(`${id} ${url} ${init?.body ?? ''}`);
+        return new Response('ok');
+      },
+    }),
+  } as unknown as DurableObjectNamespace;
+  const rooms$ = (path: string, init?: RequestInit) => handleRooms(new Request('https://x' + path, init), rooms);
+
+  it('creates a room with a readable code', async () => {
+    const res = await rooms$('/api/v1/rooms', { method: 'POST', body: JSON.stringify({ lang: 'es', hard: true }) });
+    const { code } = (await res.json()) as { code: string };
+    expect(code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
+    expect(calls.at(-1)).toContain(`"code":"${code}","lang":"es","hard":true`);
+  });
+
+  it('rejects unknown languages, bad codes and other sites', async () => {
+    expect((await rooms$('/api/v1/rooms', { method: 'POST', body: '{"lang":"xx"}' })).status).toBe(400);
+    expect((await rooms$('/api/v1/rooms/ABC/socket')).status).toBe(404);
+    const other = await rooms$('/api/v1/rooms/ABCDEF/socket', { headers: { Origin: 'https://evil.example' } });
+    expect(other.status).toBe(403);
   });
 });

@@ -1,4 +1,5 @@
 import type { Mark } from '../shared/game';
+import { t as tr } from './i18n';
 import type { Row } from './storage';
 
 /** Draws the grid of tiles. Rebuilt only when the puzzle shape changes. */
@@ -86,11 +87,9 @@ function setTile(t: HTMLDivElement, letter: string, state: Mark | 'filled' | '')
   const upper = toUpper(letter);
   if (t.textContent !== upper) t.textContent = upper;
   t.className = 'tile' + (state ? ' ' + state : '');
-  const label = state === 'filled' || state === '' ? letter : `${letter}, ${labels[state]}`;
-  t.setAttribute('aria-label', label || 'empty');
+  const label = state === 'filled' || state === '' ? letter : `${letter}, ${tr(`tile.${state}`)}`;
+  t.setAttribute('aria-label', label.trim() || tr('tile.empty'));
 }
-
-const labels: Record<Mark, string> = { correct: 'correct', present: 'in the word', absent: 'not in the word' };
 
 /** Shows which letters have been tried, without being a keyboard. */
 export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) {

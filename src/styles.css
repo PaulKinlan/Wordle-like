@@ -683,7 +683,8 @@ dialog.sheet li {
   border-bottom: 1px solid var(--border);
 }
 
-.setting:last-child {
+.setting:last-child,
+.setting:not(:has(~ .setting:not([hidden]))) {
   border-bottom: 0;
   padding-bottom: 0;
 }
@@ -696,6 +697,8 @@ dialog.sheet li {
 }
 
 .setting select {
+  flex: none;
+  max-width: 52%;
   font: inherit;
   padding: 6px 10px;
   border-radius: 8px;
@@ -750,4 +753,282 @@ dialog.sheet li {
 
 .close:focus-visible {
   outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------ race */
+
+.race-lobby {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 8px 0 16px;
+  overflow-y: auto;
+}
+
+.race-card {
+  width: 100%;
+  max-width: 400px;
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.race-card h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.race-card p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.race-card .fineprint {
+  text-align: center;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.field input {
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.wide {
+  justify-content: center;
+  width: 100%;
+}
+
+.secondary svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.race-code-label {
+  text-align: center;
+  font-size: 0.8rem !important;
+  color: var(--muted);
+}
+
+.race-code {
+  text-align: center;
+  font-size: 2rem !important;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}
+
+.race-players {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.race-players li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  font-weight: 600;
+}
+
+.race-players small {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.race-players li.away {
+  opacity: 0.55;
+}
+
+.link {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  justify-self: center;
+  padding: 4px;
+}
+
+.play:has(.race-bar:not([hidden])) {
+  grid-template-rows: auto 1fr;
+}
+
+.race-bar {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.opponents {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.opponent {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.opponent.away {
+  opacity: 0.5;
+}
+
+.opponent-name {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opponent.solved .opponent-name::after {
+  content: ' ✓';
+  color: var(--correct);
+}
+
+.mini {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 8px);
+  gap: 2px;
+}
+
+.mini i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.mini i.correct {
+  background: var(--correct);
+}
+
+.mini i.present {
+  background: var(--present);
+}
+
+.mini i.absent {
+  background: var(--absent);
+}
+
+.mini i.lost {
+  background: repeating-linear-gradient(45deg, var(--absent) 0 2px, transparent 2px 4px);
+}
+
+.race-timer {
+  position: relative;
+  height: 28px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--present) 18%, transparent);
+  display: grid;
+  place-items: center;
+}
+
+.race-timer-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(var(--left, 1));
+  background: color-mix(in srgb, var(--present) 45%, transparent);
+}
+
+.race-timer.urgent .race-timer-fill {
+  background: color-mix(in srgb, #e5484d 55%, transparent);
+}
+
+.race-timer-text {
+  position: relative;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.standings {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  counter-reset: place;
+}
+
+.standings li {
+  counter-increment: place;
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto;
+  grid-template-areas: 'n name pts' 'n detail pts';
+  align-items: center;
+  column-gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.standings li::before {
+  content: counter(place);
+  grid-area: n;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.standings li.winner {
+  background: color-mix(in srgb, var(--correct) 18%, transparent);
+}
+
+.standings strong {
+  grid-area: name;
+}
+
+.standings span {
+  grid-area: detail;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.standings .pts {
+  grid-area: pts;
+  font-variant-numeric: tabular-nums;
 }
