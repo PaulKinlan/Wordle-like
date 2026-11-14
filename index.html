@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Letterle</title>
-    <meta name="description" content="A daily five-letter word game. No ads, no tracking." />
+    <meta name="description" content="A daily word game in many languages. No ads, no tracking." />
     <meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)" />
     <meta name="color-scheme" content="light dark" />
@@ -47,14 +47,15 @@
 
       <nav class="modes" aria-label="Game mode" data-i18n-aria="app.modes">
         <div class="segmented" role="tablist">
-          <button type="button" role="tab" id="mode-daily" aria-selected="true" data-i18n="mode.daily">Daily</button>
-          <button type="button" role="tab" id="mode-unlimited" aria-selected="false" data-i18n="mode.unlimited">Unlimited</button>
-          <button type="button" role="tab" id="mode-race" aria-selected="false" data-i18n="mode.race">Race</button>
+          <button type="button" role="tab" id="mode-daily" aria-controls="panel" aria-selected="true" data-i18n="mode.daily">Daily</button>
+          <button type="button" role="tab" id="mode-unlimited" aria-controls="panel" aria-selected="false" data-i18n="mode.unlimited">Unlimited</button>
+          <button type="button" role="tab" id="mode-race" aria-controls="panel" aria-selected="false" data-i18n="mode.race">Race</button>
         </div>
         <p class="subtitle" id="subtitle" aria-live="polite"></p>
       </nav>
 
-      <main class="play">
+      <main class="main">
+      <div class="play" id="panel" role="tabpanel" aria-labelledby="mode-daily">
         <!-- Multiplayer: before a race starts. -->
         <section class="race-lobby" id="race-lobby" hidden>
           <div class="race-card" id="race-intro">
@@ -123,6 +124,7 @@
           />
         </form>
         <div class="toast" id="toast" role="status" popover="manual"></div>
+      </div>
       </main>
 
       <section class="footer">

@@ -118,7 +118,7 @@ describe('languages', () => {
     const { normalizeWord } = await import('../shared/game');
     const { getWords } = await import('./words');
     for (const lang of LANGUAGES) {
-      const list = getWords(lang.code)!;
+      const list = (await getWords(lang.code))!;
       expect(list, lang.code).toBeDefined();
       // At least two years of daily words.
       expect(list.candidates.length, lang.code).toBeGreaterThan(730);
@@ -137,7 +137,7 @@ describe('languages', () => {
     const post = (guesses: string[]) =>
       call('/api/v1/es/play', { method: 'POST', body: JSON.stringify({ puzzle, guesses }) }).then((r) => r.json() as any);
     const { getWords } = await import('./words');
-    const filler = [...getWords('es')!.guessable][0];
+    const filler = [...(await getWords('es'))!.guessable][0];
     const lost = await post(Array(6).fill(filler));
     const answer = lost.answer as string;
     if (!answer) return; // the filler happened to be the answer

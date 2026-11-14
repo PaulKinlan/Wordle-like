@@ -1,5 +1,5 @@
-// Daily reminder notifications (Web Push). The Worker sends them from an
-// hourly cron; see worker/push.ts. Everything here is a progressive
+// Daily reminder notifications (Web Push). The Worker sends them from a
+// cron; see worker/push.ts. Everything here is a progressive
 // enhancement: the setting only shows up where it can work.
 import { debugLog } from './debug';
 import { reportError } from './telemetry';

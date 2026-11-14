@@ -32,7 +32,7 @@ export class Room extends DurableObject<Env> {
     if (this.race) return this.race;
     const data = await this.ctx.storage.get<RaceData>('race');
     if (!data) return undefined;
-    const words = getWords(data.lang)!;
+    const words = (await getWords(data.lang))!;
     this.race = new Race(data, (w) => words.guessable.has(w));
     return this.race;
   }
@@ -55,7 +55,7 @@ export class Room extends DurableObject<Env> {
         { code, lang, hard, wordLength: info.wordLength, maxGuesses: info.maxGuesses },
         Date.now(),
       );
-      const words = getWords(lang)!;
+      const words = (await getWords(lang))!;
       this.race = new Race(data, (w) => words.guessable.has(w));
       await this.save();
       return new Response('ok');
@@ -210,7 +210,7 @@ export class Room extends DurableObject<Env> {
   /** A random answer from the private order, like unlimited play. */
   private async pickAnswer(race: Race): Promise<string> {
     const { lang, hard } = race.data;
-    const list = getWords(lang)!;
+    const list = (await getWords(lang))!;
     const set = hard ? `${lang}:rare` : lang;
     const store = new D1AnswerStore(this.env.DB);
     const count = await store.count(set, hard ? list.rare : list.candidates);
