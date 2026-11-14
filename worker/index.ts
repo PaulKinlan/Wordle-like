@@ -30,6 +30,7 @@ import { getWords } from './words';
 import { handlePush, sendDailyReminders, type PushEnv } from './push';
 import { handleTelemetry, health, pruneTelemetry, recordEvent, recordServerError, type TelemetryEnv, type UsageEvent } from './telemetry';
 import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
+import { handlePreview } from './og';
 
 export { Room } from './room';
 
@@ -202,6 +203,18 @@ export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/health') return health(env.DB, json);
+    // Shared results (/s/...), race invites (/r/...) and their preview images (/og/...).
+    if (/^\/(s|r|og)\//.test(url.pathname)) {
+      try {
+        const res = await handlePreview(request, env.ASSETS, ctx);
+        if (res) return res;
+      } catch (e) {
+        console.error(e);
+        ctx.waitUntil(recordServerError(env.DB, request, e));
+      }
+      // Anything unrecognised just opens the game.
+      return env.ASSETS.fetch(new Request(new URL('/', request.url), request));
+    }
     if (url.pathname.startsWith('/api/')) {
       const onEvent = (e: UsageEvent) => ctx.waitUntil(recordEvent(env.DB, request, e));
       try {

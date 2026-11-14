@@ -29,6 +29,8 @@ export const session = (() => {
     return null;
   }
 })();
+/** The page this visit landed on, with shared-result and invite links grouped (they have ids in them). */
+const landing = location.pathname.replace(/^\/s\/.*/, '/s/').replace(/^\/r\/.*/, '/r/');
 let queue: Event[] = [];
 let sentCount = 0;
 const seen = new Set<string>();
@@ -46,7 +48,7 @@ function add(e: Event) {
 
 function flush() {
   if (!queue.length) return;
-  const body = JSON.stringify({ commit: COMMIT, page: location.pathname, session, events: queue });
+  const body = JSON.stringify({ commit: COMMIT, page: landing, session, events: queue });
   sentCount += queue.length;
   queue = [];
   try {
@@ -226,13 +228,18 @@ function pageview() {
   const installed = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches;
   add({
     kind: 'pageview',
-    name: location.pathname,
+    name: landing,
     detail: {
       ref,
       utm_source: params.get('utm_source') ?? undefined,
       utm_medium: params.get('utm_medium') ?? undefined,
       utm_campaign: params.get('utm_campaign') ?? undefined,
-      launch: params.has('race') ? 'race-invite' : (params.get('play') ?? (installed ? 'app' : 'web')),
+      launch:
+        params.has('race') || landing === '/r/'
+          ? 'race-invite'
+          : landing === '/s/'
+            ? 'shared-result'
+            : (params.get('play') ?? (installed ? 'app' : 'web')),
       installed,
       langs: navigator.languages?.slice(0, 3),
       screen: `${screen.width}x${screen.height}`,

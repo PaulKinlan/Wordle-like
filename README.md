@@ -266,6 +266,13 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 
 To add a language page, add it to `PAGES` in `scripts/seo.ts`.
 
+**Link previews for shared results and race invites** (`worker/og.ts`):
+
+- Share links look like `/s/en/d123/01200-22222`: the language, the mode (`d` plus the number, or `u`, with `h` for hard), and the colours only, one digit per tile. Invites look like `/r/ABC234`.
+- The Worker serves the game page for these links, with the title, description and `og:image` rewritten by `HTMLRewriter`.
+- The image (`/og/...png`, 1200×630) is drawn by the Worker, with no image library. Glyphs from Inter are pre-rendered into `worker/og-font.ts` by `scripts/make-og-font.mjs`, and a small PNG encoder uses `CompressionStream`. Images are cached at the edge.
+- A shared link opens the game in the language it was played in. An invite opens the race.
+
 ## Ready for later steps
 
 - **Push notifications**: store subscriptions in the same D1 database, VAPID keys made by the

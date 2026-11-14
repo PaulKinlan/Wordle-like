@@ -89,6 +89,13 @@
       "label": "A game in progress"
     },
     {
+      "src": "/screenshots/race-narrow.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Racing friends: everyone gets the same word"
+    },
+    {
       "src": "/screenshots/stats-narrow.png",
       "sizes": "780x1688",
       "type": "image/png",

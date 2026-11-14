@@ -32,6 +32,18 @@ export function shareText(game: SavedGame, highContrast: boolean, url: string, s
   return `${title(game)}${fire ? `\n${fire}` : ''}\n\n${grid}\n\n${url}`;
 }
 
+const DIGIT: Record<Mark, string> = { absent: '0', present: '1', correct: '2' };
+
+/**
+ * A link to this result: /s/en/d123/01200-22222. It opens the game, and chat
+ * apps show a preview image of the score and colours (worker/og.ts). No letters.
+ */
+export function resultUrl(game: SavedGame, origin: string): string {
+  const which = game.mode === 'daily' && game.number !== undefined ? `d${game.number}` : 'u';
+  const grid = game.rows.map((r) => r.marks.map((m) => DIGIT[m]).join('')).join('-');
+  return `${origin}/s/${game.lang}/${which}${game.hard ? 'h' : ''}/${grid}`;
+}
+
 const COLOURS = {
   normal: { correct: '#2f9e74', present: '#d9a21b', absent: '#7d828c' },
   contrast: { correct: '#f5793a', present: '#6fb2f2', absent: '#7d828c' },

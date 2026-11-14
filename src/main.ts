@@ -12,7 +12,7 @@ import { initTelemetry, track } from './telemetry';
 import { canVibrate, promptInstall, setHaptics, setUnplayedBadge, watchInstall } from './pwa';
 import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
-import { shareCard, shareText, streakLine } from './share';
+import { resultUrl, shareCard, shareText, streakLine } from './share';
 import {
   currentStreak,
   loadGame,
@@ -57,7 +57,8 @@ let game: SavedGame | null = null;
 let current = '';
 let busy = false;
 /** A language landing page (/es/, /fr/, ...) sets the word and interface language until the player picks their own. */
-const pageLang = /^\/([a-z]{2})\/?$/.exec(location.pathname)?.[1];
+// A shared result (/s/es/...) opens in the language it was played in.
+const pageLang = /^\/(?:s\/)?([a-z]{2,3})(?:\/|$)/.exec(location.pathname)?.[1];
 const pathLang = pageLang && getLanguage(pageLang) ? pageLang : null;
 let lang = settings.lang ?? pathLang ?? DEFAULT_LANGUAGE;
 const words = new Map<string, Set<string>>();
@@ -443,7 +444,7 @@ async function share() {
   const g = game;
   const stats = loadStats(g.lang, g.mode, g.hard, g.maxGuesses);
   const streak = currentStreak(stats, g.mode, g.mode === 'daily' ? (dailyNumber(localDate()) ?? undefined) : undefined);
-  const text = shareText(g, settings.highContrast, location.origin, streak);
+  const text = shareText(g, settings.highContrast, resultUrl(g, location.origin), streak);
   try {
     // A picture of the grid where the share sheet takes files, with the text alongside.
     const blob = 'canShare' in navigator ? await shareCard(
@@ -709,6 +710,8 @@ async function chooseLanguage() {
 
 async function init() {
   initDebug();
+  // A shared result link has done its job once the game is open.
+  if (location.pathname.startsWith('/s/')) history.replaceState(null, '', '/');
   showVersion();
   const ui = savedUiLang() ?? pathLang;
   if (ui && ui !== 'en') {

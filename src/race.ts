@@ -13,7 +13,7 @@ import {
 } from '../shared/race';
 import type { Board } from './board';
 import { renderTracker, toUpper } from './board';
-import { t, type MessageKey } from './i18n';
+import { t, uiLang, type MessageKey } from './i18n';
 import type { NativeEntry } from './keyboard';
 import { keepAwake } from './pwa';
 import { track } from './telemetry';
@@ -128,9 +128,10 @@ export class RaceClient {
     });
   }
 
-  /** The room code in a link like /?race=ABC123, if any. */
+  /** The room code in an invite link, /r/ABC123 (or the older /?race=ABC123), if any. */
   static codeFromUrl(): string | null {
-    const code = new URLSearchParams(location.search).get('race')?.toUpperCase() ?? null;
+    const fromPath = /^\/r\/([A-Za-z0-9]{6})\/?$/.exec(location.pathname)?.[1];
+    const code = (fromPath ?? new URLSearchParams(location.search).get('race'))?.toUpperCase() ?? null;
     return code && ROOM_CODE.test(code) ? code : null;
   }
 
@@ -289,7 +290,7 @@ export class RaceClient {
     this.me = null;
     this.state = undefined;
     if (message) this.host.toast(message, 2500);
-    if (RaceClient.codeFromUrl()) history.replaceState(null, '', location.pathname);
+    if (RaceClient.codeFromUrl()) history.replaceState(null, '', '/');
     this.draw();
   }
 
@@ -561,7 +562,8 @@ export class RaceClient {
 
   private async invite() {
     if (!this.code) return;
-    const url = `${location.origin}/?race=${this.code}`;
+    // The link preview (worker/og.ts) shows the code, in the sender's language.
+    const url = `${location.origin}/r/${this.code}${uiLang() === 'en' ? '' : `?lang=${uiLang()}`}`;
     const text = t('race.inviteText', { code: this.code });
     try {
       if (navigator.share) {

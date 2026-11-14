@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shareText } from './share';
+import { resultUrl, shareText } from './share';
 import type { SavedGame } from './storage';
 
 const game: SavedGame = {
@@ -35,5 +35,12 @@ describe('shareText', () => {
     expect(text.split('\n').slice(0, 2)).toEqual(['Letterle ES #1 2/6 (hard)', '🔥 5 day streak']);
     expect(shareText(game, false, 'u', 1)).not.toContain('🔥');
     expect(shareText({ ...game, mode: 'unlimited' }, false, 'u', 9)).not.toContain('🔥');
+  });
+});
+
+describe('resultUrl', () => {
+  it('encodes the mode, number and colours, never the letters', () => {
+    expect(resultUrl(game, 'https://letterle.app')).toBe('https://letterle.app/s/en/d1h/02001-22222');
+    expect(resultUrl({ ...game, mode: 'unlimited', hard: false }, 'https://x')).toBe('https://x/s/en/u/02001-22222');
   });
 });
