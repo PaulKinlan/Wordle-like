@@ -164,13 +164,33 @@ async function startMode(mode: Mode, fresh = false) {
   // Hints the phone's keyboard towards the game's language, where supported.
   els.input.lang = game.lang;
   setTileLocale(game.lang);
-  board.build(game.maxGuesses, game.wordLength);
-  draw();
-  showResult();
+  const g = game;
+  swapBoard(() => {
+    board.build(g.maxGuesses, g.wordLength);
+    draw();
+    showResult();
+  });
   // The help text names this language's number of tries.
   pageVars.n = game.maxGuesses;
   fillRich($('help-p1'), 'help.p1');
   void loadWords(lang);
+}
+
+let boardShown = false;
+
+/**
+ * Swaps in a new board with a short slide and fade, scoped to the board
+ * (element-scoped view transitions), so it can't hold up anything else on
+ * the page. Instant the first time, under reduced motion, or where the
+ * browser can't scope a transition to one element.
+ */
+function swapBoard(update: () => void) {
+  const wrap = els.board.parentElement as (HTMLElement & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } }) | null;
+  const animate = boardShown && !!wrap?.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  boardShown = true;
+  if (!animate || !wrap?.startViewTransition) return update();
+  wrap.classList.add('board-swap');
+  wrap.startViewTransition(update).finished.finally(() => wrap.classList.remove('board-swap'));
 }
 
 function newGame(
