@@ -55,6 +55,13 @@
   color-scheme: dark;
 }
 
+/* Switching Appearance cross-fades the whole page (main.ts). */
+:root.theme-fade::view-transition-old(root),
+:root.theme-fade::view-transition-new(root) {
+  animation-duration: 350ms;
+  animation-timing-function: ease;
+}
+
 :root.high-contrast {
   --correct: #f5793a;
   --present: #6fb2f2;

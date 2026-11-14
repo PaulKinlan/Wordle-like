@@ -520,7 +520,13 @@ for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="the
     } catch {
       /* private mode: still applies for this visit */
     }
-    applyTheme(theme);
+    // A cross-fade between the old colours and the new (View Transitions), unless motion is reduced.
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+    if (doc.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('theme-fade');
+      const vt = doc.startViewTransition(() => applyTheme(theme)) as { finished: Promise<void> };
+      void vt.finished.finally(() => document.documentElement.classList.remove('theme-fade'));
+    } else applyTheme(theme);
     track('setting', { theme });
   });
 }
