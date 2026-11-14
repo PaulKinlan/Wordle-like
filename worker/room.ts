@@ -4,7 +4,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { normalizeWord } from '../shared/game';
 import { getLanguage } from '../shared/languages';
-import type { ClientMessage, ServerMessage } from '../shared/race';
+import { MAX_SOCKETS, type ClientMessage, type ServerMessage } from '../shared/race';
 import { D1AnswerStore } from './answers';
 import { Race, RaceError, type RaceData } from './race';
 import { parseRaceAlert, sendRaceJoined } from './push';
@@ -32,7 +32,7 @@ export class Room extends DurableObject<Env> {
     if (this.race) return this.race;
     const data = await this.ctx.storage.get<RaceData>('race');
     if (!data) return undefined;
-    const words = getWords(data.lang)!;
+    const words = (await getWords(data.lang))!;
     this.race = new Race(data, (w) => words.guessable.has(w));
     return this.race;
   }
@@ -55,7 +55,7 @@ export class Room extends DurableObject<Env> {
         { code, lang, hard, wordLength: info.wordLength, maxGuesses: info.maxGuesses },
         Date.now(),
       );
-      const words = getWords(lang)!;
+      const words = (await getWords(lang))!;
       this.race = new Race(data, (w) => words.guessable.has(w));
       await this.save();
       return new Response('ok');
@@ -63,6 +63,8 @@ export class Room extends DurableObject<Env> {
     if (url.pathname === '/socket') {
       if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
       if (!(await this.load())) return new Response('No such race', { status: 404 });
+      // Sockets that connect and never join would otherwise pile up without limit.
+      if (this.ctx.getWebSockets().length >= MAX_SOCKETS) return new Response('Too many connections', { status: 429 });
       const { 0: client, 1: server } = new WebSocketPair();
       this.ctx.acceptWebSocket(server);
       server.serializeAttachment({} satisfies Attachment);
@@ -116,9 +118,10 @@ export class Room extends DurableObject<Env> {
     try {
       if (msg.t === 'ping') return this.send(ws, { t: 'pong' });
       if (msg.t === 'join') {
-        const before = race.data.players.length;
-        const p = race.join(msg.name, msg.token, now);
-        if (race.data.players.length > before) this.alertJoined(race, p.id, p.name);
+        const known = new Set(race.data.players.map((x) => x.id));
+        const here = this.connectedIds();
+        const p = race.join(msg.name, msg.token, now, (pid) => here.has(pid));
+        if (!known.has(p.id)) this.alertJoined(race, p.id, p.name);
         // One socket per player: close an older tab of the same player.
         for (const other of this.ctx.getWebSockets()) {
           const a = other.deserializeAttachment() as Attachment | null;
@@ -129,11 +132,24 @@ export class Room extends DurableObject<Env> {
       } else {
         const id = attachment.playerId;
         if (!id) throw new RaceError('not_joined', 'Join first');
+        // Whoever sent this is here, even if their socket is already closing behind the message.
+        const ids = this.connectedIds().add(id);
+        const connected = (pid: string) => ids.has(pid);
         if (msg.t === 'start') {
+          // Checked first, so only a real start reads the database.
+          race.canStart(id, connected);
           const answer = await this.pickAnswer(race);
-          const ids = this.connectedIds();
-          race.start(id, answer, Date.now(), (pid) => ids.has(pid));
+          race.start(id, answer, Date.now(), connected);
           this.usage('started');
+        } else if (msg.t === 'cancel') {
+          race.canCancel(id, connected);
+          return await this.destroy('Race cancelled');
+        } else if (msg.t === 'leave') {
+          const removed = race.leave(id, now);
+          ws.serializeAttachment({} satisfies Attachment);
+          ws.close(1000, 'Left');
+          // An empty room has no use: don't keep it for a day.
+          if (removed && race.data.players.length === 0) return await this.destroy('Race ended');
         } else if (msg.t === 'guess') {
           race.guess(id, msg.word, now);
         } else if (msg.t === 'notify') {
@@ -153,6 +169,20 @@ export class Room extends DurableObject<Env> {
     if (before === 'playing' && race.data.status === 'finished') this.usage('finished');
     await this.save();
     this.broadcast();
+  }
+
+  /** Closes the room for everyone and forgets it. */
+  private async destroy(reason: string) {
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.close(4001, reason);
+      } catch {
+        // already closed
+      }
+    }
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.race = undefined;
   }
 
   /** Pushes "Sam joined your race" to everyone else who asked for it. */
@@ -180,7 +210,7 @@ export class Room extends DurableObject<Env> {
   /** A random answer from the private order, like unlimited play. */
   private async pickAnswer(race: Race): Promise<string> {
     const { lang, hard } = race.data;
-    const list = getWords(lang)!;
+    const list = (await getWords(lang))!;
     const set = hard ? `${lang}:rare` : lang;
     const store = new D1AnswerStore(this.env.DB);
     const count = await store.count(set, hard ? list.rare : list.candidates);
@@ -204,12 +234,7 @@ export class Room extends DurableObject<Env> {
     const race = await this.load();
     if (!race) return;
     const now = Date.now();
-    if (now >= race.data.lastActivity + IDLE_MS) {
-      for (const ws of this.ctx.getWebSockets()) ws.close(4001, 'Race expired');
-      await this.ctx.storage.deleteAll();
-      this.race = undefined;
-      return;
-    }
+    if (now >= race.data.lastActivity + IDLE_MS) return this.destroy('Race expired');
     const before = race.data.status;
     if (race.tick(now)) this.broadcast();
     if (before === 'playing' && race.data.status === 'finished') this.usage('finished');

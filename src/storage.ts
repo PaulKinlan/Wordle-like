@@ -12,6 +12,8 @@ export interface Settings {
   haptics?: boolean;
   /** Mark already-tried letters in the row being typed. Missing means on. */
   typingHints?: boolean;
+  /** Use the game's own keyboard instead of the phone's. Missing means off. */
+  onScreenKeyboard?: boolean;
 }
 
 export interface Row {

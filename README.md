@@ -114,7 +114,7 @@ room replies with `welcome`, `state` (each player's own view) and `error`.
 
 Players can turn on a daily reminder in Settings and pick the hour. The browser
 subscribes with Web Push, and the Worker stores the subscription, time zone
-and hour in D1 (`push_subs`). A cron trigger runs every hour
+and hour in D1 (`push_subs`). A cron trigger runs every ten minutes
 (`wrangler.jsonc`), and each subscriber gets one notification a day at or
 after their hour, unless they've already finished that day's word.
 Subscriptions the push service reports as gone (404/410) are deleted.
@@ -140,8 +140,8 @@ win over the stored keys, and changing keys means everyone has to turn
 reminders off and on again. For local development, put them in `.dev.vars`
 (git-ignored).
 
-The free Workers plan allows 50 outgoing requests per run, so each hourly run
-sends at most 40 reminders, and anyone left over is picked up the next hour.
+The free Workers plan allows 50 outgoing requests per run, so each run
+sends at most 40 reminders (240 an hour), and anyone left over is picked up ten minutes later.
 
 ### Word lists
 
@@ -266,6 +266,27 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 - **Analytics, instead of Google Analytics** (no cookies, no third parties): page views (referrer host, `utm_*`, landing page, how the app was launched, installed or in a tab, device language, screen, theme, connection), time on page, and product events from `track()` (shares, settings, installs, reminders, races). The Worker records games itself in `/play` (started, finished, won, guesses, mode, language) and races in the room (created, started, finished, players). Visitors are counted like privacy-first analytics tools do: a hash of IP + user agent + a salt that changes daily and is then deleted, so a visitor is counted once a day but can't be followed across days. Usage rows are kept 13 months; the dashboard's Audience section shows live visitors, totals, a per-day table, the visit to share funnel, games by mode and language, the guess distribution and every breakdown above.
 - **Debug log:** open the game with `?debug` for a log panel at the bottom of the page (`src/debug.ts`).
 - **Bug reports:** "How to play" links to a new GitHub issue with the version, mode and browser filled in.
+
+## Small updates (compression dictionaries)
+
+After a release, a browser that already has the previous script and stylesheet
+downloads only what changed
+([Compression Dictionary Transport](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Compression_dictionary_transport),
+Chrome and Edge 130+). A typical release's 23 KB script becomes about 2 KB.
+
+- The build (`scripts/dictionaries.ts`) reads `/dictionaries.json` from the
+  live site, fetches the last five builds' script and stylesheet, and writes
+  this build's files as deltas against each (`/assets/delta/*.dcz`). The older
+  files are kept in `/assets/` so the next build can read them too.
+- The Worker (`worker/dictionary.ts`) marks the script and stylesheet with
+  `Use-As-Dictionary`, and answers a request that carries `Available-Dictionary`
+  with the matching delta. No match, or another browser: the ordinary file.
+- **One setting to turn on:** Cloudflare dashboard, the letterle.app zone,
+  Speed > Settings > Content Optimization > Shared Dictionaries. While it is
+  off Cloudflare removes these headers and nothing changes for anyone, so it
+  is also the off switch.
+- `DICTIONARY_SOURCE=off npm run build` skips the deltas; the build also
+  carries on without them if the live site can't be reached.
 
 ## Search and link previews
 

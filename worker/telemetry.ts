@@ -12,7 +12,8 @@
 // IP + user agent + a random salt that changes every day and is then
 // deleted, so a visitor can be counted within a day but never followed
 // across days, and the hash can't be turned back into an IP. No cookies.
-import { BUILT, COMMIT, COMMIT_URL, SHORT_COMMIT } from '../shared/version';
+import { BUILT, COMMIT, COMMIT_URL, REPO_URL } from '../shared/version';
+import { BadBody, readText } from './http';
 
 export interface TelemetryEnv {
   DB: D1Database;
@@ -125,7 +126,17 @@ function tidy(text: string | null, origin: string): string | null {
 }
 
 /** A random salt for today (UTC), made on first use; old ones are deleted by the cron. */
+let salt: { day: string; value: string } | undefined;
+
 async function dailySalt(db: D1Database, day: string): Promise<string> {
+  // Read from D1 once a day per running Worker, not on every event.
+  if (salt?.day === day) return salt.value;
+  const value = await storedSalt(db, day);
+  salt = { day, value };
+  return value;
+}
+
+async function storedSalt(db: D1Database, day: string): Promise<string> {
   const fresh = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
   await db.prepare('INSERT OR IGNORE INTO app_config (k, v) VALUES (?1, ?2)').bind(`salt:${day}`, fresh).run();
   return (await db.prepare('SELECT v FROM app_config WHERE k = ?1').bind(`salt:${day}`).first<{ v: string }>())!.v;
@@ -245,20 +256,27 @@ export async function recordServerError(db: D1Database, request: Request, e: unk
 }
 
 async function readBody(request: Request): Promise<string | null> {
-  const len = Number(request.headers.get('Content-Length') ?? 0);
-  if (len > MAX_BODY) return null;
-  const text = await request.text();
-  return text.length > MAX_BODY ? null : text;
+  try {
+    return await readText(request, MAX_BODY);
+  } catch (e) {
+    if (e instanceof BadBody) return null;
+    throw e;
+  }
 }
+
+let generatedKey: string | undefined;
 
 /** The dashboard key: a secret if set, otherwise one made on first use and kept in D1. */
 export async function dashboardKey(env: TelemetryEnv): Promise<string> {
   if (env.DASHBOARD_KEY) return env.DASHBOARD_KEY;
+  // Wrong guesses at the key shouldn't cost a database write each.
+  if (generatedKey) return generatedKey;
   await ensureTelemetryTables(env.DB);
   const fresh = [...crypto.getRandomValues(new Uint8Array(18))].map((b) => b.toString(16).padStart(2, '0')).join('');
   await env.DB.prepare("INSERT OR IGNORE INTO app_config (k, v) VALUES ('dashboard_key', ?)").bind(fresh).run();
   const row = await env.DB.prepare("SELECT v FROM app_config WHERE k = 'dashboard_key'").first<{ v: string }>();
-  return row!.v;
+  generatedKey = row!.v;
+  return generatedKey;
 }
 
 function sameKey(a: string, b: string) {
@@ -285,6 +303,7 @@ export async function handleTelemetry(request: Request, env: TelemetryEnv, json:
     } catch {
       return error(400, 'bad_request', 'Expected JSON');
     }
+    if (!body || typeof body !== 'object') return error(400, 'bad_request', 'Expected JSON');
     const page = pagePath(body.page, url.host);
     const commit = str(body.commit, 40) ?? 'unknown';
     const who = {
@@ -332,8 +351,9 @@ export async function handleTelemetry(request: Request, env: TelemetryEnv, json:
       : parsed && typeof parsed === 'object' && 'csp-report' in parsed
         ? [{ type: 'csp-violation', body: (parsed as Record<string, Record<string, unknown>>)['csp-report'] }]
         : [];
-    const rows: Row[] = reports.slice(0, MAX_EVENTS).map((r) => {
-      const b = r.body ?? {};
+    const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+    const rows: Row[] = reports.filter(isObject).slice(0, MAX_EVENTS).map((r) => {
+      const b = isObject(r.body) ? r.body : {};
       const summary =
         str(b.message, 300) ??
         str(b.effectiveDirective ?? b['effective-directive'] ?? b.violatedDirective ?? b['violated-directive'], 100) ??
@@ -582,8 +602,32 @@ export async function pruneTelemetry(db: D1Database) {
   await db.prepare("DELETE FROM app_config WHERE k LIKE 'salt:%' AND k < ?1").bind(`salt:${today}`).run();
 }
 
-export async function health(db: D1Database, json: Json): Promise<Response> {
+let version: { commit: string; built: string } | undefined;
+
+/**
+ * The build this Worker belongs to. The deploy bundles the Worker without the
+ * commit Vite defines (shared/version.ts then says "dev"), so it is read from
+ * /version.json, which the same build writes beside the page.
+ */
+export async function buildVersion(assets: Fetcher | undefined, origin: string): Promise<{ commit: string; built: string }> {
+  if (COMMIT !== 'dev') return { commit: COMMIT, built: BUILT };
+  if (version) return version;
+  try {
+    const res = await assets!.fetch(new URL('/version.json', origin));
+    const v = (await res.json()) as { commit?: unknown; built?: unknown };
+    if (typeof v.commit === 'string' && /^[0-9a-f]{7,40}$/.test(v.commit)) {
+      version = { commit: v.commit, built: typeof v.built === 'string' ? v.built : '' };
+      return version;
+    }
+  } catch {
+    // No file (a test, or a build without it): "dev" it is.
+  }
+  return { commit: COMMIT, built: BUILT };
+}
+
+export async function health(db: D1Database, json: Json, assets?: Fetcher, origin = 'https://letterle.app'): Promise<Response> {
   const started = Date.now();
+  const { commit, built } = await buildVersion(assets, origin);
   let database = 'ok';
   try {
     await db.prepare('SELECT 1').first();
@@ -594,10 +638,10 @@ export async function health(db: D1Database, json: Json): Promise<Response> {
   return json(
     {
       status: ok ? 'ok' : 'degraded',
-      commit: COMMIT,
-      shortCommit: SHORT_COMMIT,
-      commitUrl: COMMIT_URL,
-      built: BUILT,
+      commit,
+      shortCommit: commit === 'dev' ? 'dev' : commit.slice(0, 7),
+      commitUrl: commit === 'dev' ? COMMIT_URL : `${REPO_URL}/commit/${commit}`,
+      built,
       checks: { database, databaseMs: Date.now() - started },
       time: new Date().toISOString(),
     },

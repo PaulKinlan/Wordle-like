@@ -96,6 +96,7 @@ export class RaceClient {
     start: $<HTMLButtonElement>('race-start'),
     wait: $('race-wait'),
     leave: $<HTMLButtonElement>('race-leave'),
+    newCode: $<HTMLButtonElement>('race-new-code'),
     bar: $('race-bar'),
     opponents: $('opponents'),
     timer: $('race-timer'),
@@ -123,6 +124,7 @@ export class RaceClient {
       ($('dlg-race') as HTMLDialogElement).close();
     });
     e.leave.addEventListener('click', () => this.leave());
+    e.newCode.addEventListener('click', () => void this.newCode());
     // Come back to a race after the phone was locked.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && this.code && this.ws?.readyState !== WebSocket.OPEN) {
@@ -266,6 +268,8 @@ export class RaceClient {
       }
       if (ev.code === 4001 || ev.code === 1008) return this.forget(t('race.ended'));
       if (!this.code) return;
+      // Refused three times running while online: the room has gone (cancelled or expired).
+      if (this.retry >= 3 && navigator.onLine) return this.forget(t('race.ended'));
       // Reconnect with backoff; the room remembers us by our token.
       const delay = Math.min(10_000, 500 * 2 ** this.retry++);
       this.retryTimer = window.setTimeout(() => this.connect(), delay);
@@ -297,8 +301,46 @@ export class RaceClient {
     this.draw();
   }
 
+  private isHost() {
+    return !!this.me && this.state?.hostId === this.me;
+  }
+
+  /** Leaves the race; the host leaving cancels it for everyone. */
   private leave() {
+    // Tell the room, so the seat is freed (or the room closed) straight away.
+    if (this.ws?.readyState === WebSocket.OPEN && this.me) {
+      if (this.isHost()) track('race_cancelled');
+      this.ws.send(JSON.stringify({ t: this.isHost() ? 'cancel' : 'leave' } satisfies ClientMessage));
+    }
     this.forget();
+  }
+
+  /** The host swaps the room for a new one with a new code: the old code stops working. */
+  private async newCode() {
+    if (!this.isHost() || this.state?.status === 'playing') return;
+    this.els.newCode.disabled = true;
+    try {
+      const s = this.state!;
+      // Make the new room first, so a failure leaves the old one as it was.
+      const res = await fetch('/api/v1/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang: s.lang, hard: s.hard }),
+      });
+      const body = (await res.json()) as { code?: string };
+      if (!res.ok || !body.code) throw new Error('no code');
+      if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ t: 'cancel' } satisfies ClientMessage));
+      this.forget();
+      this.code = body.code;
+      store.set('race', this.code);
+      track('race_new_code');
+      this.connect();
+      this.host.toast(t('race.newCodeDone'), 2500);
+    } catch (e) {
+      this.host.toast(e instanceof TypeError ? t('race.offline') : t('race.couldNotStart'));
+    } finally {
+      this.els.newCode.disabled = false;
+    }
   }
 
   private receive(msg: ServerMessage) {
@@ -405,6 +447,9 @@ export class RaceClient {
     );
     const host = s.hostId === this.me;
     const others = s.players.filter((p) => p.connected && p.id !== this.me).length;
+    // The host closes the race for everyone; anyone else just leaves it.
+    e.leave.textContent = host ? t('race.cancel') : t('race.leave');
+    e.newCode.hidden = !host || s.status === 'playing';
     // Offered while waiting in the lobby, until turned on for this race.
     e.notify.hidden = s.status === 'playing' || !canAlert() || store.get(`race-alert:${s.code}`) === '1';
     e.start.hidden = !host || s.status === 'playing';

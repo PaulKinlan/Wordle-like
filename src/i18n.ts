@@ -81,12 +81,15 @@ export function t(key: MessageKey, vars: Record<string, string | number> = {}): 
   return text.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
 }
 
+/** Values for {placeholders} in the static page's messages, such as the number of tries. */
+export const pageVars: Record<string, string | number> = { n: 6 };
+
 /**
  * Fills an element with a message, turning **bold** into <strong>. Builds DOM
  * nodes rather than HTML, so it works under the Trusted Types CSP.
  */
 export function fillRich(el: Element, key: MessageKey) {
-  const parts = t(key).split(/\*\*(.+?)\*\*/g);
+  const parts = t(key, pageVars).split(/\*\*(.+?)\*\*/g);
   el.replaceChildren(
     ...parts.map((part, i) => {
       if (i % 2 === 0) return document.createTextNode(part);

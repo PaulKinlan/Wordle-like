@@ -6,13 +6,14 @@
 //   POST /api/v1/push/played       { endpoint, date }: played today, skip today's reminder
 //
 // Subscriptions live in the same D1 database as the answers. A cron trigger
-// runs every hour (wrangler.jsonc) and sends each subscriber one notification
+// runs every ten minutes (wrangler.jsonc) and sends each subscriber one notification
 // a day, at the hour they picked in their own time zone.
 //
 // Setup: none. The Worker makes its own VAPID key pair on first use and keeps
 // it in D1 (push_config). Worker secrets can override it (see the README).
 import { dailyNumber } from '../shared/daily';
 import { getLanguage } from '../shared/languages';
+import { readObject } from './http';
 import { b64url, sendPush, type VapidKeys } from './webpush';
 
 export interface PushEnv {
@@ -50,9 +51,18 @@ async function ensureConfigTable(db: D1Database) {
   await db.prepare('CREATE TABLE IF NOT EXISTS push_config (k TEXT PRIMARY KEY, v TEXT NOT NULL)').run();
 }
 
+/** The stored keys never change, so they're read from D1 once per running Worker. */
+let storedVapid: StoredVapid | null = null;
+
 async function readStored(db: D1Database): Promise<StoredVapid | null> {
-  const row = await db.prepare("SELECT v FROM push_config WHERE k = 'vapid'").first<{ v: string }>();
-  return row ? (JSON.parse(row.v) as StoredVapid) : null;
+  if (storedVapid) return storedVapid;
+  // The table may not exist yet.
+  const row = await db
+    .prepare("SELECT v FROM push_config WHERE k = 'vapid'")
+    .first<{ v: string }>()
+    .catch(() => null);
+  storedVapid = row ? (JSON.parse(row.v) as StoredVapid) : null;
+  return storedVapid;
 }
 
 /** A new P-256 key pair in the encodings VAPID uses. */
@@ -81,9 +91,9 @@ export async function getVapidKeys(env: PushEnv, origin?: string): Promise<Vapid
       subject: subject || SITE_URL,
     };
   }
-  await ensureConfigTable(env.DB);
   let stored = await readStored(env.DB);
   if (!stored && origin) {
+    await ensureConfigTable(env.DB);
     const fresh: StoredVapid = { ...(await generateVapidKeys()), origin };
     // If two requests race, the first insert wins and both read it back.
     await env.DB.prepare("INSERT OR IGNORE INTO push_config (k, v) VALUES ('vapid', ?)")
@@ -136,6 +146,7 @@ export function localTime(tz: string, now: Date): { date: string; hour: number }
 let migrated = false;
 
 async function ensureTable(db: D1Database) {
+  if (migrated) return;
   await db
     .prepare(
       `CREATE TABLE IF NOT EXISTS push_subs (
@@ -182,7 +193,7 @@ const ACTIONS: Record<string, { play: string; snooze: string; race: string }> = 
   ko: { play: '플레이', snooze: '1시간 후 알림', race: '친구와 대결' },
 };
 
-/** A snoozed reminder goes out on the first hourly run at least this long after. */
+/** A snoozed reminder goes out on the first cron run at least this long after. */
 export const SNOOZE_MS = 55 * 60 * 1000;
 
 /** The reminder text in each interface language. */
@@ -227,12 +238,7 @@ export async function handlePush(
   if (request.method !== 'POST') return error(404, 'not_found', 'Unknown API route');
   if (!keys) return error(404, 'push_off', 'Notifications are not set up');
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return error(400, 'bad_request', 'Expected a JSON body');
-  }
+  const body = await readObject(request, 8 * 1024);
   await ensureTable(env.DB);
 
   if (action === 'subscribe') {
@@ -319,7 +325,11 @@ export function due(rows: SubRow[], now: Date): { row: SubRow; date: string }[] 
   return out;
 }
 
-/** The hourly cron: sends today's reminder to everyone who is due. */
+/** Reminders sent in one cron run, and how many go out at the same time. */
+const PER_RUN = 40;
+const PARALLEL = 10;
+
+/** The cron: sends today's reminder to everyone who is due. */
 export async function sendDailyReminders(env: PushEnv, now = new Date()): Promise<{ sent: number; removed: number }> {
   // Keys are made by the first subscribe request, so none means no subscribers.
   const keys = await getVapidKeys(env);
@@ -328,14 +338,15 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
   const { results } = await env.DB.prepare('SELECT * FROM push_subs').all<SubRow>();
   let sent = 0;
   let removed = 0;
-  // Workers allow a limited number of outgoing requests per run; anyone left
-  // over is picked up by the next hourly run.
-  for (const { row, date } of due(results, now).slice(0, 40)) {
+  // A run may only make a limited number of outgoing requests, so it takes
+  // PER_RUN at most. The cron fires every ten minutes, and anyone left over
+  // is picked up by the next run.
+  const batch = due(results, now).slice(0, PER_RUN);
+  const send = async ({ row, date }: { row: SubRow; date: string }) => {
     const number = dailyNumber(date);
     const name = getLanguage(row.lang)?.nativeName;
-    let status = 0;
     try {
-      status = await sendPush(
+      return await sendPush(
         { endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth },
         {
           title: 'Letterle',
@@ -350,18 +361,31 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
       );
     } catch (e) {
       console.error('push failed', e);
+      return 0;
     }
-    if (status === 404 || status === 410) {
-      // The subscription has expired or been revoked.
-      await env.DB.prepare('DELETE FROM push_subs WHERE endpoint = ?1').bind(row.endpoint).run();
-      removed++;
-    } else {
-      // Mark as sent even on other errors, so a broken subscription isn't retried every hour.
-      await env.DB.prepare('UPDATE push_subs SET last_sent = ?2, snooze_until = NULL WHERE endpoint = ?1').bind(row.endpoint, date).run();
-      if (status >= 200 && status < 300) sent++;
-      else if (status) console.warn('push status', status, new URL(row.endpoint).host);
-    }
+  };
+  // Sent a few at a time, then recorded with one database call for the lot.
+  const writes: D1PreparedStatement[] = [];
+  for (let i = 0; i < batch.length; i += PARALLEL) {
+    const group = batch.slice(i, i + PARALLEL);
+    const statuses = await Promise.all(group.map(send));
+    group.forEach(({ row, date }, n) => {
+      const status = statuses[n];
+      if (status === 404 || status === 410) {
+        // The subscription has expired or been revoked.
+        writes.push(env.DB.prepare('DELETE FROM push_subs WHERE endpoint = ?1').bind(row.endpoint));
+        removed++;
+      } else {
+        // Mark as sent even on other errors, so a broken subscription isn't retried every run.
+        writes.push(
+          env.DB.prepare('UPDATE push_subs SET last_sent = ?2, snooze_until = NULL WHERE endpoint = ?1').bind(row.endpoint, date),
+        );
+        if (status >= 200 && status < 300) sent++;
+        else if (status) console.warn('push status', status, new URL(row.endpoint).host);
+      }
+    });
   }
+  if (writes.length) await env.DB.batch(writes);
   return { sent, removed };
 }
 
@@ -403,7 +427,7 @@ export function parseRaceAlert(raw: unknown, ui: unknown): RaceAlert | null {
   const p256dh = sub?.keys?.p256dh;
   const auth = sub?.keys?.auth;
   if (!isPushEndpoint(sub?.endpoint) || typeof p256dh !== 'string' || typeof auth !== 'string') return null;
-  if (p256dh.length > 200 || auth.length > 100) return null;
+  if (!B64URL.test(p256dh) || !B64URL.test(auth) || p256dh.length > 100 || auth.length > 40) return null;
   return { endpoint: sub.endpoint, p256dh, auth, ui: typeof ui === 'string' && RACE_JOINED[ui] ? ui : 'en' };
 }
 

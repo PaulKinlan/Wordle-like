@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Letterle</title>
-    <meta name="description" content="A daily five-letter word game. No ads, no tracking." />
+    <meta name="description" content="A daily word game in many languages. No ads, no tracking." />
     <meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)" />
     <meta name="color-scheme" content="light dark" />
@@ -47,14 +47,15 @@
 
       <nav class="modes" aria-label="Game mode" data-i18n-aria="app.modes">
         <div class="segmented" role="tablist">
-          <button type="button" role="tab" id="mode-daily" aria-selected="true" data-i18n="mode.daily">Daily</button>
-          <button type="button" role="tab" id="mode-unlimited" aria-selected="false" data-i18n="mode.unlimited">Unlimited</button>
-          <button type="button" role="tab" id="mode-race" aria-selected="false" data-i18n="mode.race">Race</button>
+          <button type="button" role="tab" id="mode-daily" aria-controls="panel" aria-selected="true" data-i18n="mode.daily">Daily</button>
+          <button type="button" role="tab" id="mode-unlimited" aria-controls="panel" aria-selected="false" data-i18n="mode.unlimited">Unlimited</button>
+          <button type="button" role="tab" id="mode-race" aria-controls="panel" aria-selected="false" data-i18n="mode.race">Race</button>
         </div>
         <p class="subtitle" id="subtitle" aria-live="polite"></p>
       </nav>
 
-      <main class="play">
+      <main class="main">
+      <div class="play" id="panel" role="tabpanel" aria-labelledby="mode-daily">
         <!-- Multiplayer: before a race starts. -->
         <section class="race-lobby" id="race-lobby" hidden>
           <div class="race-card" id="race-intro">
@@ -83,7 +84,10 @@
             <ul class="race-players" id="race-players" aria-label="Players" data-i18n-aria="race.players"></ul>
             <button class="primary wide" id="race-start" type="button" data-i18n="race.start">Start the race</button>
             <p class="fineprint" id="race-wait" aria-live="polite"></p>
-            <button class="link" id="race-leave" type="button" data-i18n="race.leave">Leave this race</button>
+            <div class="race-links">
+              <button class="link" id="race-new-code" type="button" data-i18n="race.newCode" hidden>Get a new code</button>
+              <button class="link" id="race-leave" type="button">Leave this race</button>
+            </div>
           </div>
         </section>
 
@@ -118,11 +122,14 @@
             data-i18n-aria="board.entry"
           />
         </form>
-        <div class="toast" id="toast" role="status" aria-live="assertive" popover="manual"></div>
+        <div class="toast" id="toast" role="status" popover="manual"></div>
+      </div>
       </main>
 
       <section class="footer">
         <div class="tracker" id="tracker" aria-label="Letters you have tried" data-i18n-aria="board.tracker"></div>
+        <!-- Optional (Settings): the game's own keys, coloured by what each letter scored. -->
+        <div class="osk" id="osk" role="group" aria-label="Keyboard" data-i18n-aria="kb.label" hidden></div>
         <div class="result" id="result" hidden>
           <p class="result-text" id="result-text"></p>
           <div class="result-actions">
@@ -140,7 +147,7 @@
     <dialog id="dlg-help" class="sheet" aria-labelledby="help-title" tabindex="-1" autofocus closedby="any">
       <form method="dialog">
         <header class="sheet-head"><h2 id="help-title" data-i18n="help.title">How to play</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
-        <p data-i18n-rich="help.p1">Guess the word in <strong>six</strong> tries. Tap the board and type with your phone's keyboard, then press Enter.</p>
+        <p id="help-p1" data-i18n-rich="help.p1">Guess the word in <strong>6</strong> tries. Tap the board and type with your phone's keyboard, then press Enter.</p>
         <p data-i18n="help.p2">After each guess the tiles change colour:</p>
         <ul class="legend">
           <li><span class="tile sample correct">P</span> <span data-i18n="help.correct">in the word and in the right spot</span></li>
@@ -207,6 +214,10 @@
         <label class="setting">
           <span><strong data-i18n="settings.hints">Letter hints while typing</strong><small data-i18n="settings.hintsNote">Marks letters you've already tried as you type them</small></span>
           <input type="checkbox" class="switch" id="set-hints" />
+        </label>
+        <label class="setting">
+          <span><strong data-i18n="settings.osk">On-screen keyboard</strong><small data-i18n="settings.oskNote">Use the game's own keys instead of your phone's keyboard</small></span>
+          <input type="checkbox" class="switch" id="set-osk" />
         </label>
         <label class="setting" id="haptics-row" hidden>
           <span><strong data-i18n="settings.haptics">Vibration</strong><small data-i18n="settings.hapticsNote">A light buzz as tiles flip and when you win</small></span>

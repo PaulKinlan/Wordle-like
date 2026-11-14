@@ -25,16 +25,18 @@
 import { checkHardMode, describeViolation, evaluate, normalizeWord, statusAfter, type Mark } from '../shared/game';
 import { getLanguage, LANGUAGES } from '../shared/languages';
 import { D1AnswerStore, type AnswerStore } from './answers';
-import { answerIndex, dailyNumber, newRandomToken, parsePuzzleId } from './puzzles';
-import { getWords } from './words';
+import { dailyIndex, dailyNumber, newRandomToken, parsePuzzleId, randomIndex } from './puzzles';
+import { getWords, hasWords } from './words';
 import { handlePush, sendDailyReminders, type PushEnv } from './push';
 import { handleTelemetry, health, pruneTelemetry, recordEvent, recordServerError, type TelemetryEnv, type UsageEvent } from './telemetry';
 import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
 import { handlePreview } from './og';
+import { BadBody, readObject, withinLimit, type LimitEnv } from './http';
+import { deltaResponse, useAsDictionary, versioned } from './dictionary';
 
 export { Room } from './room';
 
-export interface Env extends PushEnv, TelemetryEnv {
+export interface Env extends PushEnv, TelemetryEnv, LimitEnv {
   ASSETS: Fetcher;
   /** Holds the private answer order. Created automatically on first deploy. */
   DB: D1Database;
@@ -76,7 +78,7 @@ export async function handleApi(request: Request, answers: AnswerStore, onEvent:
 
   const lang = first ? getLanguage(first) : undefined;
   if (!lang || parts.length !== 4) return error(404, 'not_found', 'Unknown API route');
-  const list = getWords(lang.code);
+  const list = await getWords(lang.code);
   if (!list) return error(404, 'not_found', 'No word list for this language');
 
   if (action === 'daily' && method === 'GET') {
@@ -97,12 +99,7 @@ export async function handleApi(request: Request, answers: AnswerStore, onEvent:
   }
 
   if (action === 'play' && method === 'POST') {
-    let body: { puzzle?: unknown; guesses?: unknown };
-    try {
-      body = await request.json();
-    } catch {
-      return error(400, 'bad_request', 'Expected a JSON body');
-    }
+    const body: { puzzle?: unknown; guesses?: unknown } = await readObject(request);
     const ref = parsePuzzleId(body.puzzle);
     if (!ref) return error(400, 'bad_puzzle', 'Unknown puzzle');
     if (!Array.isArray(body.guesses) || body.guesses.length < 1 || body.guesses.length > lang.maxGuesses) {
@@ -113,13 +110,15 @@ export async function handleApi(request: Request, answers: AnswerStore, onEvent:
     const count = await answers.count(set, ref.hard ? list.rare : list.candidates);
     // The stored answer keeps its accents for display; guesses are compared
     // with the folded form.
-    const answer = await answers.at(set, answerIndex(ref, count));
+    const index = ref.kind === 'daily' ? dailyIndex(ref.number, count) : await randomIndex(await answers.key(), set, ref.token, count);
+    const answer = await answers.at(set, index);
     const target = normalizeWord(answer, lang.code);
     const rows: { guess: string; marks: Mark[] }[] = [];
     for (const raw of body.guesses) {
-      const guess = typeof raw === 'string' ? normalizeWord(raw, lang.code) : '';
+      // Nothing a keyboard produces for one word is this long; don't spend time on it.
+      const guess = typeof raw === 'string' && raw.length <= MAX_GUESS_CHARS ? normalizeWord(raw, lang.code) : '';
       if ([...guess].length !== lang.wordLength) {
-        return error(400, 'wrong_length', `Guesses must be ${lang.wordLength} letters`, { word: guess });
+        return error(400, 'wrong_length', `Guesses must be ${lang.wordLength} letters`, { word: guess.slice(0, MAX_GUESS_CHARS) });
       }
       if (!list.guessable.has(guess)) {
         return error(422, 'not_in_list', 'Not in word list', { word: guess });
@@ -149,6 +148,9 @@ export async function handleApi(request: Request, answers: AnswerStore, onEvent:
   return error(404, 'not_found', 'Unknown API route');
 }
 
+/** The longest text accepted as one guess (Korean is typed as syllables, accents may be separate marks). */
+const MAX_GUESS_CHARS = 64;
+
 const shape = (lang: { code: string; wordLength: number; maxGuesses: number }) => ({
   lang: lang.code,
   wordLength: lang.wordLength,
@@ -165,14 +167,9 @@ export async function handleRooms(request: Request, rooms: DurableObjectNamespac
   const url = new URL(request.url);
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'v1', 'rooms', ...]
   if (parts.length === 3 && request.method === 'POST') {
-    let body: { lang?: unknown; hard?: unknown };
-    try {
-      body = await request.json();
-    } catch {
-      return error(400, 'bad_request', 'Expected a JSON body');
-    }
+    const body: { lang?: unknown; hard?: unknown } = await readObject(request, 1024);
     const lang = typeof body.lang === 'string' ? getLanguage(body.lang) : undefined;
-    if (!lang || !getWords(lang.code)) return error(400, 'bad_language', 'Unknown language');
+    if (!lang || !hasWords(lang.code)) return error(400, 'bad_language', 'Unknown language');
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = newRoomCode();
       const stub = rooms.get(rooms.idFromName(code));
@@ -192,11 +189,28 @@ export async function handleRooms(request: Request, rooms: DurableObjectNamespac
     if (!ROOM_CODE.test(code)) return error(404, 'no_room', 'No such race');
     // Only our own pages may open a socket (the browser always sends Origin).
     const origin = request.headers.get('Origin');
-    if (origin && new URL(origin).host !== url.host) return error(403, 'forbidden', 'Wrong origin');
+    if (origin && !sameHost(origin, url.host)) return error(403, 'forbidden', 'Wrong origin');
     const stub = rooms.get(rooms.idFromName(code));
     return stub.fetch(new Request('https://room/socket', request));
   }
   return error(404, 'not_found', 'Unknown API route');
+}
+
+function sameHost(origin: string, host: string): boolean {
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false; // "null", or not a URL at all
+  }
+}
+
+/** Which rate limit a request counts against (see http.ts); each scope has its own count per visitor. */
+function limitFor(env: Env, method: string, path: string): [RateLimit | undefined, string] {
+  if (path === '/api/v1/rooms' && method === 'POST') return [env.LIMIT_ROOMS, 'room'];
+  if (path === '/api/v1/push/subscribe') return [env.LIMIT_WRITES, 'sub'];
+  if (path === '/api/v1/telemetry' && method === 'POST') return [env.LIMIT_WRITES, 'tel'];
+  if (path === '/api/v1/reports') return [env.LIMIT_WRITES, 'rep'];
+  return [env.LIMIT_API, 'api'];
 }
 
 /**
@@ -221,12 +235,12 @@ async function manifest(request: Request, assets: Fetcher): Promise<Response> {
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/health') return health(env.DB, json);
+    if (url.pathname === '/health') return health(env.DB, json, env.ASSETS, url.origin);
     if (url.pathname === '/manifest.webmanifest') return manifest(request, env.ASSETS);
     // Shared results (/s/...), race invites (/r/...) and their preview images (/og/...).
     if (/^\/(s|r|og)\//.test(url.pathname)) {
       try {
-        const res = await handlePreview(request, env.ASSETS, ctx);
+        const res = await handlePreview(request, env.ASSETS, ctx, () => withinLimit(env.LIMIT_WRITES, request, 'og'));
         if (res) return res;
       } catch (e) {
         console.error(e);
@@ -238,6 +252,10 @@ export default {
     if (url.pathname.startsWith('/api/')) {
       const onEvent = (e: UsageEvent) => ctx.waitUntil(recordEvent(env.DB, request, e));
       try {
+        const [limiter, scope] = limitFor(env, request.method, url.pathname);
+        if (!(await withinLimit(limiter, request, scope))) {
+          return error(429, 'slow_down', 'Too many requests. Try again in a minute.');
+        }
         if (url.pathname.startsWith('/api/v1/rooms')) return await handleRooms(request, env.ROOMS, onEvent);
         if (url.pathname.startsWith('/api/v1/push/')) return await handlePush(request, env, json, error);
         if (url.pathname.startsWith('/api/v1/telemetry') || url.pathname === '/api/v1/reports') {
@@ -245,22 +263,51 @@ export default {
         }
         return await handleApi(request, new D1AnswerStore(env.DB), onEvent);
       } catch (e) {
+        if (e instanceof BadBody) return error(e.status, e.status === 413 ? 'too_big' : 'bad_request', e.message);
         console.error(e);
         ctx.waitUntil(recordServerError(env.DB, request, e));
         return error(500, 'server_error', 'Something went wrong');
       }
     }
+    // Built files have their contents in their names. One that isn't there
+    // (an old tab asking for a file from before a deploy) would get the home
+    // page back, and public/_headers marks /assets/* as never changing, so
+    // the browser would keep that wrong answer for a year. Say 404 instead.
+    // (wrangler.jsonc sends /assets/* here first for this.)
+    if (url.pathname.startsWith('/assets/')) {
+      // The main script and stylesheet: only what changed, for a browser that has an older build (dictionary.ts).
+      const file = versioned(url.pathname);
+      if (file) {
+        const delta = await deltaResponse(request, env.ASSETS, file).catch(() => null);
+        if (delta) return delta;
+      }
+      const res = await env.ASSETS.fetch(request);
+      if (!res.headers.get('Content-Type')?.startsWith('text/html')) {
+        if (!file || !res.ok) return res;
+        // Kept by the browser as the dictionary for the next build.
+        const headers = new Headers(res.headers);
+        headers.set('Use-As-Dictionary', useAsDictionary(file.kind));
+        headers.set('Vary', 'Accept-Encoding, Available-Dictionary');
+        return new Response(res.body, { status: res.status, headers });
+      }
+      return new Response('Not found', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...SECURITY_HEADERS },
+      });
+    }
     return env.ASSETS.fetch(request);
   },
 
-  /** Hourly cron (wrangler.jsonc): daily reminder notifications, and tidying old telemetry. */
-  async scheduled(_controller, env, ctx) {
+  /** Cron, every ten minutes (wrangler.jsonc): daily reminder notifications, and tidying old telemetry once an hour. */
+  async scheduled(controller, env, ctx) {
     ctx.waitUntil(
       sendDailyReminders(env).then(
         (r) => console.log('daily reminders', r),
         (e) => console.error('daily reminders failed', e),
       ),
     );
-    ctx.waitUntil(pruneTelemetry(env.DB).catch((e) => console.error('telemetry prune failed', e)));
+    if (new Date(controller.scheduledTime).getUTCMinutes() < 10) {
+      ctx.waitUntil(pruneTelemetry(env.DB).catch((e) => console.error('telemetry prune failed', e)));
+    }
   },
 } satisfies ExportedHandler<Env>;

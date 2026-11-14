@@ -1,5 +1,6 @@
 // Service worker: makes the app installable and open offline.
-// - App shell (HTML, hashed JS/CSS, icons): cached, refreshed in the background.
+// - Pages: from the network if it answers within a few seconds, else the saved copy.
+// - Hashed JS/CSS: from the cache. Icons and the rest: cached, refreshed in the background.
 // - API: always from the network, except the word list, which is cached so
 //   guesses can be checked instantly.
 // Bump VERSION to drop old caches.
@@ -24,6 +25,9 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(keys.filter((k) => k !== SHELL && k !== DATA && k !== 'prefs').map((k) => caches.delete(k))),
       )
+      // Navigation preload: on a page load the browser asks the network
+      // straight away instead of waiting for this worker to start up.
+      .then(() => self.registration.navigationPreload?.enable())
       .then(() => self.clients.claim()),
   );
 });
@@ -41,22 +45,64 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (req.mode === 'navigate') {
-    // Network first so a new deploy shows up straight away; cached when offline.
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          // Each page has its own copy (/, /es/, /fr/...): the language pages have their own <head>.
-          if (res.ok && /^\/([a-z]{2}\/)?$/.test(url.pathname)) caches.open(SHELL).then((c) => c.put(url.pathname, copy));
-          return res;
-        })
-        .catch(async () => (await caches.match(url.pathname)) ?? caches.match('/')),
-    );
+    event.respondWith(page(event, url));
+    return;
+  }
+
+  // Built files have their contents in their names, so a saved copy is never out of date.
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(cacheFirst(req, SHELL));
     return;
   }
 
   event.respondWith(staleWhileRevalidate(req, SHELL));
 });
+
+// How long a page load waits for the network before showing the saved copy.
+const PAGE_WAIT_MS = 2500;
+
+/**
+ * A page: from the network, so a new deploy shows up straight away, but only
+ * if it answers soon. On a weak signal the saved copy opens instead of a
+ * blank screen (and at once when offline); the fresh page is still saved for
+ * next time, and the app's own update check offers a reload.
+ */
+async function page(event, url) {
+  const req = event.request;
+  // Each page has its own copy (/, /es/, /fr/...): the language pages have their own <head>.
+  const own = /^\/([a-z]{2}\/)?$/.test(url.pathname);
+  const network = (async () => {
+    // The browser starts this request while the service worker is still waking up (see activate).
+    const res = (await event.preloadResponse) || (await fetch(req));
+    if (res.ok && own) {
+      const copy = res.clone();
+      await caches.open(SHELL).then((c) => c.put(url.pathname, copy));
+    }
+    return res;
+  })();
+  // Keeps the worker alive until the fresh page is saved, even if the saved one was shown.
+  event.waitUntil(network.catch(() => undefined));
+  const saved = (await caches.match(url.pathname)) ?? (await caches.match('/'));
+  if (!saved) return network;
+  let timer;
+  const tooSlow = new Promise((resolve) => (timer = setTimeout(resolve, PAGE_WAIT_MS)));
+  try {
+    return (await Promise.race([network, tooSlow])) ?? saved;
+  } catch {
+    return saved;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function cacheFirst(req, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(req);
+  if (cached) return cached;
+  const res = await fetch(req);
+  if (res.ok) cache.put(req, res.clone());
+  return res;
+}
 
 async function staleWhileRevalidate(req, cacheName) {
   const cache = await caches.open(cacheName);

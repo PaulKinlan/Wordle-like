@@ -6,7 +6,8 @@
 // the code, and there is no secret to configure.
 //
 //   daily puzzle N   -> row (N - 1) mod count
-//   unlimited token  -> row (token mod count)
+//   unlimited token  -> row HMAC(key, token) mod count, with a key that is
+//                       also made here and kept in D1 (see puzzles.ts)
 
 export interface AnswerStore {
   /**
@@ -16,6 +17,8 @@ export interface AnswerStore {
   count(set: string, candidates: readonly string[]): Promise<number>;
   /** The answer at a position in the set's private order. */
   at(set: string, index: number): Promise<string>;
+  /** The private key that turns an unlimited-play token into a position. */
+  key(): Promise<string>;
 }
 
 const SAFE_WORD = /^\p{L}+$/u;
@@ -31,13 +34,37 @@ export function shuffle<T>(items: readonly T[]): T[] {
   return out;
 }
 
-export class D1AnswerStore implements AnswerStore {
-  private counts = new Map<string, number>();
+// Neither changes once made, so each is read from D1 once per running Worker.
+const counts = new Map<string, number>();
+let puzzleKey: string | undefined;
+// The stored order never changes either, so a word read once is remembered:
+// everyone playing today's word asks for the same row with every guess, and
+// the database read is most of the time a guess takes. A few thousand short
+// words at most; the Worker's memory is never sent anywhere.
+const words = new Map<string, string>();
+const MAX_REMEMBERED = 5000;
 
+export class D1AnswerStore implements AnswerStore {
   constructor(private db: D1Database) {}
 
+  async key(): Promise<string> {
+    if (puzzleKey) return puzzleKey;
+    const read = () => this.db.prepare("SELECT v FROM app_config WHERE k = 'puzzle_key'").first<{ v: string }>();
+    let row = await read().catch(() => null); // the table may not exist yet
+    if (!row) {
+      const fresh = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, '0')).join('');
+      await this.db.prepare('CREATE TABLE IF NOT EXISTS app_config (k TEXT PRIMARY KEY, v TEXT NOT NULL)').run();
+      // If two requests race, the first insert wins and both read it back.
+      await this.db.prepare("INSERT OR IGNORE INTO app_config (k, v) VALUES ('puzzle_key', ?1)").bind(fresh).run();
+      row = await read();
+    }
+    if (!row) throw new Error('No puzzle key');
+    puzzleKey = row.v;
+    return puzzleKey;
+  }
+
   async count(lang: string, candidates: readonly string[]): Promise<number> {
-    const cached = this.counts.get(lang);
+    const cached = counts.get(lang);
     if (cached) return cached;
     let n = await this.readCount(lang);
     if (n === null) {
@@ -45,16 +72,21 @@ export class D1AnswerStore implements AnswerStore {
       n = await this.readCount(lang);
     }
     if (!n) throw new Error(`No answers stored for ${lang}`);
-    this.counts.set(lang, n);
+    counts.set(lang, n);
     return n;
   }
 
   async at(lang: string, index: number): Promise<string> {
+    const cacheKey = `${lang}/${index}`;
+    const hit = words.get(cacheKey);
+    if (hit !== undefined) return hit;
     const row = await this.db
       .prepare('SELECT word FROM answers WHERE lang = ?1 AND idx = ?2')
       .bind(lang, index)
       .first<{ word: string }>();
     if (!row) throw new Error(`Missing answer ${lang}/${index}`);
+    if (words.size >= MAX_REMEMBERED) words.clear();
+    words.set(cacheKey, row.word);
     return row.word;
   }
 
@@ -119,5 +151,8 @@ export class MemoryAnswerStore implements AnswerStore {
   }
   async at(lang: string, index: number) {
     return this.lists.get(lang)![index];
+  }
+  async key() {
+    return 'test-key';
   }
 }

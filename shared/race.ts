@@ -10,6 +10,8 @@ import type { Mark } from './game';
 
 export const ROW_SECONDS = 5;
 export const MAX_PLAYERS = 4;
+/** Connections one room accepts, joined or not: players, their reconnects and a little slack. */
+export const MAX_SOCKETS = 12;
 export const POINTS = { correct: 2, present: 1 } as const;
 
 export type RaceStatus = 'lobby' | 'playing' | 'finished';
@@ -116,6 +118,10 @@ export type ClientMessage =
   | { t: 'join'; name: string; token?: string }
   | { t: 'start' }
   | { t: 'guess'; word: string }
+  /** Leave the room for good (frees the seat, unless a round you're in is running). */
+  | { t: 'leave' }
+  /** The host closes the room for everyone. */
+  | { t: 'cancel' }
   /** Push me when someone joins (a PushSubscription's JSON, and the interface language for the text). */
   | { t: 'notify'; sub: { endpoint: string; keys: { p256dh: string; auth: string } }; ui: string }
   | { t: 'ping' };

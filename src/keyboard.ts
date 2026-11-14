@@ -28,6 +28,8 @@ export interface EntryOptions {
   normalize: (text: string) => string;
   onChange: (letters: string) => void;
   onSubmit: () => void;
+  /** Called when typing is switched on or off (the game ended, a race is waiting...). */
+  onEnabled?: (on: boolean) => void;
 }
 
 export class NativeEntry {
@@ -36,12 +38,17 @@ export class NativeEntry {
   private hiding: Promise<void> | null = null;
   /** The browser itself has opened the keyboard on this page (see focus). */
   private browserOpened = false;
+  /** The letters typed so far, one per tile. */
+  private letters = '';
+  /** The game's own on-screen keyboard is on: never raise the phone's. */
+  private ownKeyboard = false;
 
   constructor(private o: EntryOptions) {
     const { input, form } = o;
     input.addEventListener('input', (e) => {
       if ((e as InputEvent).isComposing) {
-        o.onChange(this.clean(input.value));
+        this.letters = this.clean(input.value);
+        o.onChange(this.letters);
         return;
       }
       this.sync();
@@ -118,16 +125,73 @@ export class NativeEntry {
 
   setEnabled(on: boolean): Promise<void> {
     const { input } = this.o;
-    if (this.enabled !== on) debugLog('kb enabled', on, { focused: document.activeElement === input, vk: vkHeight() });
+    const was = this.enabled;
+    if (was !== on) debugLog('kb enabled', on, { focused: document.activeElement === input, vk: vkHeight() });
     this.enabled = on;
+    if (was !== on) this.o.onEnabled?.(on);
     if (on) {
       input.disabled = false;
       input.readOnly = false;
-      input.removeAttribute('inputmode');
+      this.syncInputMode();
       input.classList.remove('locked');
       return Promise.resolve();
     }
     return this.hideKeyboard();
+  }
+
+  get isEnabled() {
+    return this.enabled;
+  }
+
+  /** With the game's own keyboard, the phone's keyboard never comes up (a physical one still works). */
+  setOwnKeyboard(on: boolean) {
+    this.ownKeyboard = on;
+    this.syncInputMode();
+    if (on) void this.hideKeyboard();
+  }
+
+  // inputmode="none" tells the browser this field never wants a keyboard, so
+  // a tap on the board focuses it without raising one.
+  private syncInputMode() {
+    if (this.enabled && !this.ownKeyboard) this.o.input.removeAttribute('inputmode');
+    else this.o.input.inputMode = 'none';
+  }
+
+  // ---- the on-screen keyboard types through these
+
+  /** Adds one tile's letter. */
+  type(letter: string) {
+    if (!this.enabled) return;
+    this.commit(this.letters + letter);
+  }
+
+  /** Removes the last tile. */
+  backspace() {
+    if (!this.enabled) return;
+    this.commit([...this.letters].slice(0, -1).join(''));
+  }
+
+  /** Swaps the last tile's letter (Japanese mark key). */
+  replaceLast(change: (letter: string) => string) {
+    const tiles = [...this.letters];
+    if (!this.enabled || !tiles.length) return;
+    tiles.push(change(tiles.pop()!));
+    this.commit(tiles.join(''));
+  }
+
+  submit() {
+    if (this.enabled) this.o.onSubmit();
+  }
+
+  /**
+   * Sets the tiles directly, without re-reading the field: a Welsh n then g
+   * tapped as two keys stays two tiles, where typed text would join them.
+   */
+  private commit(letters: string) {
+    this.letters = [...letters].slice(0, this.maxLength).join('');
+    this.o.input.value = expandWord(this.letters);
+    this.caretToEnd();
+    this.o.onChange(this.letters);
   }
 
   /**
@@ -191,6 +255,7 @@ export class NativeEntry {
 
   clear() {
     this.o.input.value = '';
+    this.letters = '';
     this.o.onChange('');
   }
 
@@ -207,6 +272,7 @@ export class NativeEntry {
    */
   focus(showKeyboard: boolean) {
     if (!this.enabled) return;
+    if (this.ownKeyboard) showKeyboard = false;
     const { input } = this.o;
     const show = showKeyboard && !!vk && this.browserOpened;
     if (show) input.setAttribute('virtualkeyboardpolicy', 'manual');
@@ -232,6 +298,7 @@ export class NativeEntry {
     const text = expandWord(letters);
     if (input.value !== text) input.value = text;
     this.caretToEnd();
+    this.letters = letters;
     this.o.onChange(letters);
   }
 
