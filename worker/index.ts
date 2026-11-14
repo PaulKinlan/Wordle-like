@@ -93,7 +93,10 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
     // Each pool has its own private order: "en" and "en:rare".
     const set = ref.hard ? `${lang.code}:rare` : lang.code;
     const count = await answers.count(set, ref.hard ? list.rare : list.candidates);
+    // The stored answer keeps its accents for display; guesses are compared
+    // with the folded form.
     const answer = await answers.at(set, answerIndex(ref, count));
+    const target = normalizeWord(answer, lang.code);
     const rows: { guess: string; marks: Mark[] }[] = [];
     for (const raw of body.guesses) {
       const guess = typeof raw === 'string' ? normalizeWord(raw, lang.code) : '';
@@ -107,7 +110,7 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
         const v = checkHardMode(rows, guess);
         if (v) return error(422, 'hard_mode', describeViolation(v), { word: guess, violation: v });
       }
-      rows.push({ guess, marks: evaluate(guess, answer) });
+      rows.push({ guess, marks: evaluate(guess, target) });
       if (rows.at(-1)!.marks.every((m) => m === 'correct')) break;
     }
     const status = statusAfter(rows.map((r) => r.marks), lang.maxGuesses);

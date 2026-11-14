@@ -1,5 +1,6 @@
 // Supported languages. Adding a language means adding an entry here and a
-// word list under worker/words/<code>/ (see worker/words.ts).
+// word list under worker/words/<code>/ (see worker/words.ts and
+// scripts/build-wordlists.mjs).
 
 export interface LanguageInfo {
   /** BCP 47 language code, also used in API paths: /api/v1/<code>/... */
@@ -10,10 +11,25 @@ export interface LanguageInfo {
   nativeName: string;
   wordLength: number;
   maxGuesses: number;
+  /**
+   * The letters that count as different letters in this language, in
+   * alphabetical order. Any other accented letter is folded to its base
+   * letter, so "é" can be typed as "e" (or as "é") in French, while "ñ" stays
+   * its own letter in Spanish and "ä" its own letter in German.
+   */
+  alphabet: string;
 }
 
+const LATIN = 'abcdefghijklmnopqrstuvwxyz';
+
 export const LANGUAGES: LanguageInfo[] = [
-  { code: 'en', name: 'English', nativeName: 'English', wordLength: 5, maxGuesses: 6 },
+  { code: 'en', name: 'English', nativeName: 'English', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
+  { code: 'fr', name: 'French', nativeName: 'Français', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', wordLength: 5, maxGuesses: 6, alphabet: 'aäbcdefghijklmnoöpqrsßtuüvwxyz' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
 ];
 
 export const DEFAULT_LANGUAGE = 'en';

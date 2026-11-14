@@ -16,7 +16,8 @@ export function shareText(game: SavedGame, highContrast: boolean, url: string): 
   const squares = SQUARES[highContrast ? 'contrast' : 'normal'];
   const score = game.status === 'won' ? String(game.rows.length) : 'X';
   const which = game.mode === 'daily' ? `#${game.number ?? '?'}` : 'Unlimited';
-  const title = `${APP_NAME} ${which} ${score}/${game.maxGuesses}${game.hard ? ' (hard)' : ''}`;
+  const lang = game.lang && game.lang !== 'en' ? ` ${game.lang.toUpperCase()}` : '';
+  const title = `${APP_NAME}${lang} ${which} ${score}/${game.maxGuesses}${game.hard ? ' (hard)' : ''}`;
   const grid = game.rows.map((r) => r.marks.map((m) => squares[m]).join('')).join('\n');
   return `${title}\n\n${grid}\n\n${url}`;
 }

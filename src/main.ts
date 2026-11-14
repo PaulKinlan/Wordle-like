@@ -46,7 +46,7 @@ let game: SavedGame | null = null;
 let current = '';
 let busy = false;
 let lang = settings.lang ?? DEFAULT_LANGUAGE;
-const words = new Map<string, { guessable: Set<string>; alphabet: string[] }>();
+const words = new Map<string, Set<string>>();
 
 const entry = new NativeEntry({
   input: els.input,
@@ -87,6 +87,8 @@ async function startMode(mode: Mode, fresh = false) {
   current = '';
   entry.clear();
   entry.configure(game.wordLength);
+  // Hints the phone's keyboard towards the game's language, where supported.
+  els.input.lang = game.lang;
   board.build(game.maxGuesses, game.wordLength);
   draw();
   showResult();
@@ -120,12 +122,7 @@ async function loadWords(code: string) {
   if (words.has(code)) return;
   try {
     const list = await api.words(code);
-    const letters = new Set<string>();
-    for (const w of list) for (const ch of w) letters.add(ch);
-    words.set(code, {
-      guessable: new Set(list),
-      alphabet: [...letters].sort((a, b) => a.localeCompare(b, code)),
-    });
+    words.set(code, new Set(list));
     draw();
   } catch {
     // Without the list, the server still validates each guess.
@@ -139,7 +136,7 @@ async function submit() {
   if ([...guess].length < game.wordLength) return reject(row, 'Not enough letters');
 
   const list = words.get(game.lang);
-  if (list && !list.guessable.has(guess)) return reject(row, 'Not in word list');
+  if (list && !list.has(guess)) return reject(row, 'Not in word list');
 
   if (game.hard) {
     const v = checkHardMode(game.rows, guess);
@@ -209,7 +206,7 @@ function draw(skipTracker = false) {
 
 function drawTracker() {
   if (!game) return;
-  const alphabet = words.get(game.lang)?.alphabet ?? [...'abcdefghijklmnopqrstuvwxyz'];
+  const alphabet = [...(getLanguage(game.lang)?.alphabet ?? 'abcdefghijklmnopqrstuvwxyz')];
   renderTracker(els.tracker, alphabet, game.rows);
 }
 

@@ -83,7 +83,7 @@ export class Board {
 }
 
 function setTile(t: HTMLDivElement, letter: string, state: Mark | 'filled' | '') {
-  const upper = letter.toLocaleUpperCase();
+  const upper = toUpper(letter);
   if (t.textContent !== upper) t.textContent = upper;
   t.className = 'tile' + (state ? ' ' + state : '');
   const label = state === 'filled' || state === '' ? letter : `${letter}, ${labels[state]}`;
@@ -106,7 +106,7 @@ export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) 
     el.replaceChildren(
       ...alphabet.map((ch) => {
         const s = document.createElement('span');
-        s.textContent = ch.toLocaleUpperCase();
+        s.textContent = toUpper(ch);
         return s;
       }),
     );
@@ -114,4 +114,9 @@ export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) 
   [...el.children].forEach((s, i) => {
     s.className = best.get(alphabet[i]) ?? '';
   });
+}
+
+/** Uppercase for one tile. German ß has a capital (ẞ) that fits in one tile. */
+export function toUpper(letter: string) {
+  return letter === 'ß' ? 'ẞ' : letter.toLocaleUpperCase();
 }
