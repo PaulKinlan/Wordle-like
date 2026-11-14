@@ -12,7 +12,7 @@ import {
   type ServerMessage,
 } from '../shared/race';
 import type { Board } from './board';
-import { renderTracker, toUpper } from './board';
+import { renderTracker, setTileLocale, toUpper } from './board';
 import { t, uiLang, type MessageKey } from './i18n';
 import type { NativeEntry } from './keyboard';
 import { keepAwake } from './pwa';
@@ -450,6 +450,7 @@ export class RaceClient {
       marks: r.marks,
     }));
     const playing = s.status === 'playing' && s.mine.length < s.maxGuesses;
+    setTileLocale(s.lang);
     this.host.board.render(rows, this.current, playing);
     renderTracker(
       this.host.tracker,

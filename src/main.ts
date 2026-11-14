@@ -3,7 +3,7 @@ import { dailyNumber, localDate } from '../shared/daily';
 import { checkHardMode, normalizeWord, type HardModeViolation } from '../shared/game';
 import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../shared/languages';
 import { api, ApiError } from './api';
-import { Board, renderTracker, toUpper } from './board';
+import { Board, renderTracker, setTileLocale, toUpper } from './board';
 import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
@@ -134,6 +134,7 @@ async function startMode(mode: Mode, fresh = false) {
   entry.configure(game.wordLength);
   // Hints the phone's keyboard towards the game's language, where supported.
   els.input.lang = game.lang;
+  setTileLocale(game.lang);
   board.build(game.maxGuesses, game.wordLength);
   draw();
   showResult();
