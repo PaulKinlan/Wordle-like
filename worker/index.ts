@@ -235,7 +235,7 @@ async function manifest(request: Request, assets: Fetcher): Promise<Response> {
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/health') return health(env.DB, json);
+    if (url.pathname === '/health') return health(env.DB, json, env.ASSETS, url.origin);
     if (url.pathname === '/manifest.webmanifest') return manifest(request, env.ASSETS);
     // Shared results (/s/...), race invites (/r/...) and their preview images (/og/...).
     if (/^\/(s|r|og)\//.test(url.pathname)) {
