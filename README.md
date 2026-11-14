@@ -100,9 +100,11 @@ Add two repository secrets under *Settings → Secrets and variables → Actions
 Until both exist, the deploy job is skipped and only the checks run.
 
 **Option B: Cloudflare Workers Builds (no GitHub secrets).** In the dashboard,
-*Workers & Pages → Create → Import a repository*, pick this repo, build command
-`npm run build`, deploy command `npx wrangler deploy`. If you use this, delete
-the `deploy` job from the workflow so it doesn't deploy twice.
+*Workers & Pages → Create → Import a repository* and pick this repo. The default
+deploy command (`npx wrangler deploy`) works as is: `wrangler.jsonc` has a
+`build.command` that runs the Vite build first, so no build command is needed.
+If you use this, don't add the GitHub secrets, so the Actions deploy job stays
+skipped and nothing deploys twice.
 
 **Then, once:** set the puzzle secret so answers can't be predicted from the
 public repo (any long random string; changing it later changes every answer):
