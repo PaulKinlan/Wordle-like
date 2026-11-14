@@ -78,6 +78,27 @@ export class NativeEntry {
       else if (e.key === 'Enter' && document.activeElement === document.body) o.onSubmit();
     });
 
+    // Switching apps or tabs takes the keyboard away. If it was up mid-game,
+    // try to bring it back on return (unless a dialog is open by then).
+    // Browsers only raise a keyboard for a focus during a tap, so this may
+    // only restore focus; a tap on the board then brings the keyboard up.
+    let wasTyping = false;
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        wasTyping = this.enabled && (document.activeElement === input || vkHeight() > 0);
+        debugLog('kb page hidden', { wasTyping });
+        return;
+      }
+      if (!wasTyping) return;
+      wasTyping = false;
+      setTimeout(() => {
+        if (!this.enabled || document.querySelector('dialog[open]')) return;
+        input.blur();
+        this.focus(true);
+        debugLog('kb page back, refocused', { vk: vkHeight() });
+      }, 150);
+    });
+
     setupKeyboardInsets();
   }
 
