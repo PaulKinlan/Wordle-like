@@ -1326,7 +1326,11 @@ body.osk-on .tile.cursor {
   background: var(--present);
   color: var(--on-mark);
 }
+/* Not in the word: the key fades back and is struck through, so it reads as
+   used in both themes (the dark-mode grey alone was too close to a plain key). */
 .osk-key.absent {
-  background: var(--absent);
-  color: color-mix(in srgb, var(--on-mark) 75%, transparent);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: color-mix(in srgb, var(--text) 35%, transparent);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
 }
