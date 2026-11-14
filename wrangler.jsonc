@@ -24,7 +24,7 @@
   "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   // Daily reminders (worker/push.ts): every hour, notify subscribers whose
-  // chosen local hour has come. Needs the VAPID_PUBLIC_KEY and
-  // VAPID_PRIVATE_KEY secrets (see the README); without them it does nothing.
+  // chosen local hour has come. The VAPID keys are made by the Worker and kept
+  // in D1, so there's nothing to set up (secrets can override them).
   "triggers": { "crons": ["0 * * * *"] }
 }
