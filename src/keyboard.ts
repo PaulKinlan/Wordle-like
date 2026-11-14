@@ -80,8 +80,7 @@ export class NativeEntry {
     document.addEventListener(
       'pointerdown',
       (e) => {
-        const target = e.target as Element;
-        if (!form.contains(target) && !target.closest?.('[data-keeps-keyboard]')) void this.hideKeyboard();
+        if (!form.contains(e.target as Node)) void this.hideKeyboard();
       },
       true,
     );
@@ -138,11 +137,6 @@ export class NativeEntry {
       return Promise.resolve();
     }
     return this.hideKeyboard();
-  }
-
-  /** Every tile in the row has a letter: the guess is ready to send. */
-  get isFull() {
-    return [...this.letters].length >= this.maxLength;
   }
 
   get isEnabled() {

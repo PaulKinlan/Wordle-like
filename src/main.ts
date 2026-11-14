@@ -55,7 +55,7 @@ const els = {
 };
 
 const settings = loadSettings();
-const board = new Board(els.board);
+const board = new Board(els.board, $('btn-enter'));
 let game: SavedGame | null = null;
 let current = '';
 let busy = false;
@@ -71,7 +71,6 @@ const entry = new NativeEntry({
   form: els.form,
   normalize: (text) => normalizeWord(text, lang),
   onChange: (letters) => {
-    syncSubmit();
     if (race.isActive) return race.onLetters(letters);
     current = letters;
     draw();
@@ -91,24 +90,15 @@ function syncOsk() {
   document.body.classList.toggle('osk-on', on);
   entry.setOwnKeyboard(on);
   $('osk').hidden = !on || !entry.isEnabled;
-  syncSubmit();
 }
 
-// A visible Enter button under the board, for players who type with the
-// phone's keyboard and don't spot its Enter key. The game's own keyboard has
-// one already. It fades in once the row is full; its space is kept meanwhile,
-// so the board doesn't resize as it comes and goes.
-const submitRow = $('submit-row');
-const submitBtn = $<HTMLButtonElement>('btn-submit');
-function syncSubmit() {
-  submitRow.hidden = !entry.isEnabled || settings.onScreenKeyboard === true;
-  submitBtn.classList.toggle('ready', entry.isFull);
-}
+// The Enter button at the end of the row being typed (placed by board.ts).
 // Pressing it must not take focus from the field: that would close the
 // phone's keyboard mid-guess. So no default on press; the click still comes.
-submitBtn.addEventListener('pointerdown', (e) => e.preventDefault());
-submitBtn.addEventListener('mousedown', (e) => e.preventDefault());
-submitBtn.addEventListener('click', () => entry.submit());
+const enterBtn = $<HTMLButtonElement>('btn-enter');
+enterBtn.addEventListener('pointerdown', (e) => e.preventDefault());
+enterBtn.addEventListener('mousedown', (e) => e.preventDefault());
+enterBtn.addEventListener('click', () => entry.submit());
 
 const race = new RaceClient({
   board,

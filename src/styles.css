@@ -283,9 +283,78 @@ button {
 }
 
 .row {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(var(--cols), var(--tile));
   gap: var(--gap);
+}
+
+/* The Enter button, just after the row being typed (board.ts puts it there).
+   Out of the flow, so it takes no space; shown once the row is full. Above
+   the invisible field so it gets the tap. */
+.enter-btn {
+  --size: min(calc(var(--tile) * 0.8), 48px);
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: calc(100% + var(--gap));
+  width: var(--size);
+  height: var(--size);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  translate: 0 -50%;
+  transition:
+    opacity 140ms,
+    scale 140ms,
+    visibility 140ms;
+}
+
+.enter-btn svg {
+  width: 55%;
+  height: 55%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.enter-btn:not(.ready) {
+  visibility: hidden;
+  opacity: 0;
+  scale: 0.6;
+}
+
+.enter-btn:active {
+  scale: 0.92;
+}
+
+.enter-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* No room beside the row: a smaller button on the last tile's corner. */
+.board.enter-tight .enter-btn {
+  --size: 34px;
+  top: 0;
+  left: auto;
+  right: -8px;
+  translate: 0 -30%;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+/* With the game's own keyboard there's an Enter key already. */
+body.osk-on .enter-btn {
+  display: none;
 }
 
 .tile {
@@ -572,61 +641,6 @@ body:not(.typing) .tile.cursor {
   text-decoration: line-through;
 }
 
-/* The Enter button under the board: appears once the row is full. */
-.submit-row {
-  display: flex;
-  justify-content: center;
-}
-
-.submit-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 8px 18px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    opacity 160ms,
-    translate 160ms,
-    visibility 160ms,
-    scale 100ms;
-}
-
-.submit-btn svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.submit-btn:not(.ready) {
-  visibility: hidden;
-  opacity: 0;
-  translate: 0 4px;
-}
-
-.submit-btn:active {
-  scale: 0.96;
-}
-
-.submit-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .type-hint {
   margin: 0;
   text-align: center;
@@ -635,7 +649,7 @@ body:not(.typing) .tile.cursor {
 }
 
 body.typing .type-hint {
-  visibility: hidden;
+  display: none; /* every line counts for the board while the keyboard is up */
 }
 
 /* Keep the board as big as possible while the keyboard is up. */
@@ -1271,7 +1285,7 @@ dialog.sheet li {
 
 /* ?debug panel (src/debug.ts) */
 /* Room under the game for the folded panel, so it doesn't cover the Enter button. */
-body:has(.debug-panel:not([open])) .app {
+body:not(.typing):has(.debug-panel:not([open])) .app {
   --debug-room: 52px;
 }
 
