@@ -68,7 +68,7 @@ export function debugLog(...parts: unknown[]) {
     .join(' ');
   console.debug('[letterle]', text);
   const t = new Date().toISOString().slice(11, 19);
-  const line = `${t} [${TAB}] ${text}`;
+  const line = `${t} [${SHORT_COMMIT} ${TAB}] ${text}`;
   lines.push(line);
   pending.push(line);
   if (lines.length > MAX_LINES) lines.splice(0, lines.length - MAX_LINES);
