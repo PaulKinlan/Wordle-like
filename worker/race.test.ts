@@ -130,3 +130,72 @@ describe('race rules', () => {
     expect(race.data.round).toBe(2);
   });
 });
+
+describe('hosts, seats and leaving', () => {
+  const lobby = () => {
+    const race = new Race(Race.create({ code: 'ABCDEF', lang: 'en', hard: false, wordLength: 5, maxGuesses: 6 }, 0), (w) => WORDS.has(w));
+    const a = race.join('Ann', undefined, 0);
+    const b = race.join('Bob', undefined, 0);
+    const c = race.join('Cat', undefined, 0);
+    return { race, a, b, c };
+  };
+  const only = (...ids: string[]) => (id: string) => ids.includes(id);
+
+  it('hands the host role to the longest-waiting player when the host is away', () => {
+    const { race, a, b, c } = lobby();
+    expect(race.host(() => true)).toBe(a.id);
+    expect(race.host(only(b.id, c.id))).toBe(b.id);
+    expect(race.view(c.id, 0, only(b.id, c.id)).hostId).toBe(b.id);
+    expect(() => race.start(c.id, 'water', 1, only(b.id, c.id))).toThrow(RaceError);
+    race.start(b.id, 'water', 1, only(b.id, c.id));
+    // Whoever started the round keeps the role, even if the first host comes back.
+    expect(race.host(() => true)).toBe(b.id);
+  });
+
+  it('keeps the host while they are connected, and during a round', () => {
+    const { race, a, b } = lobby();
+    race.start(a.id, 'water', 1, () => true);
+    expect(race.host(only(b.id))).toBe(a.id);
+  });
+
+  it('only lets the host cancel', () => {
+    const { race, a, b } = lobby();
+    expect(() => race.canCancel(b.id, () => true)).toThrow(RaceError);
+    expect(() => race.canCancel(a.id, () => true)).not.toThrow();
+    expect(() => race.canCancel(b.id, only(b.id))).not.toThrow();
+  });
+
+  it('frees the seat of a player who leaves, but not in the middle of their round', () => {
+    const { race, a, b, c } = lobby();
+    expect(race.leave(c.id, 5)).toBe(true);
+    expect(race.data.players.map((p) => p.name)).toEqual(['Ann', 'Bob']);
+    race.start(a.id, 'water', 10, () => true);
+    expect(race.leave(b.id, 11)).toBe(false);
+    expect(race.data.players).toHaveLength(2);
+  });
+
+  it('passes the host role on when the host leaves', () => {
+    const { race, a, b } = lobby();
+    race.leave(a.id, 5);
+    expect(race.data.hostId).toBe(b.id);
+  });
+
+  it('gives a full room\'s seat to a newcomer only if someone has gone away', () => {
+    const { race, a, b, c } = lobby();
+    const d = race.join('Dan', undefined, 0);
+    expect(() => race.join('Eve', undefined, 1, () => true)).toThrow(RaceError);
+    const e = race.join('Eve', undefined, 1, only(a.id, b.id, d.id));
+    expect(race.data.players.map((p) => p.id)).toEqual([a.id, b.id, d.id, e.id]);
+    expect(race.data.players.some((p) => p.id === c.id)).toBe(false);
+  });
+
+  it('never gives away the seat of someone playing the current round', () => {
+    const { race, a, b, c } = lobby();
+    race.join('Dan', undefined, 0);
+    race.start(a.id, 'water', 1, () => true);
+    // Everyone is in the round; Cat's connection drops, but her rows still count.
+    expect(() => race.join('Eve', undefined, 2, only(a.id, b.id))).toThrow(RaceError);
+    expect(race.data.players.some((p) => p.id === c.id)).toBe(true);
+  });
+});
+
