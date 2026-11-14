@@ -70,6 +70,15 @@ export class NativeEntry {
       true,
     );
 
+    // If the keyboard is up while typing is on but focus has wandered off the
+    // field, keystrokes would go nowhere: put focus back on the board.
+    vk?.addEventListener('geometrychange', () => {
+      if (vkHeight() <= 0 || !this.enabled || document.activeElement === input) return;
+      if (document.querySelector('dialog[open]')) return;
+      debugLog('kb refocus', { vk: vkHeight() });
+      input.focus();
+    });
+
     // A physical keyboard should work even if focus has wandered.
     document.addEventListener('keydown', (e) => {
       if (!this.enabled || document.activeElement === input || e.metaKey || e.ctrlKey || e.altKey) return;
