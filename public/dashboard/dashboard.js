@@ -173,6 +173,149 @@ function volume(data) {
   );
 }
 
+// ---------------------------------------------------------------- usage
+
+const n0 = (v) => (v === null || v === undefined ? 0 : Number(v));
+const pct = (a, b) => (b ? `${Math.round((n0(a) / b) * 100)}%` : '–');
+const dec = (v, d = 1) => (v === null || v === undefined ? '–' : Number(v).toFixed(d));
+const secs = (v) => (v === null || v === undefined ? '–' : v >= 60 ? `${Math.floor(v / 60)}m ${Math.round(v % 60)}s` : `${Math.round(v)}s`);
+
+/** A count with a small bar, scaled to the largest in its table. */
+function barCell(n, max) {
+  return el('td', { class: 'num' }, el('div', { class: 'hbar' }, el('i', { style: `width:${max ? Math.max(2, (n / max) * 80) : 0}px` }), String(n)));
+}
+
+function breakdown(id, rows, label = 'Visits') {
+  const max = Math.max(0, ...rows.map((r) => n0(r.n)));
+  $(id).replaceChildren(
+    table(
+      ['', label, ...(rows.some((r) => r.visitors !== undefined) ? ['Visitors'] : [])],
+      rows.map((r) =>
+        el('tr', {}, el('td', {}, String(r.k)), barCell(n0(r.n), max), r.visitors !== undefined ? el('td', { class: 'num' }, r.visitors) : null),
+      ),
+    ),
+  );
+}
+
+function card(name, value, meta) {
+  return el('div', { class: 'card' }, el('div', { class: 'name' }, name), el('div', { class: 'value' }, value), meta ? el('div', { class: 'meta' }, meta) : null);
+}
+
+function usageSection(u) {
+  const sum = (k) => u.daily.reduce((t, d) => t + n0(d[k]), 0);
+  const won = sum('won');
+  const finished = sum('finished');
+  const wonGuesses = u.daily.reduce((t, d) => t + n0(d.avgGuesses) * n0(d.won), 0);
+  $('live').replaceChildren(
+    el('span', { class: 'live' }, `● ${n0(u.live.visitors)} on now`),
+    el('span', {}, `${n0(u.live.sessions)} sessions in the last 5 minutes`),
+  );
+  $('totals').replaceChildren(
+    card('Visitors', sum('visitors'), 'daily visitors, added up'),
+    card('Sessions', sum('sessions')),
+    card('Page views', sum('pageviews')),
+    card('Games started', sum('started')),
+    card('Games finished', finished, `${pct(finished, sum('started'))} of started`),
+    card('Win rate', pct(won, finished), `avg ${won ? (wonGuesses / won).toFixed(2) : '–'} guesses`),
+    card('Races', sum('races')),
+    card('Shares', sum('shares')),
+    card('Installs', sum('installs')),
+    card('Time per visit', secs(u.engagement.avg), `${n0(u.engagement.n)} visits measured`),
+  );
+  $('daily').replaceChildren(
+    table(
+      ['Day', 'Visitors', 'Sessions', 'Views', 'Started', 'Finished', 'Daily', 'Unlimited', 'Won', 'Avg guesses', 'Races', 'Shares', 'Installs', 'Time/visit'],
+      u.daily.map((d) =>
+        el(
+          'tr',
+          {},
+          el('td', {}, d.day),
+          ['visitors', 'sessions', 'pageviews', 'started', 'finished', 'daily', 'unlimited'].map((k) => el('td', { class: 'num' }, n0(d[k]))),
+          el('td', { class: 'num' }, `${n0(d.won)} (${pct(d.won, n0(d.finished))})`),
+          el('td', { class: 'num' }, dec(d.avgGuesses, 2)),
+          ['races', 'shares', 'installs'].map((k) => el('td', { class: 'num' }, n0(d[k]))),
+          el('td', { class: 'num' }, secs(d.engaged)),
+        ),
+      ),
+    ),
+  );
+  const f = u.funnel;
+  const steps = [
+    ['Opened the game', f.visited],
+    ['Started a game', f.started],
+    ['Finished a game', f.finished],
+    ['Won a game', f.won],
+    ['Shared a result', f.shared],
+  ];
+  const top = n0(f.visited);
+  $('funnel').replaceChildren(
+    table(
+      ['Step', 'Sessions', 'Of opened'],
+      steps.map(([label, v]) => el('tr', {}, el('td', {}, label), barCell(n0(v), top), el('td', { class: 'num' }, pct(v, top)))),
+    ),
+  );
+  $('games').replaceChildren(
+    table(
+      ['Mode', 'Language', 'Started', 'Finished', 'Won', 'Win rate', 'Avg guesses', 'Players'],
+      u.games.map((g) => {
+        const started = u.starts.filter((s) => s.mode === g.mode && s.lang === g.lang).reduce((t, s) => t + n0(s.n), 0);
+        return el(
+          'tr',
+          {},
+          el('td', {}, `${g.mode}${g.hard ? ' (hard)' : ''}`),
+          el('td', {}, g.lang),
+          el('td', { class: 'num' }, g.hard ? '' : started),
+          el('td', { class: 'num' }, g.games),
+          el('td', { class: 'num' }, g.won),
+          el('td', { class: 'num' }, pct(g.won, n0(g.games))),
+          el('td', { class: 'num' }, dec(g.avgGuesses, 2)),
+          el('td', { class: 'num' }, g.visitors),
+        );
+      }),
+    ),
+  );
+  breakdown('guesses', u.guesses.map((r) => ({ k: r.k === 'X' ? 'Lost' : `${r.k}`, n: r.n })), 'Games');
+  $('races').replaceChildren(
+    table(['', 'Count', 'Avg players'], u.races.map((r) => el('tr', {}, el('td', {}, r.k), el('td', { class: 'num' }, r.n), el('td', { class: 'num' }, r.k === 'created' ? '' : dec(r.avgPlayers))))),
+  );
+  for (const [id, key] of [
+    ['referrers', 'referrers'],
+    ['campaigns', 'campaigns'],
+    ['launch', 'launch'],
+    ['pages', 'pages'],
+    ['countries', 'countries'],
+    ['languages', 'languages'],
+    ['browsers', 'browsers'],
+    ['devices', 'devices'],
+    ['installed', 'installed'],
+    ['screens', 'screens'],
+    ['connection', 'connection'],
+  ]) {
+    breakdown(id, (u[key] ?? []).map((r) => (r.k === '(none)' && key === 'referrers' ? { ...r, k: 'direct or unknown' } : r)));
+  }
+  breakdown('theme', [...u.theme, ...u.reducedMotion.map((r) => ({ ...r, k: `motion: ${r.k}` }))]);
+  breakdown('actions', u.actions, 'Times');
+  breakdown('action-details', u.actionDetails, 'Times');
+  const e = u.engagement;
+  breakdown(
+    'engagement',
+    [
+      { k: 'under 10 seconds', n: n0(e.under10s) },
+      { k: '10 to 60 seconds', n: n0(e.under1m) },
+      { k: '1 to 5 minutes', n: n0(e.under5m) },
+      { k: 'over 5 minutes', n: n0(e.over5m) },
+    ],
+  );
+  breakdown('reminders', u.reminders.map((r) => ({ k: `word language ${r.k}`, n: r.n })), 'Subscribers');
+  const maxHour = Math.max(0, ...u.hours.map((h) => n0(h.pageviews)));
+  $('hours').replaceChildren(
+    table(
+      ['Hour', 'Page views', 'Games'],
+      u.hours.map((h) => el('tr', {}, el('td', {}, `${String(h.hour).padStart(2, '0')}:00`), barCell(n0(h.pageviews), maxHour), el('td', { class: 'num' }, n0(h.games)))),
+    ),
+  );
+}
+
 async function health() {
   try {
     const res = await fetch('/health', { cache: 'no-store' });
@@ -219,6 +362,7 @@ async function load() {
   $('login').hidden = true;
   $('main').hidden = false;
   $('status').textContent = `Updated ${new Date(data.generatedAt).toLocaleTimeString()}`;
+  if (data.usage) usageSection(data.usage);
   vitalsCards(data);
   problems(data);
   vitalsTable('by-day', data.vitalsByDay, data, (a, b) => b.localeCompare(a));

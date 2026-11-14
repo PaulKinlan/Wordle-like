@@ -28,7 +28,7 @@ import { D1AnswerStore, type AnswerStore } from './answers';
 import { answerIndex, dailyNumber, newRandomToken, parsePuzzleId } from './puzzles';
 import { getWords } from './words';
 import { handlePush, sendDailyReminders, type PushEnv } from './push';
-import { handleTelemetry, health, pruneTelemetry, recordServerError, type TelemetryEnv } from './telemetry';
+import { handleTelemetry, health, pruneTelemetry, recordEvent, recordServerError, type TelemetryEnv, type UsageEvent } from './telemetry';
 import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
 
 export { Room } from './room';
@@ -59,7 +59,10 @@ function json(body: unknown, init: ResponseInit & { cache?: string } = {}): Resp
 const error = (status: number, code: string, message: string, extra: object = {}) =>
   json({ error: code, message, ...extra }, { status });
 
-export async function handleApi(request: Request, answers: AnswerStore): Promise<Response> {
+/** Usage events (a game started or finished) go to the dashboard; tests leave this out. */
+type OnEvent = (e: UsageEvent) => void;
+
+export async function handleApi(request: Request, answers: AnswerStore, onEvent: OnEvent = () => undefined): Promise<Response> {
   const url = new URL(request.url);
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'v1', ...]
   if (parts[0] !== 'api' || parts[1] !== 'v1') return error(404, 'not_found', 'Unknown API route');
@@ -128,6 +131,12 @@ export async function handleApi(request: Request, answers: AnswerStore): Promise
       if (rows.at(-1)!.marks.every((m) => m === 'correct')) break;
     }
     const status = statusAfter(rows.map((r) => r.marks), lang.maxGuesses);
+    // The client sends every guess so far with each new one, so one guess means a new game.
+    const mode = String(body.puzzle).startsWith('d') ? 'daily' : 'unlimited';
+    if (body.guesses.length === 1) onEvent({ kind: 'game_start', name: mode, message: lang.code, detail: { hard: ref.hard } });
+    if (status !== 'playing') {
+      onEvent({ kind: 'game', name: mode, rating: status, value: rows.length, message: lang.code, detail: { hard: ref.hard } });
+    }
     return json({
       rows,
       status,
@@ -151,7 +160,7 @@ function newRoomCode(): string {
 }
 
 /** Creates race rooms and connects players to them. */
-export async function handleRooms(request: Request, rooms: DurableObjectNamespace): Promise<Response> {
+export async function handleRooms(request: Request, rooms: DurableObjectNamespace, onEvent: OnEvent = () => undefined): Promise<Response> {
   const url = new URL(request.url);
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'v1', 'rooms', ...]
   if (parts.length === 3 && request.method === 'POST') {
@@ -170,7 +179,10 @@ export async function handleRooms(request: Request, rooms: DurableObjectNamespac
         method: 'POST',
         body: JSON.stringify({ code, lang: lang.code, hard: body.hard === true }),
       });
-      if (res.ok) return json({ code });
+      if (res.ok) {
+        onEvent({ kind: 'race', name: 'created', message: lang.code, detail: { hard: body.hard === true } });
+        return json({ code });
+      }
     }
     return error(503, 'busy', 'Could not make a race, try again');
   }
@@ -191,13 +203,14 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/health') return health(env.DB, json);
     if (url.pathname.startsWith('/api/')) {
+      const onEvent = (e: UsageEvent) => ctx.waitUntil(recordEvent(env.DB, request, e));
       try {
-        if (url.pathname.startsWith('/api/v1/rooms')) return await handleRooms(request, env.ROOMS);
+        if (url.pathname.startsWith('/api/v1/rooms')) return await handleRooms(request, env.ROOMS, onEvent);
         if (url.pathname.startsWith('/api/v1/push/')) return await handlePush(request, env, json, error);
         if (url.pathname.startsWith('/api/v1/telemetry') || url.pathname === '/api/v1/reports') {
           return await handleTelemetry(request, env, json, error);
         }
-        return await handleApi(request, new D1AnswerStore(env.DB));
+        return await handleApi(request, new D1AnswerStore(env.DB), onEvent);
       } catch (e) {
         console.error(e);
         ctx.waitUntil(recordServerError(env.DB, request, e));

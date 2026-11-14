@@ -47,3 +47,7 @@ pre { white-space: pre-wrap; word-break: break-all; font-size: 0.8rem; margin: 6
 .health { display: flex; gap: 16px; flex-wrap: wrap; }
 .health a { color: inherit; }
 [hidden] { display: none !important; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 0 16px; }
+.hbar { display: flex; align-items: center; gap: 8px; }
+.hbar i { display: block; height: 8px; border-radius: 4px; background: var(--good); min-width: 2px; }
+.live { color: var(--good); font-weight: 700; }

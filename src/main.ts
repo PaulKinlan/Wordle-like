@@ -8,7 +8,7 @@ import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
 import { initDebug } from './debug';
-import { initTelemetry } from './telemetry';
+import { initTelemetry, track } from './telemetry';
 import { canVibrate, promptInstall, setHaptics, setUnplayedBadge, watchInstall } from './pwa';
 import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
@@ -311,10 +311,22 @@ function formatDate(date?: string) {
 
 let toastTimer: number | undefined;
 function toast(message: string, ms = 1600) {
-  els.toast.textContent = message;
-  els.toast.classList.add('show');
+  const el = els.toast;
+  el.textContent = message;
   clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => els.toast.classList.remove('show'), ms);
+  if ('showPopover' in el) {
+    // Re-open so it lands above any dialog opened since; place it at the top of the board area.
+    const top = el.parentElement?.getBoundingClientRect().top ?? 0;
+    el.style.setProperty('--toast-top', `${Math.max(8, top + 8)}px`);
+    if (el.matches(':popover-open')) el.hidePopover();
+    el.showPopover();
+    el.getBoundingClientRect(); // start the fade from hidden
+  }
+  el.classList.add('show');
+  toastTimer = window.setTimeout(() => {
+    el.classList.remove('show');
+    toastTimer = window.setTimeout(() => el.matches(':popover-open') && el.hidePopover(), 200);
+  }, ms);
 }
 
 // ---------------------------------------------------------------- dialogs
@@ -391,13 +403,20 @@ function syncHardSetting() {
 
 // ---------------------------------------------------------------- wiring
 
-$('btn-help').addEventListener('click', () => openDialog('dlg-help'));
-$('btn-stats').addEventListener('click', openStats);
+$('btn-help').addEventListener('click', () => {
+  track('open_help');
+  openDialog('dlg-help');
+});
+$('btn-stats').addEventListener('click', () => {
+  track('open_stats');
+  openStats();
+});
 $('btn-settings').addEventListener('click', () => openDialog('dlg-settings'));
 els.tabDaily.addEventListener('click', () => void startMode('daily'));
 els.tabUnlimited.addEventListener('click', () => void startMode('unlimited'));
 els.tabRace.addEventListener('click', () => openRace());
 els.btnNew.addEventListener('click', () => {
+  track('new_word');
   if (game?.mode === 'daily') void startMode('unlimited');
   else void startMode('unlimited', true);
   entry.focus(true);
@@ -406,6 +425,7 @@ els.btnNew.addEventListener('click', () => {
 // Hard mode is a separate puzzle with its own saved game, so switching never
 // loses progress: each side picks up where it was left.
 els.setHard.addEventListener('change', () => {
+  track('setting', { hard: els.setHard.checked });
   settings.hard = els.setHard.checked;
   saveSettings(settings);
   if (race.isActive) race.show(); // applies to the next race you start
@@ -432,10 +452,12 @@ async function share() {
     const file = blob ? new File([blob], 'letterle.png', { type: 'image/png' }) : null;
     if (file && navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file], text });
+      track('share', { method: 'image' });
       return;
     }
     if (navigator.share && navigator.canShare?.({ text }) !== false) {
       await navigator.share({ text });
+      track('share', { method: 'text' });
       return;
     }
   } catch (e) {
@@ -443,6 +465,7 @@ async function share() {
   }
   try {
     await navigator.clipboard.writeText(text);
+    track('share', { method: 'clipboard' });
     toast(t('share.copied'));
   } catch {
     toast(t('share.failed'));
@@ -453,6 +476,7 @@ const applyContrast = () => document.documentElement.classList.toggle('high-cont
 els.setContrast.checked = settings.highContrast;
 els.setContrast.addEventListener('change', () => {
   settings.highContrast = els.setContrast.checked;
+  track('setting', { contrast: settings.highContrast });
   saveSettings(settings);
   applyContrast();
 });
@@ -464,6 +488,7 @@ setHaptics(settings.haptics !== false);
 setHapticsBox.checked = settings.haptics !== false;
 $('haptics-row').hidden = !canVibrate();
 setHapticsBox.addEventListener('change', () => {
+  track('setting', { haptics: setHapticsBox.checked });
   settings.haptics = setHapticsBox.checked;
   saveSettings(settings);
   setHaptics(setHapticsBox.checked);
@@ -472,7 +497,11 @@ setHapticsBox.addEventListener('change', () => {
 // Install button, where the browser offers one (Chrome, Edge, Samsung).
 watchInstall((available) => ($('install-row').hidden = !available));
 $('btn-install').addEventListener('click', () => {
-  void promptInstall().then(() => ($('install-row').hidden = true));
+  track('install_prompt');
+  void promptInstall().then((accepted) => {
+    track(accepted ? 'install_accepted' : 'install_dismissed');
+    $('install-row').hidden = true;
+  });
 });
 
 /** A dot on the app icon while today's word (in the current language and mode) is unplayed. */
@@ -483,6 +512,7 @@ function updateBadge() {
 
 els.setLang.addEventListener('change', () => {
   settings.lang = els.setLang.value;
+  track('setting', { lang: settings.lang });
   lang = settings.lang;
   saveSettings(settings);
   if (race.isActive) race.show();
@@ -525,6 +555,7 @@ async function updateReminders() {
   try {
     if (pushSwitch.checked) {
       const problem = await enablePush(Number(pushHour.value), lang, uiLang());
+      track(problem ? 'reminders_failed' : 'reminders_on', { problem, hour: Number(pushHour.value) });
       if (problem) {
         pushSwitch.checked = false;
         toast(t(problem), 3000);
@@ -532,6 +563,7 @@ async function updateReminders() {
         toast(t('push.set', { time: pushHour.selectedOptions[0]?.textContent ?? '' }));
       }
     } else {
+      track('reminders_off');
       await disablePush();
     }
   } finally {
@@ -585,6 +617,7 @@ function fillUiLanguages(hints: string[]) {
 }
 
 async function applyUiLanguage(code: string) {
+  track('setting', { ui: code });
   await setUiLanguage(code);
   translatePage();
   setUiLang.value = uiLang();
@@ -694,6 +727,7 @@ function bugReportUrl() {
 
 // Built when tapped, so it describes the game as it is then.
 $<HTMLAnchorElement>('report-bug').addEventListener('click', (e) => {
+  track('report_bug');
   (e.currentTarget as HTMLAnchorElement).href = bugReportUrl();
 });
 

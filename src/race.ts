@@ -16,6 +16,7 @@ import { renderTracker, toUpper } from './board';
 import { t, type MessageKey } from './i18n';
 import type { NativeEntry } from './keyboard';
 import { keepAwake } from './pwa';
+import { track } from './telemetry';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -218,6 +219,7 @@ export class RaceClient {
       const body = (await res.json()) as { code?: string; message?: string };
       if (!res.ok || !body.code) throw new Error(t('race.couldNotStart'));
       this.code = body.code;
+      track('race_created');
       store.set('race', this.code);
       this.connect();
     } catch (e) {

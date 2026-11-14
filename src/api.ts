@@ -1,6 +1,7 @@
 import type { GameStatus, HardModeViolation } from '../shared/game';
 import type { LanguageInfo } from '../shared/languages';
 import type { Row } from './storage';
+import { session } from './telemetry';
 
 export interface PuzzleInfo {
   puzzle: string;
@@ -32,7 +33,8 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch('/api/v1/' + path, {
       ...init,
-      headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+      // The session id lets the dashboard count games per visit (see telemetry.ts).
+      headers: init?.body ? { 'Content-Type': 'application/json', ...(session ? { 'X-Session': session } : {}) } : undefined,
     });
   } catch {
     throw new ApiError('offline', "You're offline. Reconnect to keep playing.");
