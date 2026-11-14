@@ -37,13 +37,29 @@ const COLOURS = {
   contrast: { correct: '#f5793a', present: '#6fb2f2', absent: '#7d828c' },
 };
 
+export interface CardLabels {
+  /** Under the score when the word was found, like "Got it!". */
+  won: string;
+  /** Under the score when it wasn't. */
+  lost: string;
+  /** The invitation at the bottom, with the site's host in it. */
+  play: string;
+}
+
 /**
- * A share card image: title, score, streak and the colour grid, drawn on a
- * canvas on the device. Returns null if the browser can't make one.
+ * A share card image (1080×1350, portrait so it fills a phone screen): the
+ * score in big type, the colour grid with no letters, the streak, and an
+ * invitation to play with the site's address. Drawn on the device. Returns
+ * null if the browser can't make one.
  */
-export async function shareCard(game: SavedGame, highContrast: boolean, host: string, streak = 0): Promise<Blob | null> {
+export async function shareCard(
+  game: SavedGame,
+  highContrast: boolean,
+  labels: CardLabels,
+  streak = 0,
+): Promise<Blob | null> {
   const W = 1080;
-  const H = 1080;
+  const H = 1350;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -51,38 +67,50 @@ export async function shareCard(game: SavedGame, highContrast: boolean, host: st
   if (!ctx) return null;
   const font = (weight: number, size: number) =>
     `${weight} ${size}px ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
+  const colours = COLOURS[highContrast ? 'contrast' : 'normal'];
+  const won = game.status === 'won';
 
   ctx.fillStyle = '#f6f6f3';
   ctx.fillRect(0, 0, W, H);
-
-  ctx.fillStyle = '#17181b';
   ctx.textAlign = 'center';
-  ctx.font = font(800, 76);
-  ctx.fillText(APP_NAME, W / 2, 150);
+  ctx.textBaseline = 'alphabetic';
 
-  const score = game.status === 'won' ? `${game.rows.length}/${game.maxGuesses}` : `X/${game.maxGuesses}`;
+  // Name and which puzzle.
+  ctx.fillStyle = '#17181b';
+  ctx.font = font(800, 64);
+  ctx.fillText(APP_NAME, W / 2, 120);
   const which = game.mode === 'daily' ? `No. ${game.number ?? '?'}` : 'Unlimited';
-  const extras = [game.lang !== 'en' ? game.lang.toUpperCase() : '', game.hard ? 'Hard' : ''].filter(Boolean).join(' · ');
+  const extras = [game.lang !== 'en' ? game.lang.toUpperCase() : '', game.hard ? 'Hard' : ''].filter(Boolean);
   ctx.fillStyle = '#6b6f78';
-  ctx.font = font(600, 40);
-  ctx.fillText([which, score, extras].filter(Boolean).join('  ·  '), W / 2, 220);
+  ctx.font = font(600, 36);
+  ctx.fillText([which, ...extras].join('  ·  '), W / 2, 178);
 
-  // The grid, centred in the space left.
-  const colours = COLOURS[highContrast ? 'contrast' : 'normal'];
+  // The score, big: how many goes it took.
+  ctx.fillStyle = won ? colours.correct : '#17181b';
+  ctx.font = font(800, 170);
+  ctx.fillText(`${won ? game.rows.length : 'X'}/${game.maxGuesses}`, W / 2, 360);
+  ctx.fillStyle = '#17181b';
+  ctx.font = font(700, 44);
+  ctx.fillText(won ? labels.won : labels.lost, W / 2, 430);
+
+  // The grid.
   const cols = game.wordLength;
   const rows = game.maxGuesses;
-  const gap = 16;
-  const tile = Math.min(110, (W - 240 - gap * (cols - 1)) / cols, (H - 470 - gap * (rows - 1)) / rows);
+  const gap = 14;
+  const top = 480;
+  const bottom = H - 250;
+  const tile = Math.min(96, (W - 300 - gap * (cols - 1)) / cols, (bottom - top - gap * (rows - 1)) / rows);
   const gridW = cols * tile + (cols - 1) * gap;
+  const gridH = rows * tile + (rows - 1) * gap;
   const x0 = (W - gridW) / 2;
-  const y0 = 280;
+  const y0 = top + (bottom - top - gridH) / 2;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const mark = game.rows[r]?.marks[c];
       const x = x0 + c * (tile + gap);
       const y = y0 + r * (tile + gap);
       ctx.beginPath();
-      ctx.roundRect(x, y, tile, tile, 18);
+      ctx.roundRect(x, y, tile, tile, 16);
       if (mark) {
         ctx.fillStyle = colours[mark];
         ctx.fill();
@@ -95,15 +123,24 @@ export async function shareCard(game: SavedGame, highContrast: boolean, host: st
   }
 
   const fire = streakLine(game, streak);
-  ctx.textAlign = 'center';
   if (fire) {
     ctx.fillStyle = '#17181b';
-    ctx.font = font(700, 44);
-    ctx.fillText(fire, W / 2, H - 110);
+    ctx.font = font(700, 40);
+    ctx.fillText(fire, W / 2, H - 190);
   }
-  ctx.fillStyle = '#6b6f78';
-  ctx.font = font(500, 32);
-  ctx.fillText(host, W / 2, H - 52);
+
+  // The invitation, on a pill, so it reads as something to do.
+  ctx.font = font(700, labels.play.length > 40 ? 32 : 38);
+  const pillW = Math.min(W - 120, ctx.measureText(labels.play).width + 96);
+  const pillH = 88;
+  const pillY = H - 140;
+  ctx.beginPath();
+  ctx.roundRect((W - pillW) / 2, pillY, pillW, pillH, pillH / 2);
+  ctx.fillStyle = '#17181b';
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(labels.play, W / 2, pillY + pillH / 2, pillW - 64);
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
 }

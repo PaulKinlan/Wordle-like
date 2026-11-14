@@ -50,6 +50,9 @@ const en = {
 
   'share.copied': 'Copied to clipboard',
   'share.failed': "Couldn't share or copy",
+  'card.won': 'Got it!',
+  'card.lost': 'So close',
+  'card.play': 'Play your own at {host}',
 
   'help.title': 'How to play',
   'help.p1': 'Guess the word in **six** tries. Tap the board and type with your phone\'s keyboard, then press Enter.',

@@ -415,7 +415,12 @@ async function share() {
   const text = shareText(g, settings.highContrast, location.origin, streak);
   try {
     // A picture of the grid where the share sheet takes files, with the text alongside.
-    const blob = 'canShare' in navigator ? await shareCard(g, settings.highContrast, location.host, streak) : null;
+    const blob = 'canShare' in navigator ? await shareCard(
+          g,
+          settings.highContrast,
+          { won: t('card.won'), lost: t('card.lost'), play: t('card.play', { host: location.host }) },
+          streak,
+        ) : null;
     const file = blob ? new File([blob], 'letterly.png', { type: 'image/png' }) : null;
     if (file && navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file], text });
