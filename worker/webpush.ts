@@ -138,6 +138,7 @@ export async function sendPush(
   };
   // A newer notification with the same topic replaces an undelivered one.
   if (opts.topic) headers.Topic = opts.topic;
-  const res = await fetch(sub.endpoint, { method: 'POST', headers, body });
+  // Push services answer directly; never follow a redirect to somewhere else.
+  const res = await fetch(sub.endpoint, { method: 'POST', headers, body, redirect: 'manual' });
   return res.status;
 }
