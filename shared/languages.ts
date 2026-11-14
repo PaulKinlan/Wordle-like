@@ -38,6 +38,16 @@ const WELSH = 'a b c ch d dd e f ff g ng h i j l ll m n o p ph r rh s t th u w y
 
 const LATIN = 'abcdefghijklmnopqrstuvwxyz';
 
+// Japanese: hiragana (ぁ to ゔ, without the old ゐ and ゑ) and the long vowel
+// mark. Katakana folds to hiragana, so either can be typed.
+const HIRAGANA =
+  Array.from({ length: 0x3094 - 0x3041 + 1 }, (_, i) => String.fromCodePoint(0x3041 + i))
+    .filter((c) => c !== 'ゐ' && c !== 'ゑ')
+    .join('') + 'ー';
+const KATAKANA_FOLD = Object.fromEntries(
+  Array.from({ length: 0x30f6 - 0x30a1 + 1 }, (_, i) => [String.fromCodePoint(0x30a1 + i), String.fromCodePoint(0x3041 + i)]),
+);
+
 export const LANGUAGES: LanguageInfo[] = [
   { code: 'en', name: 'English', nativeName: 'English', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
   { code: 'es', name: 'Spanish', nativeName: 'Español', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
@@ -56,6 +66,7 @@ export const LANGUAGES: LanguageInfo[] = [
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnopqrstuvwxyzåäö' },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', wordLength: 5, maxGuesses: 6, alphabet: 'abcçdefgğhıijklmnoöprsştuüvyz' },
   { code: 'el', name: 'Greek', nativeName: 'Ελληνικά', wordLength: 5, maxGuesses: 6, alphabet: 'αβγδεζηθικλμνξοπρστυφχψω', fold: { ς: 'σ' } },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', wordLength: 4, maxGuesses: 8, alphabet: HIRAGANA, fold: KATAKANA_FOLD },
 ];
 
 export const DEFAULT_LANGUAGE = 'en';

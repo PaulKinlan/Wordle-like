@@ -84,3 +84,14 @@ describe('Welsh digraphs', () => {
     expect(evaluate(normalizeWord('llaeth', 'cy'), normalizeWord('llaeth', 'cy')).every((m) => m === 'correct')).toBe(true);
   });
 });
+
+describe('Japanese kana', () => {
+  it('folds katakana to hiragana and keeps voiced and small kana', async () => {
+    const { normalizeWord } = await import('./game');
+    expect(normalizeWord('テブクロ', 'ja')).toBe('てぶくろ');
+    expect(normalizeWord('がっこう', 'ja')).toBe('がっこう');
+    expect([...normalizeWord('きっぷ', 'ja')].length).toBe(3);
+    // Romaji and kanji left over from the keyboard are dropped.
+    expect(normalizeWord('k手か', 'ja')).toBe('か');
+  });
+});
