@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Instalatu aplikazioa",
   "settings.installNote": "Ireki Letterle hasierako pantailatik, baita konexiorik gabe ere",
   "settings.installButton": "Instalatu",
+  "install.title": "Eraman Letterle hasierako pantailara",
+  "install.body": "Eguneko hitzean irekitzen da zuzenean, konexiorik gabe dabil, eta hitz berria prest dagoenean abisatu diezazuke.",
+  "install.ios": "Safarin, sakatu **Partekatu** eta gero **Gehitu hasierako pantailan**.",
+  "install.menu": "Ireki nabigatzailearen menua eta aukeratu **Instalatu aplikazioa** edo **Gehitu hasierako pantailan**.",
+  "install.notNow": "Orain ez",
 
   "help.title": "Nola jokatu",
   "help.p1": "Asmatu hitza **{n}** saiakeratan. Ukitu taula, idatzi telefonoaren teklatuarekin eta sakatu Sartu.",

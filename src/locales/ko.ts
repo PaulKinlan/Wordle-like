@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "앱 설치",
   "settings.installNote": "홈 화면에서 Letterle를 열 수 있어요. 오프라인에서도 돼요",
   "settings.installButton": "설치",
+  "install.title": "Letterle을 홈 화면에 추가하세요",
+  "install.body": "오늘의 단어가 바로 열리고, 오프라인에서도 되며, 새 단어가 준비되면 알려 줄 수 있어요.",
+  "install.ios": "Safari에서 **공유**를 누른 다음 **홈 화면에 추가**를 누르세요.",
+  "install.menu": "브라우저 메뉴를 열고 **앱 설치** 또는 **홈 화면에 추가**를 선택하세요.",
+  "install.notNow": "나중에",
 
   "help.title": "게임 방법",
   "help.p1": "**{n}**번 안에 단어를 맞혀 보세요. 보드를 누르고 휴대폰 키보드로 입력한 다음 Enter를 누르세요.",

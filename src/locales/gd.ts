@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Stàlaich an aplacaid",
   "settings.installNote": "Fosgail Letterle on sgrìn-dhachaigh, fiù 's far loidhne",
   "settings.installButton": "Stàlaich",
+  "install.title": "Cuir Letterle air an sgrìn-dhachaigh agad",
+  "install.body": "Fosglaidh e air facal an latha sa bhad, obraichidh e far loidhne, agus is urrainn dha do chuimhneachadh nuair a bhios facal ùr deiseil.",
+  "install.ios": "Ann an Safari, thoir gnogag air **Co-roinn**, an uairsin **Cuir ris an sgrìn-dhachaigh**.",
+  "install.menu": "Fosgail clàr-taice a' bhrabhsair agad is tagh **Stàlaich an aplacaid** no **Cuir ris an sgrìn-dhachaigh**.",
+  "install.notNow": "Chan ann an-dràsta",
 
   "help.title": "Mar a chluicheas tu",
   "help.p1": "Tomhais am facal ann an **{n}** oidhirpean. Thoir gnogag air a' bhòrd, sgrìobh le meur-chlàr an fhòn, an uairsin brùth Enter.",

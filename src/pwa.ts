@@ -44,36 +44,6 @@ export function setUnplayedBadge(unplayed: boolean) {
   (unplayed ? nav.setAppBadge() : nav.clearAppBadge!()).catch(() => undefined);
 }
 
-// ---------------------------------------------------------------- install
-
-interface InstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
-let deferred: InstallPromptEvent | null = null;
-
-/** Calls onChange(true) when the browser offers to install, false once installed. */
-export function watchInstall(onChange: (available: boolean) => void) {
-  addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault(); // we show our own button in Settings instead
-    deferred = e as InstallPromptEvent;
-    onChange(true);
-  });
-  addEventListener('appinstalled', () => {
-    deferred = null;
-    onChange(false);
-  });
-}
-
-export async function promptInstall(): Promise<boolean> {
-  if (!deferred) return false;
-  const e = deferred;
-  deferred = null;
-  await e.prompt();
-  return (await e.userChoice).outcome === 'accepted';
-}
-
 // ---------------------------------------------------------------- wake lock
 
 let lock: WakeLockSentinel | null = null;

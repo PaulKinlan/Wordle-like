@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Gosod yr ap",
   "settings.installNote": "Agor Letterle o'ch sgrin gartref, hyd yn oed all-lein",
   "settings.installButton": "Gosod",
+  "install.title": "Rhowch Letterle ar eich sgrin gartref",
+  "install.body": "Mae'n agor yn syth ar air y dydd, yn gweithio all-lein, a gall eich atgoffa pan fydd gair newydd yn barod.",
+  "install.ios": "Yn Safari, tapiwch **Rhannu**, yna **Ychwanegu at y Sgrin Gartref**.",
+  "install.menu": "Agorwch ddewislen eich porwr a dewis **Gosod ap** neu **Ychwanegu at y sgrin gartref**.",
+  "install.notNow": "Dim nawr",
 
   "help.title": "Sut i chwarae",
   "help.p1": "Dyfalwch y gair mewn **{n}** chynnig. Tapiwch y bwrdd, teipiwch gyda bysellfwrdd eich ffôn, yna pwyswch Enter.",

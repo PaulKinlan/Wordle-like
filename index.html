@@ -153,6 +153,9 @@
             </button>
             <button class="secondary" id="btn-new" type="button">New word</button>
           </div>
+          <p class="result-install" data-install-slot data-install-where="result" hidden>
+            <install><button class="link" type="button" data-install data-i18n="settings.install">Install the app</button></install>
+          </p>
         </div>
         <p class="type-hint" id="type-hint" data-i18n="board.hint">Tap the board and type with your keyboard</p>
       </section>
@@ -206,6 +209,19 @@
       </form>
     </dialog>
 
+    <dialog id="dlg-install" class="sheet" aria-labelledby="install-title" tabindex="-1" autofocus closedby="any" data-install-where="sheet">
+      <form method="dialog">
+        <header class="sheet-head"><h2 id="install-title" data-i18n="install.title">Get Letterle on your home screen</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
+        <p data-i18n="install.body">It opens straight to today's word, works offline, and can remind you when a new word is ready.</p>
+        <p class="install-steps install-ios" data-i18n-rich="install.ios">In Safari, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+        <p class="install-steps install-menu" data-i18n-rich="install.menu">Open your browser's menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>
+        <div class="install-actions">
+          <button class="secondary" type="submit" value="later" data-i18n="install.notNow">Not now</button>
+          <install class="install-go"><button class="primary" type="button" data-install data-i18n="settings.installButton">Install</button></install>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="dlg-settings" class="sheet" aria-labelledby="settings-title" tabindex="-1" autofocus closedby="any">
       <form method="dialog">
         <header class="sheet-head"><h2 id="settings-title" data-i18n="settings.title">Settings</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
@@ -253,9 +269,9 @@
           <span><strong data-i18n="settings.pushTime">Reminder time</strong><small data-i18n="settings.pushTimeNote">Skipped on days you've already played</small></span>
           <select id="set-push-hour"></select>
         </label>
-        <div class="setting" id="install-row" hidden>
+        <div class="setting" id="install-row" data-install-slot data-install-where="settings" hidden>
           <span><strong data-i18n="settings.install">Install the app</strong><small data-i18n="settings.installNote">Open Letterle from your home screen, even offline</small></span>
-          <button type="button" class="secondary small" id="btn-install" data-i18n="settings.installButton">Install</button>
+          <install><button type="button" class="secondary small" data-install data-i18n="settings.installButton">Install</button></install>
         </div>
         <p class="app-version"><a id="app-version" target="_blank" rel="noopener"></a></p>
       </form>

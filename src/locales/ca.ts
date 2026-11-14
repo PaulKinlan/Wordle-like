@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Instal·la l'aplicació",
   "settings.installNote": "Obre Letterle des de la pantalla d'inici, fins i tot sense connexió",
   "settings.installButton": "Instal·la",
+  "install.title": "Posa Letterle a la pantalla d'inici",
+  "install.body": "S'obre directament a la paraula del dia, funciona sense connexió i et pot avisar quan hi hagi una paraula nova.",
+  "install.ios": "A Safari, toca **Comparteix** i després **Afegeix a la pantalla d'inici**.",
+  "install.menu": "Obre el menú del navegador i tria **Instal·la l'aplicació** o **Afegeix a la pantalla d'inici**.",
+  "install.notNow": "Ara no",
 
   "help.title": "Com es juga",
   "help.p1": "Endevina la paraula en **{n}** intents. Toca el tauler, escriu amb el teclat del mòbil i prem Retorn.",

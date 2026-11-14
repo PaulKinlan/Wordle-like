@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Uygulamayı yükle",
   "settings.installNote": "Letterle'yi ana ekrandan aç, çevrimdışıyken bile",
   "settings.installButton": "Yükle",
+  "install.title": "Letterle'ı ana ekranına ekle",
+  "install.body": "Doğrudan günün kelimesiyle açılır, çevrimdışı çalışır ve yeni kelime hazır olduğunda sana hatırlatabilir.",
+  "install.ios": "Safari'de **Paylaş**'a, ardından **Ana Ekrana Ekle**'ye dokun.",
+  "install.menu": "Tarayıcı menüsünü aç ve **Uygulamayı yükle** ya da **Ana ekrana ekle**'yi seç.",
+  "install.notNow": "Şimdi değil",
 
   "help.title": "Nasıl oynanır",
   "help.p1": "Kelimeyi **{n}** denemede bul. Tahtaya dokun, telefonunun klavyesiyle yaz ve Enter'a bas.",
