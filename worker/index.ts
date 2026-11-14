@@ -98,6 +98,24 @@ export async function handleApi(request: Request, answers: AnswerStore, onEvent:
     return json([...list.guessable], { cache: 'public, max-age=86400' });
   }
 
+  // Each pool has its own private order: "en" and "en:rare".
+  const answerFor = async (ref: NonNullable<ReturnType<typeof parsePuzzleId>>) => {
+    const set = ref.hard ? `${lang.code}:rare` : lang.code;
+    const count = await answers.count(set, ref.hard ? list.rare : list.candidates);
+    const index = ref.kind === 'daily' ? dailyIndex(ref.number, count) : await randomIndex(await answers.key(), set, ref.token, count);
+    return answers.at(set, index);
+  };
+
+  // Unlimited only: the player gave up on this word and asked for another.
+  // Daily answers are never given out before the game is over.
+  if (action === 'skip' && method === 'POST') {
+    const body: { puzzle?: unknown } = await readObject(request);
+    const ref = parsePuzzleId(body.puzzle);
+    if (!ref || ref.kind === 'daily') return error(400, 'bad_puzzle', 'Only an unlimited word can be skipped');
+    onEvent({ kind: 'game_skip', name: 'unlimited', message: lang.code, detail: { hard: ref.hard } });
+    return json({ answer: await answerFor(ref) });
+  }
+
   if (action === 'play' && method === 'POST') {
     const body: { puzzle?: unknown; guesses?: unknown } = await readObject(request);
     const ref = parsePuzzleId(body.puzzle);
@@ -105,13 +123,9 @@ export async function handleApi(request: Request, answers: AnswerStore, onEvent:
     if (!Array.isArray(body.guesses) || body.guesses.length < 1 || body.guesses.length > lang.maxGuesses) {
       return error(400, 'bad_request', 'Send between 1 and ' + lang.maxGuesses + ' guesses');
     }
-    // Each pool has its own private order: "en" and "en:rare".
-    const set = ref.hard ? `${lang.code}:rare` : lang.code;
-    const count = await answers.count(set, ref.hard ? list.rare : list.candidates);
     // The stored answer keeps its accents for display; guesses are compared
     // with the folded form.
-    const index = ref.kind === 'daily' ? dailyIndex(ref.number, count) : await randomIndex(await answers.key(), set, ref.token, count);
-    const answer = await answers.at(set, index);
+    const answer = await answerFor(ref);
     const target = normalizeWord(answer, lang.code);
     const rows: { guess: string; marks: Mark[] }[] = [];
     for (const raw of body.guesses) {

@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "redan provad, rätt plats här",
   "share": "Dela",
   "newWord": "Nytt ord",
+  "skip": "Hoppa över",
+  "skip.confirm": "Hoppa över? Tryck igen",
   "playUnlimited": "Spela obegränsat",
 
   "sub.daily": "Nr {n} · {date}",

@@ -168,6 +168,7 @@ button {
 .modes {
   display: grid;
   justify-items: center;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding-bottom: 8px;
 }
@@ -234,6 +235,60 @@ button {
   font-size: 0.8rem;
   color: var(--muted);
   min-height: 1.2em;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 8px;
+  max-width: 100%;
+  padding-inline: 12px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* One line, always: on a narrow screen the subtitle text gives way to Skip
+   rather than wrapping and taking height from the board. */
+.subtitle > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Skip" at the end of the subtitle: Unlimited, while a word is in play. */
+.sub-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  padding: 0 2px;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  flex: none;
+}
+
+/* A bigger target than it looks, without taking any room. */
+.sub-link::before {
+  content: '';
+  position: absolute;
+  inset: -10px -8px;
+}
+
+.sub-link svg {
+  width: 1.05em;
+  height: 1.05em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sub-link.confirm {
+  color: var(--present);
 }
 
 /* ------------------------------------------------------------ board */

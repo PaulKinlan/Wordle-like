@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "triailte cheana, san áit seo",
   "share": "Comhroinn",
   "newWord": "Focal nua",
+  "skip": "Scipeáil",
+  "skip.confirm": "Scipeáil? Tapáil arís",
   "playUnlimited": "Imir gan teorainn",
 
   "sub.daily": "Uimh. {n} · {date}",

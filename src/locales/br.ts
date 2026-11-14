@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "amprouet dija, amañ eo",
   "share": "Rannañ",
   "newWord": "Ger nevez",
+  "skip": "Tremen",
+  "skip.confirm": "Tremen? Stokit en-dro",
   "playUnlimited": "C'hoari diharz",
 
   "sub.daily": "Niv. {n} · {date}",

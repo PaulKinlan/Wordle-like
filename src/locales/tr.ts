@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "denendi, burada doğru",
   "share": "Paylaş",
   "newWord": "Yeni kelime",
+  "skip": "Atla",
+  "skip.confirm": "Atla? Tekrar dokun",
   "playUnlimited": "Sınırsız oyna",
 
   "sub.daily": "No. {n} · {date}",

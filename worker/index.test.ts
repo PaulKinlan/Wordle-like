@@ -61,6 +61,18 @@ describe('API', () => {
     expect(body).toMatchObject({ puzzle: 'd:2026-11-14', number: 1, wordLength: 5, maxGuesses: 6 });
   });
 
+  it('reveals a skipped unlimited word, but never a daily one', async () => {
+    const skip = (puzzle: string) =>
+      call('/api/v1/en/skip', { method: 'POST', body: JSON.stringify({ puzzle }) }).then(async (r) => ({ status: r.status, body: (await r.json()) as any }));
+    const puzzle = 'r:0123456789abcdef';
+    const skipped = await skip(puzzle);
+    expect(skipped.status).toBe(200);
+    const lost = await play({ puzzle, guesses: Array(6).fill('fuzzy') });
+    expect(skipped.body.answer).toBe(lost.body.answer ?? 'fuzzy');
+    expect((await skip('d:2026-11-14')).status).toBe(400);
+    expect((await skip('dh:2026-11-14')).status).toBe(400);
+  });
+
   it('scores guesses, then reveals the answer when the game ends', async () => {
     const puzzle = 'd:2026-11-14';
     const first = await play({ puzzle, guesses: ['crane'] });

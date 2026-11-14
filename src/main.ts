@@ -22,6 +22,7 @@ import {
   loadSettings,
   loadStats,
   recordResult,
+  recordSkip,
   saveGame,
   saveSettings,
   type Mode,
@@ -40,6 +41,8 @@ const els = {
   toast: $('toast'),
   tracker: $('tracker'),
   subtitle: $('subtitle'),
+  btnSkip: $<HTMLButtonElement>('btn-skip'),
+  btnSkipText: $('btn-skip-text'),
   result: $('result'),
   resultText: $('result-text'),
   btnNew: $<HTMLButtonElement>('btn-new'),
@@ -109,6 +112,7 @@ const race = new RaceClient({
   config: () => ({ lang, hard: settings.hard }),
   setSubtitle: (text) => {
     els.subtitle.textContent = text;
+    showSkip(false);
   },
   describeViolation: (v) => describeViolation(v),
   words: (code) => words.get(code),
@@ -311,6 +315,7 @@ function draw(skipTracker = false) {
       ? `${t('sub.daily', { n: game.number ?? '?', date: formatDate(game.date) })}${langLabel}${hardLabel}`
       : `${t('sub.unlimited')}${langLabel}${hardLabel}`;
   syncHardSetting();
+  showSkip(game.mode === 'unlimited' && playing);
 }
 
 function drawTracker() {
@@ -484,6 +489,51 @@ $('btn-settings').addEventListener('click', () => openDialog('dlg-settings'));
 els.tabDaily.addEventListener('click', () => void startMode('daily'));
 els.tabUnlimited.addEventListener('click', () => void startMode('unlimited'));
 els.tabRace.addEventListener('click', () => openRace());
+// Skip: Unlimited only, while a word is in play. The first tap asks, the
+// second gets a new word. Like the Enter button it never takes focus from
+// the field, so the phone's keyboard stays exactly as it was (up or down).
+let skipConfirm: number | undefined;
+let skipping = false;
+
+function showSkip(on: boolean) {
+  if (!on) resetSkip();
+  els.btnSkip.hidden = !on;
+}
+
+function resetSkip() {
+  clearTimeout(skipConfirm);
+  skipConfirm = undefined;
+  els.btnSkip.classList.remove('confirm');
+  els.btnSkipText.textContent = t('skip');
+}
+
+els.btnSkip.addEventListener('pointerdown', (e) => e.preventDefault());
+els.btnSkip.addEventListener('mousedown', (e) => e.preventDefault());
+els.btnSkip.addEventListener('click', async () => {
+  const g = game;
+  if (!g || g.mode !== 'unlimited' || g.status !== 'playing' || race.isActive || busy || skipping) return;
+  if (skipConfirm === undefined) {
+    els.btnSkip.classList.add('confirm');
+    els.btnSkipText.textContent = t('skip.confirm');
+    skipConfirm = window.setTimeout(resetSkip, 3000);
+    return;
+  }
+  resetSkip();
+  skipping = true;
+  try {
+    const { answer } = await api.skip(g.lang, g.puzzle);
+    track('skip_word', { guesses: g.rows.length });
+    recordSkip(g);
+    if (game !== g) return;
+    await startMode('unlimited', true);
+    toast(t('result.was', { word: upperWord(answer, g.lang) }), 2500);
+  } catch (e) {
+    toast(e instanceof ApiError && e.code === 'offline' ? t('err.offline') : t('err.generic'));
+  } finally {
+    skipping = false;
+  }
+});
+
 els.btnNew.addEventListener('click', () => {
   track('new_word');
   if (game?.mode === 'daily') void startMode('unlimited');

@@ -23,6 +23,8 @@ const messages: Messages = {
   "tile.hint.correct": "probatua, hemen doa",
   "share": "Partekatu",
   "newWord": "Hitz berria",
+  "skip": "Saltatu",
+  "skip.confirm": "Saltatu? Sakatu berriro",
   "playUnlimited": "Jokatu mugarik gabe",
 
   "sub.daily": "{n}. zk. · {date}",

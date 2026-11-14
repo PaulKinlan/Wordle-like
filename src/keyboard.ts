@@ -80,7 +80,9 @@ export class NativeEntry {
     document.addEventListener(
       'pointerdown',
       (e) => {
-        if (!form.contains(e.target as Node)) void this.hideKeyboard();
+        // Controls marked data-keeps-keyboard (Skip) keep focus on the field.
+        const target = e.target as Element;
+        if (!form.contains(target) && !target.closest?.('[data-keeps-keyboard]')) void this.hideKeyboard();
       },
       true,
     );

@@ -101,6 +101,20 @@ export function recordResult(game: SavedGame): Stats {
   return s;
 }
 
+/**
+ * An unlimited word the player skipped. Not a game played (win % stays),
+ * but the win streak ends: skipping a hard word mustn't keep it alive.
+ * Skipping before any guess changes nothing.
+ */
+export function recordSkip(game: SavedGame): Stats {
+  const s = loadStats(game.lang, game.mode, game.hard, game.maxGuesses);
+  if (game.rows.length > 0) {
+    s.streak = 0;
+    write(`stats:${game.lang}:${variant(game.mode, game.hard)}`, s);
+  }
+  return s;
+}
+
 /** A daily streak is broken if yesterday's puzzle was never finished. */
 export function currentStreak(s: Stats, mode: Mode, todayNumber?: number): number {
   if (mode === 'daily' && todayNumber !== undefined && s.lastNumber !== undefined) {
