@@ -164,7 +164,11 @@ export class NativeEntry {
     debugLog('kb hide start', { focused, vk: vkHeight(), active: describe(document.activeElement), gesture: gesture() });
     input.readOnly = false;
     if (!focused) {
-      if (!this.enabled) input.inputMode = 'none';
+      // hide() only acts for a focused field on the "manual" policy without
+      // inputmode="none" (spec and MDN). Under "manual", focusing doesn't
+      // raise the keyboard by itself.
+      input.removeAttribute('inputmode');
+      input.setAttribute('virtualkeyboardpolicy', 'manual');
       input.focus({ preventScroll: true });
     }
     try {
@@ -174,40 +178,12 @@ export class NativeEntry {
     }
     if (this.enabled) return Promise.resolve(); // a tap elsewhere mid-game: the field keeps its policy
     this.hiding = (async () => {
-      // Each lever in turn, stopping at the first that works. The ?debug log
-      // names the one that did, so the list can be trimmed once we know.
+      // hide() (called above) is the API's own way, and what the test page
+      // showed working. If it hasn't gone after a moment, blur as well: no
+      // refocusing, which only kept the keyboard attached.
       const steps: [string, () => void | Promise<void>][] = [
-        ['hide()', () => undefined], // already called above
-        [
-          // A field with inputmode="none" gets no keyboard: Chrome reads that
-          // when the field gains focus, so blur, let a frame pass, refocus.
-          'inputmode none, then refocus',
-          async () => {
-            input.inputMode = 'none';
-            input.blur();
-            await frames(2);
-            input.focus({ preventScroll: true });
-          },
-        ],
-        [
-          'auto policy, then blur',
-          async () => {
-            input.setAttribute('virtualkeyboardpolicy', 'auto');
-            await frames(2);
-            input.blur();
-          },
-        ],
-        [
-          'take the field out of the page and put it back',
-          () => {
-            const parent = input.parentNode;
-            const next = input.nextSibling;
-            if (!parent) return;
-            input.remove();
-            parent.insertBefore(input, next);
-          },
-        ],
-        ['disable the field', () => void (input.disabled = true)],
+        ['hide()', () => undefined],
+        ['blur()', () => input.blur()],
       ];
       for (const [name, run] of steps) {
         if (name !== 'hide()') {
