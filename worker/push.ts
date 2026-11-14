@@ -168,6 +168,18 @@ const ACTIONS: Record<string, { play: string; snooze: string; race: string }> = 
   it: { play: 'Gioca', snooze: 'Rimanda di 1 ora', race: 'Sfida un amico' },
   pt: { play: 'Jogar', snooze: 'Adiar 1 hora', race: 'Desafiar um amigo' },
   nl: { play: 'Spelen', snooze: 'Over 1 uur', race: 'Daag iemand uit' },
+  ca: { play: 'Juga', snooze: 'Ajorna 1 hora', race: 'Repta un amic' },
+  eu: { play: 'Jokatu', snooze: 'Atzeratu ordubete', race: 'Desafiatu lagun bat' },
+  cy: { play: 'Chwarae', snooze: 'Ailatgoffa ymhen awr', race: 'Rasio ffrind' },
+  ga: { play: 'Imir', snooze: 'Cuir siar uair an chloig', race: 'Rás le cara' },
+  gd: { play: 'Cluich', snooze: 'Cuir dheth uair a thìde', race: 'Rèis le caraid' },
+  br: { play: "C'hoari", snooze: 'Diwezhatoc\'h a-benn 1 eurvezh', race: 'Daeañ ur mignon' },
+  pl: { play: 'Graj', snooze: 'Przypomnij za godzinę', race: 'Wyzwij znajomego' },
+  sv: { play: 'Spela', snooze: 'Påminn om 1 timme', race: 'Utmana en vän' },
+  tr: { play: 'Oyna', snooze: '1 saat ertele', race: 'Bir arkadaşınla yarış' },
+  el: { play: 'Παίξε', snooze: 'Αναβολή 1 ώρα', race: 'Αγώνας με φίλο' },
+  ja: { play: '遊ぶ', snooze: '1時間後に通知', race: '友だちと対戦' },
+  ko: { play: '플레이', snooze: '1시간 후 알림', race: '친구와 대결' },
 };
 
 /** A snoozed reminder goes out on the first hourly run at least this long after. */
@@ -182,6 +194,18 @@ const REMINDER: Record<string, (n: number | null, name: string) => string> = {
   it: (n, name) => `La parola n. ${n} è pronta${name}. Non interrompere la serie!`,
   pt: (n, name) => `A palavra n.º ${n} está pronta${name}. Mantém a sequência!`,
   nl: (n, name) => `Woord nr. ${n} staat klaar${name}. Houd je reeks vast!`,
+  ca: (n, name) => `La paraula núm. ${n} ja és aquí${name}. No perdis la ratxa!`,
+  eu: (n, name) => `${n}. hitza prest dago${name}. Ez galdu bolada!`,
+  cy: (n, name) => `Mae gair rhif ${n} yn barod${name}. Daliwch ati gyda'ch rhediad!`,
+  ga: (n, name) => `Tá focal uimh. ${n} réidh${name}. Coinnigh do shraith ag dul!`,
+  gd: (n, name) => `Tha facal àir. ${n} deiseil${name}. Cùm an sreath a' dol!`,
+  br: (n, name) => `Prest eo ar ger niv. ${n}${name}. Kendalc'hit gant hoc'h heuliad!`,
+  pl: (n, name) => `Słowo nr ${n} jest gotowe${name}. Nie przerywaj serii!`,
+  sv: (n, name) => `Ord nr ${n} är klart${name}. Håll igång sviten!`,
+  tr: (n, name) => `${n} numaralı kelime hazır${name}. Serini sürdür!`,
+  el: (n, name) => `Η λέξη αρ. ${n} είναι έτοιμη${name}. Μη χάσεις το σερί σου!`,
+  ja: (n, name) => `No. ${n} の単語が届きました${name}。連続記録を続けよう！`,
+  ko: (n, name) => `${n}번 단어가 준비됐어요${name}. 연속 기록을 이어 가세요!`,
 };
 
 const B64URL = /^[A-Za-z0-9_-]+$/;
@@ -359,6 +383,18 @@ const RACE_JOINED: Record<string, (name: string, code: string) => { title: strin
   it: (n, c) => ({ title: `${n} si è unito alla tua sfida`, body: `Sfida ${c}. Tocca per prepararti.` }),
   pt: (n, c) => ({ title: `${n} entrou na tua corrida`, body: `Corrida ${c}. Toca para te preparares.` }),
   nl: (n, c) => ({ title: `${n} doet mee aan je race`, body: `Race ${c}. Tik om klaar te gaan staan.` }),
+  ca: (n, c) => ({ title: `${n} s'ha unit a la teva cursa`, body: `Cursa ${c}. Toca per preparar-te.` }),
+  eu: (n, c) => ({ title: `${n} zure lasterketara batu da`, body: `${c} lasterketa. Ukitu prestatzeko.` }),
+  cy: (n, c) => ({ title: `Mae ${n} wedi ymuno â'ch ras`, body: `Ras ${c}. Tapiwch i baratoi.` }),
+  ga: (n, c) => ({ title: `Tá ${n} tagtha isteach i do rás`, body: `Rás ${c}. Tapáil le hullmhú.` }),
+  gd: (n, c) => ({ title: `Tha ${n} air tighinn dhan rèis agad`, body: `Rèis ${c}. Thoir gnogag airson ullachadh.` }),
+  br: (n, c) => ({ title: `${n} a zo deuet en ho redadeg`, body: `Redadeg ${c}. Stokit evit en em brientiñ.` }),
+  pl: (n, c) => ({ title: `${n} dołącza do twojego wyścigu`, body: `Wyścig ${c}. Dotknij, aby się przygotować.` }),
+  sv: (n, c) => ({ title: `${n} gick med i din kapplöpning`, body: `Kapplöpning ${c}. Tryck för att göra dig redo.` }),
+  tr: (n, c) => ({ title: `${n} yarışına katıldı`, body: `Yarış ${c}. Hazırlanmak için dokun.` }),
+  el: (n, c) => ({ title: `Ο/Η ${n} μπήκε στον αγώνα σου`, body: `Αγώνας ${c}. Πάτησε για να ετοιμαστείς.` }),
+  ja: (n, c) => ({ title: `${n} さんが対戦に参加しました`, body: `対戦 ${c}。タップして準備しよう。` }),
+  ko: (n, c) => ({ title: `${n} 님이 대결에 들어왔어요`, body: `대결 ${c}. 눌러서 준비하세요.` }),
 };
 
 /** Checks a subscription a player sent to their race room. */
