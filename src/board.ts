@@ -2,6 +2,7 @@ import { displayLetter, type Mark } from '../shared/game';
 import { t as tr } from './i18n';
 import type { Row } from './storage';
 import { haptics } from './pwa';
+import { letterHints } from './hints';
 
 /** Draws the grid of tiles. Rebuilt only when the puzzle shape changes. */
 export class Board {
@@ -37,13 +38,14 @@ export class Board {
   /** Paints finished rows, the row being typed, and empty rows below. */
   render(rows: Row[], current: string, active: boolean) {
     const letters = [...current];
+    const known = letterHints(rows);
     this.tiles.forEach((tiles, r) => {
       const done = rows[r];
       tiles.forEach((t, c) => {
         if (done) {
           setTile(t, [...done.guess][c], done.marks[c]);
         } else if (r === rows.length && active) {
-          setTile(t, letters[c] ?? '', letters[c] ? 'filled' : '');
+          setTile(t, letters[c] ?? '', letters[c] ? 'filled' : '', known.at(letters[c], c));
           t.classList.toggle('cursor', c === letters.length);
         } else {
           setTile(t, '', '');
@@ -87,24 +89,18 @@ export class Board {
   }
 }
 
-function setTile(t: HTMLDivElement, letter: string, state: Mark | 'filled' | '') {
+function setTile(t: HTMLDivElement, letter: string, state: Mark | 'filled' | '', hint?: Mark) {
   const upper = toUpper(letter);
   if (t.textContent !== upper) t.textContent = upper;
-  t.className = 'tile' + (state ? ' ' + state : '');
-  const label = state === 'filled' || state === '' ? letter : `${letter}, ${tr(`tile.${state}`)}`;
+  t.className = 'tile' + (state ? ' ' + state : '') + (hint ? ' hint-' + hint : '');
+  let label = state === 'filled' || state === '' ? letter : `${letter}, ${tr(`tile.${state}`)}`;
+  if (hint) label += `, ${tr(`tile.hint.${hint}`)}`;
   t.setAttribute('aria-label', label.trim() || tr('tile.empty'));
 }
 
 /** Shows which letters have been tried, without being a keyboard. */
 export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) {
-  const best = new Map<string, Mark>();
-  const rank: Record<Mark, number> = { absent: 0, present: 1, correct: 2 };
-  for (const { guess, marks } of rows) {
-    [...guess].forEach((ch, i) => {
-      const prev = best.get(ch);
-      if (!prev || rank[marks[i]] > rank[prev]) best.set(ch, marks[i]);
-    });
-  }
+  const { best } = letterHints(rows);
   if (el.childElementCount !== alphabet.length) {
     el.replaceChildren(
       ...alphabet.map((ch) => {
