@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Suiteáil",
 
   "help.title": "Conas imirt",
-  "help.p1": "Tomhais an focal i **sé** iarracht. Tapáil an clár, clóscríobh le méarchlár an fhóin, ansin brúigh Enter.",
+  "help.p1": "Tomhais an focal i **{n}** iarracht. Tapáil an clár, clóscríobh le méarchlár an fhóin, ansin brúigh Enter.",
   "help.p2": "Tar éis gach tomhais athraíonn dath na dtíleanna:",
   "help.correct": "san fhocal agus san áit cheart",
   "help.present": "san fhocal ach in áit eile",

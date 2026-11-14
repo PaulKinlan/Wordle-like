@@ -59,7 +59,7 @@ const messages: Messages = {
   "settings.installNote": "Apri Letterle dalla schermata Home, anche offline",
   "settings.installButton": "Installa",
   "help.title": "Come si gioca",
-  "help.p1": "Indovina la parola in **sei** tentativi. Tocca la griglia, scrivi con la tastiera del telefono e premi Invio.",
+  "help.p1": "Indovina la parola in **{n}** tentativi. Tocca la griglia, scrivi con la tastiera del telefono e premi Invio.",
   "help.p2": "Dopo ogni tentativo le caselle cambiano colore:",
   "help.correct": "nella parola e al posto giusto",
   "help.present": "nella parola ma in un altro posto",

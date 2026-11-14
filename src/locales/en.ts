@@ -67,7 +67,7 @@ const en = {
   'settings.installButton': "Install",
 
   'help.title': 'How to play',
-  'help.p1': 'Guess the word in **six** tries. Tap the board and type with your phone\'s keyboard, then press Enter.',
+  'help.p1': 'Guess the word in **{n}** tries. Tap the board and type with your phone\'s keyboard, then press Enter.',
   'help.p2': 'After each guess the tiles change colour:',
   'help.correct': 'in the word and in the right spot',
   'help.present': 'in the word but in another spot',

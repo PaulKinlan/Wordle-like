@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Yükle",
 
   "help.title": "Nasıl oynanır",
-  "help.p1": "Kelimeyi **altı** denemede bul. Tahtaya dokun, telefonunun klavyesiyle yaz ve Enter'a bas.",
+  "help.p1": "Kelimeyi **{n}** denemede bul. Tahtaya dokun, telefonunun klavyesiyle yaz ve Enter'a bas.",
   "help.p2": "Her tahminden sonra karelerin rengi değişir:",
   "help.correct": "kelimede var ve doğru yerde",
   "help.present": "kelimede var ama başka bir yerde",

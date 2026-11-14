@@ -59,7 +59,7 @@ const messages: Messages = {
   "settings.installNote": "Abre Letterle desde la pantalla de inicio, incluso sin conexión",
   "settings.installButton": "Instalar",
   "help.title": "Cómo jugar",
-  "help.p1": "Adivina la palabra en **seis** intentos. Toca el tablero, escribe con el teclado del móvil y pulsa Intro.",
+  "help.p1": "Adivina la palabra en **{n}** intentos. Toca el tablero, escribe con el teclado del móvil y pulsa Intro.",
   "help.p2": "Tras cada intento, las casillas cambian de color:",
   "help.correct": "está en la palabra y en su sitio",
   "help.present": "está en la palabra pero en otro sitio",
