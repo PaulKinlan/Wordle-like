@@ -7,8 +7,9 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
 - **Unlimited**: a fresh word whenever you want.
 - **Hard mode**: a rarely used word, and every revealed hint must be used in later
   guesses. It has its own daily word, saved game and stats.
-- **Seven languages**: English, Spanish, French, German, Italian, Portuguese and Dutch,
-  each with its own daily word. The picker lists your device's languages first.
+- **Nineteen word languages**: English, Spanish, French, German, Italian, Portuguese,
+  Dutch, Catalan, Basque, Welsh, Irish, Scottish Gaelic, Breton, Polish, Swedish,
+  Turkish, Greek, Japanese and Korean, each with its own daily word. The picker lists your device's languages first.
 - **Race**: play friends on the same word in real time (up to 4 players). Share an
   invite link; when someone finishes a row, everyone else has 5 seconds to finish
   theirs. First to find the word wins, otherwise the best single row on points.
@@ -193,6 +194,18 @@ separate in Spanish and `ä ö ü ß` in German. The folding is in `normalizeWor
 (`shared/game.ts`), used for typing, the word lists and scoring. Answers are
 stored with their accents, so the real spelling (`LÍNEA`) is shown when a game
 ends, and German `ß` is shown as `ẞ` in a tile.
+
+### Welsh, Japanese and Korean
+
+- **Welsh**: the digraphs ch, dd, ff, ng, ll, ph, rh and th take one tile each.
+  Inside the game each is a single private-use character (`digraphs` in
+  `shared/languages.ts`), so scoring and hard mode just count letters.
+- **Japanese**: 4 kana and 8 guesses. Katakana folds to hiragana; voiced (が) and
+  small (っ) kana are letters of their own. Lists: `scripts/build-japanese.mjs`.
+- **Korean**: 6 letters, one per key on a standard keyboard: 한국 is ㅎ ㅏ ㄴ ㄱ ㅜ ㄱ,
+  and combined vowels split (과 is ㄱ ㅗ ㅏ). See `shared/hangul.ts`. Answers are
+  stored in syllables, so 한국 is shown when a game ends. Lists:
+  `scripts/build-korean.mjs`.
 
 ### Typing with the phone keyboard
 

@@ -1,0 +1,10 @@
+Word lists for "ko", built by scripts/build-korean.mjs from:
+
+1. FrequencyWords by Hermit Dave (https://github.com/hermitdave/FrequencyWords),
+   from OpenSubtitles 2018, CC BY-SA 4.0.
+
+2. The Hunspell dictionary in the npm package dictionary-ko@2.0.0
+   (hunspell-dict-ko, https://github.com/spellcheck-ko/hunspell-dict-ko). Its word
+   data is CC BY-SA (2.0 KR / 4.0); see its licence file.
+
+These lists are shared under CC BY-SA 4.0.
