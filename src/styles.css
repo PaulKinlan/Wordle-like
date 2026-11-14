@@ -1252,3 +1252,96 @@ dialog.sheet li {
   flex: none;
   width: auto;
 }
+
+/* ------------------------------------------------------------ on-screen keyboard
+   Optional (Settings). It replaces the used-letters strip and the "tap the
+   board" hint, and the phone's keyboard never comes up. */
+
+body.osk-on .tracker,
+body.osk-on .type-hint {
+  display: none;
+}
+
+body.osk-on .tile.cursor {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+.osk {
+  display: grid;
+  gap: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.osk-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.osk-key,
+.osk-gap {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 44px;
+  height: clamp(36px, 6.2dvh, 52px);
+}
+
+.osk-key {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--text) 11%, var(--surface));
+  color: var(--text);
+  font: inherit;
+  font-size: clamp(0.85rem, 2.2dvh, 1.1rem);
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms, transform 60ms;
+}
+
+.osk-key:active {
+  transform: scale(0.94);
+}
+
+.osk-key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.osk-key.osk-wide {
+  flex-grow: 1.5;
+  max-width: 66px;
+  font-size: 0.8rem;
+}
+
+.osk-key svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.osk-key.correct {
+  background: var(--correct);
+  color: var(--on-mark);
+}
+.osk-key.present {
+  background: var(--present);
+  color: var(--on-mark);
+}
+/* Not in the word: the key fades back and is struck through, so it reads as
+   used in both themes (the dark-mode grey alone was too close to a plain key). */
+.osk-key.absent {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: color-mix(in srgb, var(--text) 35%, transparent);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
