@@ -1026,6 +1026,17 @@ dialog.sheet li {
   padding: 4px;
 }
 
+.race-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 20px;
+}
+
+.link:disabled {
+  opacity: 0.5;
+}
+
 .play:has(.race-bar:not([hidden])) {
   grid-template-rows: auto 1fr;
 }
