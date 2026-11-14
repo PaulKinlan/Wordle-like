@@ -3,7 +3,7 @@
 // - API: always from the network, except the word list, which is cached so
 //   guesses can be checked instantly.
 // Bump VERSION to drop old caches.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
@@ -80,6 +80,9 @@ self.addEventListener('push', (event) => {
       body: data.body || "Today's word is ready",
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
+      // A big picture under the text, where supported (Chrome on Android,
+      // Windows and ChromeOS). Others just ignore it.
+      image: data.image || '/og.png',
       tag: data.tag || 'daily',
       data: { url: data.url || '/' },
     }),

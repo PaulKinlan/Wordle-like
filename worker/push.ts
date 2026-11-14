@@ -286,6 +286,7 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
           title: 'Letterle',
           body: (REMINDER[row.ui ?? 'en'] ?? REMINDER.en)(number, row.lang !== 'en' && name ? ` (${name})` : ''),
           url: '/',
+          image: '/og.png',
           tag: 'daily',
         },
         keys,
