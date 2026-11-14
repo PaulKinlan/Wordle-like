@@ -399,6 +399,14 @@ body:not(.typing) .tile.cursor {
   background: transparent;
   caret-color: transparent;
   cursor: text;
+  /* Taps go to the form underneath (keyboard.ts), so Android never shows a cursor handle. */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.board-wrap {
+  cursor: text;
 }
 
 .toast {

@@ -47,7 +47,9 @@ export class NativeEntry {
       document.body.classList.add('typing');
     });
     input.addEventListener('blur', () => document.body.classList.remove('typing'));
-    input.addEventListener('pointerup', () => this.focus(true));
+    // Taps land on the form, not the field (it has pointer-events: none): a tap
+    // into a text field makes Android show its cursor handle, a focus() call doesn't.
+    form.addEventListener('pointerup', () => this.focus(true));
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (this.enabled) o.onSubmit();
