@@ -16,10 +16,12 @@
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
-    // The PWA built by Vite. Only /api/* runs the Worker first; everything
-    // else is a static file, with index.html as the fallback.
+    // The PWA built by Vite. The routes below run the Worker first; everything
+    // else is a static file, with index.html as the fallback. /assets/* is on
+    // the list only so a missing built file gets a 404 rather than that
+    // fallback (see the end of fetch in worker/index.ts).
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/health", "/s/*", "/r/*", "/og/*", "/manifest.webmanifest"]
+    "run_worker_first": ["/api/*", "/health", "/s/*", "/r/*", "/og/*", "/manifest.webmanifest", "/assets/*"]
   },
   // Keeps the private answer order (see worker/answers.ts). The Worker fills
   // it on its first request.

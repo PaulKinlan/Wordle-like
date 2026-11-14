@@ -350,10 +350,18 @@ function untilMidnight() {
   return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
 }
 
+// The subtitle is redrawn with every typed letter; formatting a date is slow
+// enough to notice there, so each date is formatted once per language.
+let formatted: { key: string; text: string } | undefined;
+
 function formatDate(date?: string) {
   if (!date) return '';
-  const d = new Date(date + 'T12:00:00');
-  return d.toLocaleDateString(uiLang(), { day: 'numeric', month: 'short', year: 'numeric' });
+  const key = `${uiLang()}|${date}`;
+  if (formatted?.key !== key) {
+    const d = new Date(date + 'T12:00:00');
+    formatted = { key, text: d.toLocaleDateString(uiLang(), { day: 'numeric', month: 'short', year: 'numeric' }) };
+  }
+  return formatted.text;
 }
 
 let toastTimer: number | undefined;
