@@ -38,7 +38,7 @@
   // Both empty: the dashboard uses its key instead. ACCESS_TEAM is the Zero
   // Trust team name; ACCESS_AUD is the Access application's Audience tag.
   // Neither is a secret. Previews don't inherit these, so they keep the key.
-  "vars": { "ACCESS_TEAM": "", "ACCESS_AUD": "c3e96820e55ddc9c9bd0dac7c0cc908c94d4c677bb4aee9666ce4196ffb2b1b4" },
+  "vars": { "ACCESS_TEAM": "aifocus-team", "ACCESS_AUD": "c3e96820e55ddc9c9bd0dac7c0cc908c94d4c677bb4aee9666ce4196ffb2b1b4" },
   // Per-visitor rate limits (worker/http.ts): ordinary play, things that write
   // to the database or draw an image, and making race rooms. Counted per
   // minute, per address. Nothing to set up; the Worker runs without them too.
