@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Instalatu",
 
   "help.title": "Nola jokatu",
-  "help.p1": "Asmatu hitza **sei** saiakeratan. Ukitu taula, idatzi telefonoaren teklatuarekin eta sakatu Sartu.",
+  "help.p1": "Asmatu hitza **{n}** saiakeratan. Ukitu taula, idatzi telefonoaren teklatuarekin eta sakatu Sartu.",
   "help.p2": "Saiakera bakoitzaren ondoren fitxek kolorea aldatzen dute:",
   "help.correct": "hitzean dago eta leku egokian",
   "help.present": "hitzean dago, baina beste leku batean",

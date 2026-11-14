@@ -4,7 +4,7 @@ import { checkHardMode, normalizeWord, type HardModeViolation } from '../shared/
 import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../shared/languages';
 import { api, ApiError } from './api';
 import { Board, renderTracker, setTileLocale, toUpper } from './board';
-import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
+import { fillRich, pageVars, setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
 import { initDebug } from './debug';
@@ -139,6 +139,9 @@ async function startMode(mode: Mode, fresh = false) {
   board.build(game.maxGuesses, game.wordLength);
   draw();
   showResult();
+  // The help text names this language's number of tries.
+  pageVars.n = game.maxGuesses;
+  fillRich($('help-p1'), 'help.p1');
   void loadWords(lang);
 }
 
@@ -190,22 +193,33 @@ async function submit() {
     if (v) return reject(row, describeViolation(v));
   }
 
+  // The player may switch mode or language while the request is in flight, so
+  // the answer is applied to the game it was asked for, not whichever is showing.
+  const g = game;
   busy = true;
   try {
-    const res = await api.play(game.lang, game.puzzle, [...game.rows.map((r) => r.guess), guess]);
-    game.rows = res.rows;
-    game.status = res.status;
-    game.answer = res.answer;
-    saveGame(game);
+    const res = await api.play(g.lang, g.puzzle, [...g.rows.map((r) => r.guess), guess]);
+    g.rows = res.rows;
+    g.status = res.status;
+    g.answer = res.answer;
+    saveGame(g);
+    // Counted straight away: closing the app during the reveal must not lose the result.
+    if (g.status !== 'playing') {
+      recordResult(g);
+      if (g.mode === 'daily') updateBadge();
+      if (g.mode === 'daily' && g.date) void markPlayedToday(g.date);
+    }
+    if (game !== g) return;
     current = '';
     entry.clear();
-    if (game.status !== 'playing') entry.setEnabled(false);
+    if (g.status !== 'playing') entry.setEnabled(false);
     draw(true);
     await board.reveal(row);
+    if (game !== g) return;
     drawTracker();
-    if (game.status !== 'playing') finish();
+    if (g.status !== 'playing') finish(g);
   } catch (e) {
-    reject(row, e instanceof ApiError ? apiMessage(e) : t('err.generic'));
+    if (game === g) reject(row, e instanceof ApiError ? apiMessage(e) : t('err.generic'));
   } finally {
     busy = false;
   }
@@ -240,19 +254,18 @@ function reject(row: number, message: string) {
 }
 
 
-function finish() {
-  if (!game) return;
-  recordResult(game);
-  if (game.mode === 'daily') updateBadge();
-  if (game.mode === 'daily' && game.date) void markPlayedToday(game.date);
-  if (game.status === 'won') {
-    board.bounce(game.rows.length - 1);
-    toast(t(`praise.${Math.min(game.rows.length, 6)}` as 'praise.1'));
+function finish(g: SavedGame) {
+  if (g.status === 'won') {
+    board.bounce(g.rows.length - 1);
+    toast(t(`praise.${Math.min(g.rows.length, 6)}` as 'praise.1'));
   } else {
-    toast(upperWord(game.answer ?? '', game.lang), 3000);
+    toast(upperWord(g.answer ?? '', g.lang), 3000);
   }
   showResult();
-  setTimeout(() => openStats(), 1600);
+  // Only if the player is still looking at this game by then.
+  setTimeout(() => {
+    if (game === g && !race.isActive) openStats();
+  }, 1600);
 }
 
 // ---------------------------------------------------------------- drawing
@@ -296,6 +309,12 @@ function showResult() {
     const stats = loadStats(g.lang, g.mode, g.hard, g.maxGuesses);
     const fire = streakLine(g, currentStreak(stats, g.mode, g.number));
     const tick = () => {
+      // Midnight has passed with the page open: bring in the new day's word.
+      if (g.date !== localDate()) {
+        clearInterval(countdown);
+        if (game === g && !race.isActive && !document.querySelector('dialog[open]')) void startMode('daily');
+        return;
+      }
       els.resultText.textContent = `${outcome}${fire ? ` ${fire}.` : ''} ${t('result.next', { time: untilMidnight() })}`;
     };
     tick();

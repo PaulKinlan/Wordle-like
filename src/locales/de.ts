@@ -59,7 +59,7 @@ const messages: Messages = {
   "settings.installNote": "Letterle vom Startbildschirm öffnen, auch offline",
   "settings.installButton": "Installieren",
   "help.title": "Spielanleitung",
-  "help.p1": "Errate das Wort in **sechs** Versuchen. Tippe auf das Feld, schreib mit der Tastatur deines Handys und drück Enter.",
+  "help.p1": "Errate das Wort in **{n}** Versuchen. Tippe auf das Feld, schreib mit der Tastatur deines Handys und drück Enter.",
   "help.p2": "Nach jedem Versuch ändern die Felder ihre Farbe:",
   "help.correct": "im Wort und an der richtigen Stelle",
   "help.present": "im Wort, aber an einer anderen Stelle",

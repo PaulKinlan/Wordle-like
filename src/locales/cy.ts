@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Gosod",
 
   "help.title": "Sut i chwarae",
-  "help.p1": "Dyfalwch y gair mewn **chwe** chynnig. Tapiwch y bwrdd, teipiwch gyda bysellfwrdd eich ffôn, yna pwyswch Enter.",
+  "help.p1": "Dyfalwch y gair mewn **{n}** chynnig. Tapiwch y bwrdd, teipiwch gyda bysellfwrdd eich ffôn, yna pwyswch Enter.",
   "help.p2": "Ar ôl pob cynnig mae lliw'r teils yn newid:",
   "help.correct": "yn y gair ac yn y lle iawn",
   "help.present": "yn y gair ond mewn lle arall",

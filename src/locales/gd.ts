@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Stàlaich",
 
   "help.title": "Mar a chluicheas tu",
-  "help.p1": "Tomhais am facal ann an **sia** oidhirpean. Thoir gnogag air a' bhòrd, sgrìobh le meur-chlàr an fhòn, an uairsin brùth Enter.",
+  "help.p1": "Tomhais am facal ann an **{n}** oidhirpean. Thoir gnogag air a' bhòrd, sgrìobh le meur-chlàr an fhòn, an uairsin brùth Enter.",
   "help.p2": "An dèidh gach tomhas atharraichidh dath nan leacagan:",
   "help.correct": "san fhacal agus san àite cheart",
   "help.present": "san fhacal ach ann an àite eile",

@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "설치",
 
   "help.title": "게임 방법",
-  "help.p1": "**여섯** 번 안에 단어를 맞혀 보세요. 보드를 누르고 휴대폰 키보드로 입력한 다음 Enter를 누르세요.",
+  "help.p1": "**{n}**번 안에 단어를 맞혀 보세요. 보드를 누르고 휴대폰 키보드로 입력한 다음 Enter를 누르세요.",
   "help.p2": "추측할 때마다 타일 색이 바뀝니다:",
   "help.correct": "단어에 있고 위치도 맞음",
   "help.present": "단어에 있지만 위치가 다름",

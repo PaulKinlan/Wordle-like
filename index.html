@@ -119,7 +119,7 @@
             data-i18n-aria="board.entry"
           />
         </form>
-        <div class="toast" id="toast" role="status" aria-live="assertive" popover="manual"></div>
+        <div class="toast" id="toast" role="status" popover="manual"></div>
       </main>
 
       <section class="footer">
@@ -141,7 +141,7 @@
     <dialog id="dlg-help" class="sheet" aria-labelledby="help-title" tabindex="-1" autofocus closedby="any">
       <form method="dialog">
         <header class="sheet-head"><h2 id="help-title" data-i18n="help.title">How to play</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
-        <p data-i18n-rich="help.p1">Guess the word in <strong>six</strong> tries. Tap the board and type with your phone's keyboard, then press Enter.</p>
+        <p id="help-p1" data-i18n-rich="help.p1">Guess the word in <strong>6</strong> tries. Tap the board and type with your phone's keyboard, then press Enter.</p>
         <p data-i18n="help.p2">After each guess the tiles change colour:</p>
         <ul class="legend">
           <li><span class="tile sample correct">P</span> <span data-i18n="help.correct">in the word and in the right spot</span></li>

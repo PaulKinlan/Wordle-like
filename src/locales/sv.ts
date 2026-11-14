@@ -65,7 +65,7 @@ const messages: Messages = {
   "settings.installButton": "Installera",
 
   "help.title": "Så spelar du",
-  "help.p1": "Gissa ordet på **sex** försök. Tryck på brädet, skriv med telefonens tangentbord och tryck på Enter.",
+  "help.p1": "Gissa ordet på **{n}** försök. Tryck på brädet, skriv med telefonens tangentbord och tryck på Enter.",
   "help.p2": "Efter varje gissning byter brickorna färg:",
   "help.correct": "finns i ordet och på rätt plats",
   "help.present": "finns i ordet men på en annan plats",

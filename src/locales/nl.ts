@@ -59,7 +59,7 @@ const messages: Messages = {
   "settings.installNote": "Open Letterle vanaf je startscherm, ook offline",
   "settings.installButton": "Installeren",
   "help.title": "Speluitleg",
-  "help.p1": "Raad het woord in **zes** pogingen. Tik op het bord, typ met het toetsenbord van je telefoon en druk op Enter.",
+  "help.p1": "Raad het woord in **{n}** pogingen. Tik op het bord, typ met het toetsenbord van je telefoon en druk op Enter.",
   "help.p2": "Na elke poging veranderen de vakjes van kleur:",
   "help.correct": "in het woord en op de goede plek",
   "help.present": "in het woord maar op een andere plek",
