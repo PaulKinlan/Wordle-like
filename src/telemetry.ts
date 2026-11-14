@@ -172,6 +172,9 @@ function watchErrors() {
     });
   });
   document.addEventListener('securitypolicyviolation', (e) => {
+    // Our only Trusted Types policy is 'sw'. Any other name comes from a browser
+    // extension or the browser itself (Safari's decodeHTMLEntitiesPolicy), not us.
+    if (e.effectiveDirective === 'trusted-types' && e.sample !== 'sw') return;
     add({
       kind: 'csp',
       name: e.effectiveDirective,
