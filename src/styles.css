@@ -107,7 +107,7 @@ button {
   max-width: 560px;
   margin: 0 auto;
   padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right))
-    calc(max(12px, env(safe-area-inset-bottom)) + var(--kb-inset)) max(16px, env(safe-area-inset-left));
+    calc(max(12px, env(safe-area-inset-bottom)) + var(--kb-inset) + var(--debug-room, 0px)) max(16px, env(safe-area-inset-left));
   transition: padding-bottom 120ms ease-out;
 }
 
@@ -570,6 +570,60 @@ body:not(.typing) .tile.cursor {
 .tracker span.absent {
   opacity: 0.35;
   text-decoration: line-through;
+}
+
+/* The Enter button under the board: quiet until the row is full. */
+.submit-row {
+  display: flex;
+  justify-content: center;
+}
+
+.submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 160ms,
+    border-color 160ms,
+    color 160ms,
+    scale 100ms;
+}
+
+.submit-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.submit-btn.ready {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.submit-btn:active {
+  scale: 0.96;
+}
+
+.submit-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .type-hint {
@@ -1215,6 +1269,11 @@ dialog.sheet li {
 }
 
 /* ?debug panel (src/debug.ts) */
+/* Room under the game for the folded panel, so it doesn't cover the Enter button. */
+body:has(.debug-panel:not([open])) .app {
+  --debug-room: 52px;
+}
+
 .debug-panel {
   position: fixed;
   inset: auto 8px 8px 8px;
