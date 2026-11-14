@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { cloudflare } from '@cloudflare/vite-plugin';
 import { defineConfig } from 'vite';
+import { seo } from './scripts/seo';
 
 /** The commit being built: Workers Builds sets WORKERS_CI_COMMIT_SHA; locally, ask git. */
 function commit(): string {
@@ -14,7 +15,7 @@ function commit(): string {
 }
 
 export default defineConfig({
-  plugins: [cloudflare()],
+  plugins: [cloudflare(), seo()],
   // Shown in Settings and served by /health (see shared/version.ts).
   define: {
     __APP_COMMIT__: JSON.stringify(commit()),

@@ -3,7 +3,7 @@
 // - API: always from the network, except the word list, which is cached so
 //   guesses can be checked instantly.
 // Bump VERSION to drop old caches.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const PRECACHE = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
@@ -46,10 +46,11 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(SHELL).then((c) => c.put('/', copy));
+          // Each page has its own copy (/, /es/, /fr/...): the language pages have their own <head>.
+          if (res.ok && /^\/([a-z]{2}\/)?$/.test(url.pathname)) caches.open(SHELL).then((c) => c.put(url.pathname, copy));
           return res;
         })
-        .catch(() => caches.match('/')),
+        .catch(async () => (await caches.match(url.pathname)) ?? caches.match('/')),
     );
     return;
   }
