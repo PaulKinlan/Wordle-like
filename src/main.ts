@@ -392,12 +392,11 @@ function openStats() {
   openDialog('dlg-stats');
 }
 
-async function openDialog(id: string) {
+function openDialog(id: string) {
   const dlg = $<HTMLDialogElement>(id);
+  // Typing off (which blurs the field and closes the keyboard) before the
+  // dialog takes focus.
   entry.setEnabled(false);
-  // Let the keyboard go down before the dialog makes the field inert, or
-  // Android drops the request and leaves it up over the dialog.
-  await entry.hideKeyboard();
   if (dlg.open) return;
   dlg.showModal();
   // Start focus on the sheet itself rather than its first button, so the
