@@ -16,8 +16,7 @@
     "run_worker_first": ["/api/*"]
   },
   // Keeps the private answer order (see worker/answers.ts). The Worker fills
-  // it on its first request. database_id is needed for preview builds
-  // (versions upload can't create the database the way deploy does).
+  // it on its first request.
   "d1_databases": [{ "binding": "DB", "database_name": "wordle-like", "database_id": "5a3db60e-ca35-4c19-82d1-c73140bca102" }],
   // Multiplayer: one Durable Object per race room (worker/room.ts), with
   // SQLite-backed storage. Created on deploy; nothing to set up by hand.
@@ -26,5 +25,16 @@
   // Daily reminders (worker/push.ts): every hour, notify subscribers whose
   // chosen local hour has come. The VAPID keys are made by the Worker and kept
   // in D1, so there's nothing to set up (secrets can override them).
-  "triggers": { "crons": ["0 * * * *"] }
+  "triggers": { "crons": ["0 * * * *"] },
+  // Branch Previews (Workers Builds runs `npx wrangler preview` on branches).
+  // They don't inherit the settings above. Each Preview gets its own Room
+  // namespace automatically; the D1 database is a separate preview one, so
+  // previews never touch the real answers or reminder subscriptions. Cron
+  // triggers only run in production.
+  "previews": {
+    "d1_databases": [
+      { "binding": "DB", "database_name": "wordle-like-preview", "database_id": "3760372f-c816-4f82-8c3f-befc08db600a" }
+    ],
+    "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] }
+  }
 }
