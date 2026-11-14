@@ -1,6 +1,6 @@
 // Daily reminders by Web Push.
 //
-//   GET  /api/v1/push/key          the VAPID public key (404 if push isn't set up)
+//   GET  /api/v1/push/key          the VAPID public key (made on first use)
 //   POST /api/v1/push/subscribe    { subscription, tz, hour, lang }
 //   POST /api/v1/push/unsubscribe  { endpoint }
 //   POST /api/v1/push/played       { endpoint, date }: played today, skip today's reminder
@@ -9,10 +9,11 @@
 // runs every hour (wrangler.jsonc) and sends each subscriber one notification
 // a day, at the hour they picked in their own time zone.
 //
-// Setup: VAPID keys as Worker secrets, see the README ("Daily notifications").
+// Setup: none. The Worker makes its own VAPID key pair on first use and keeps
+// it in D1 (push_config). Worker secrets can override it (see the README).
 import { dailyNumber } from '../shared/daily';
 import { getLanguage } from '../shared/languages';
-import { sendPush, type VapidKeys } from './webpush';
+import { b64url, sendPush, type VapidKeys } from './webpush';
 
 export interface PushEnv {
   DB: D1Database;
@@ -33,12 +34,65 @@ const PUSH_HOSTS = [
 
 const MAX_SUBSCRIPTIONS = 5000;
 
-export function vapidKeys(env: PushEnv): VapidKeys | null {
-  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return null;
+const FALLBACK_SUBJECT = 'https://github.com/PaulKinlan/Wordle-like';
+
+interface StoredVapid {
+  publicKey: string;
+  privateKey: string;
+  /** The site's origin when the keys were made, used as the VAPID subject. */
+  origin?: string;
+}
+
+async function ensureConfigTable(db: D1Database) {
+  await db.prepare('CREATE TABLE IF NOT EXISTS push_config (k TEXT PRIMARY KEY, v TEXT NOT NULL)').run();
+}
+
+async function readStored(db: D1Database): Promise<StoredVapid | null> {
+  const row = await db.prepare("SELECT v FROM push_config WHERE k = 'vapid'").first<{ v: string }>();
+  return row ? (JSON.parse(row.v) as StoredVapid) : null;
+}
+
+/** A new P-256 key pair in the encodings VAPID uses. */
+export async function generateVapidKeys(): Promise<{ publicKey: string; privateKey: string }> {
+  const pair = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
+    'sign',
+    'verify',
+  ])) as CryptoKeyPair;
+  const raw = (await crypto.subtle.exportKey('raw', pair.publicKey)) as ArrayBuffer;
+  const jwk = (await crypto.subtle.exportKey('jwk', pair.privateKey)) as JsonWebKey;
+  return { publicKey: b64url(raw), privateKey: jwk.d! };
+}
+
+/**
+ * The VAPID keys. Worker secrets win if both are set. Otherwise the keys the
+ * Worker made itself, stored privately in D1; with `origin` (a request's
+ * origin) they're made on first use. Only the public key ever leaves the
+ * Worker.
+ */
+export async function getVapidKeys(env: PushEnv, origin?: string): Promise<VapidKeys | null> {
+  const subject = env.VAPID_SUBJECT?.trim();
+  if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+    return {
+      publicKey: env.VAPID_PUBLIC_KEY.trim(),
+      privateKey: env.VAPID_PRIVATE_KEY.trim(),
+      subject: subject || origin || FALLBACK_SUBJECT,
+    };
+  }
+  await ensureConfigTable(env.DB);
+  let stored = await readStored(env.DB);
+  if (!stored && origin) {
+    const fresh: StoredVapid = { ...(await generateVapidKeys()), origin };
+    // If two requests race, the first insert wins and both read it back.
+    await env.DB.prepare("INSERT OR IGNORE INTO push_config (k, v) VALUES ('vapid', ?)")
+      .bind(JSON.stringify(fresh))
+      .run();
+    stored = await readStored(env.DB);
+  }
+  if (!stored) return null;
   return {
-    publicKey: env.VAPID_PUBLIC_KEY.trim(),
-    privateKey: env.VAPID_PRIVATE_KEY.trim(),
-    subject: env.VAPID_SUBJECT?.trim() || 'https://github.com/PaulKinlan/Wordle-like',
+    publicKey: stored.publicKey,
+    privateKey: stored.privateKey,
+    subject: subject || stored.origin || FALLBACK_SUBJECT,
   };
 }
 
@@ -121,7 +175,7 @@ export async function handlePush(
 ): Promise<Response> {
   const url = new URL(request.url);
   const action = url.pathname.split('/')[4];
-  const keys = vapidKeys(env);
+  const keys = await getVapidKeys(env, url.origin);
 
   if (action === 'key' && request.method === 'GET') {
     if (!keys) return error(404, 'push_off', 'Notifications are not set up');
@@ -211,7 +265,8 @@ export function due(rows: SubRow[], now: Date): { row: SubRow; date: string }[] 
 
 /** The hourly cron: sends today's reminder to everyone who is due. */
 export async function sendDailyReminders(env: PushEnv, now = new Date()): Promise<{ sent: number; removed: number }> {
-  const keys = vapidKeys(env);
+  // Keys are made by the first subscribe request, so none means no subscribers.
+  const keys = await getVapidKeys(env);
   if (!keys) return { sent: 0, removed: 0 };
   await ensureTable(env.DB);
   const { results } = await env.DB.prepare('SELECT * FROM push_subs').all<SubRow>();
