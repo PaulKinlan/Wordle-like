@@ -1,0 +1,10 @@
+Word lists for "cy", built by scripts/build-wordlists.mjs from:
+
+1. UD Welsh CCG treebank (https://github.com/UniversalDependencies/UD_Welsh-CCG), CC BY-SA 4.0.
+
+2. The Hunspell dictionary in the npm package dictionary-cy@2.0.0
+   (https://github.com/wooorm/dictionaries), licensed LGPL-3.0.
+   See that package for the full licence and its authors.
+
+These lists are a derived selection of words and are distributed under the
+same terms.

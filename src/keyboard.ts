@@ -8,6 +8,7 @@
 // - VirtualKeyboard API (Chromium): the keyboard overlays the page and we lay
 //   out above it using env(keyboard-inset-height); we show it ourselves on tap.
 // - visualViewport (Safari, Firefox): measure the keyboard and do the same.
+import { expandWord } from '../shared/game';
 
 interface VirtualKeyboard extends EventTarget {
   overlaysContent: boolean;
@@ -138,7 +139,9 @@ export class NativeEntry {
   private sync() {
     const { input } = this.o;
     const letters = this.clean(input.value);
-    if (input.value !== letters) input.value = letters;
+    // The field holds ordinary letters: Welsh "ll" is one tile but two letters typed.
+    const text = expandWord(letters);
+    if (input.value !== text) input.value = text;
     this.caretToEnd();
     this.o.onChange(letters);
   }

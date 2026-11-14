@@ -138,6 +138,49 @@ const INTL = {
   pl: { spellFreeCount: 20, alphabet: 'aąbcćdeęfghijklłmnńoópqrsśtuvwxyzźż', answers: 1600 },
   sv: { spellFreeCount: 20, alphabet: 'abcdefghijklmnopqrstuvwxyzåäö', answers: 1600 },
   tr: { spellFreeCount: 20, alphabet: 'abcçdefgğhıijklmnoöprsştuüvyz', answers: 1600 },
+  // No subtitle counts for these: Irish uses a cleaned lemma frequency list
+  // (michmech/irish-word-frequency, ODbL), Gaelic the words of a Universal
+  // Dependencies treebank (ARCOSG). Both are small, so dictionary headwords
+  // top up the answers.
+  ga: {
+    spellFreeCount: 3,
+    alphabet: 'abcdefghijklmnopqrstuvwxyz',
+    answers: 900,
+    fillFromHeadwords: true,
+    freq: { url: 'https://raw.githubusercontent.com/michmech/irish-word-frequency/master/frequency.txt', format: 'michmech', credit: 'Irish Word Frequency List by Michal Boleslav Měchura (https://github.com/michmech/irish-word-frequency), Open Database License.' },
+  },
+  gd: {
+    spellFreeCount: 3,
+    alphabet: 'abcdefghijklmnopqrstuvwxyz',
+    answers: 900,
+    fillFromHeadwords: true,
+    freq: {
+      url: [
+        'https://raw.githubusercontent.com/UniversalDependencies/UD_Scottish_Gaelic-ARCOSG/master/gd_arcosg-ud-train.conllu',
+        'https://raw.githubusercontent.com/UniversalDependencies/UD_Scottish_Gaelic-ARCOSG/master/gd_arcosg-ud-dev.conllu',
+        'https://raw.githubusercontent.com/UniversalDependencies/UD_Scottish_Gaelic-ARCOSG/master/gd_arcosg-ud-test.conllu',
+      ],
+      format: 'conllu',
+      credit: 'UD Scottish Gaelic ARCOSG treebank (https://github.com/UniversalDependencies/UD_Scottish_Gaelic-ARCOSG), CC BY-SA 4.0.',
+    },
+  },
+  // Welsh: ch, dd, ff, ng, ll, ph, rh and th are single letters, one tile each,
+  // so a five-tile word can be longer than five letters ("cyllell" is c·y·ll·e·ll).
+  // Inside the game each is a private-use character (shared/languages.ts).
+  cy: {
+    spellFreeCount: 3,
+    alphabet: 'abcdefghijlmnoprstuwy',
+    digraphs: ['ch', 'dd', 'ff', 'ng', 'll', 'ph', 'rh', 'th'],
+    answers: 900,
+    fillFromHeadwords: true,
+    freq: {
+      url: ['train', 'dev', 'test'].map(
+        (part) => `https://raw.githubusercontent.com/UniversalDependencies/UD_Welsh-CCG/master/cy_ccg-ud-${part}.conllu`,
+      ),
+      format: 'conllu',
+      credit: 'UD Welsh CCG treebank (https://github.com/UniversalDependencies/UD_Welsh-CCG), CC BY-SA 4.0.',
+    },
+  },
   el: { spellFreeCount: 20, alphabet: 'αβγδεζηθικλμνξοπρστυφχψω', fold: { ς: 'σ' }, answers: 1400 },
 };
 
@@ -153,6 +196,50 @@ const INTL_BLOCK = new Set(
 
 for (const [code, cfg] of Object.entries(INTL)) if (wanted(code)) await buildIntl(code, cfg);
 
+function englishWords() {
+  const dir = dirname(require.resolve('wordlist-english/package.json'));
+  const out = new Set();
+  for (const l of [10, 20, 35, 40, 50, 55, 60, 70]) for (const w of JSON.parse(readFileSync(join(dir, `english-words-${l}.json`), 'utf8'))) out.add(w);
+  return out;
+}
+
+/** [word, count] pairs, most common first, downloaded once into node_modules/.cache. */
+async function frequencies(code, freq) {
+  const cacheDir = join(root, 'node_modules/.cache/wordlists');
+  mkdirSync(cacheDir, { recursive: true });
+  const urls = freq ? [freq.url].flat() : [FREQ_URL(code)];
+  let text = '';
+  for (const [i, url] of urls.entries()) {
+    const path = join(cacheDir, `${code}_${i}.txt`);
+    if (!existsSync(path)) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Download failed for ${code}: ${res.status} ${url}`);
+      writeFileSync(path, await res.text());
+    }
+    text += readFileSync(path, 'utf8') + '\n';
+  }
+  const format = freq?.format ?? 'hermitdave';
+  if (format === 'hermitdave') return text.split('\n').map((l) => l.trim().split(' ')).map(([w, c]) => [w, Number(c)]);
+  if (format === 'michmech') {
+    // rank <tab> lemma <tab> frequency ...
+    return text
+      .split(/\r?\n/)
+      .filter((l) => /^\d/.test(l))
+      .map((l) => l.split('\t'))
+      .map(([, w, c]) => [w, Number(c)]);
+  }
+  // CoNLL-U: count the word forms (column 2) of every sentence.
+  const counts = new Map();
+  for (const l of text.split('\n')) {
+    if (!l || l.startsWith('#')) continue;
+    const cols = l.split('\t');
+    if (cols.length < 2 || !/^\d+$/.test(cols[0])) continue;
+    const w = cols[1].toLocaleLowerCase(code);
+    counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  return [...counts].sort((a, b) => b[1] - a[1]);
+}
+
 async function buildIntl(code, cfg) {
   let correct;
   if (cfg.spellFreeCount) {
@@ -163,6 +250,20 @@ async function buildIntl(code, cfg) {
     const spell = nspell(dict);
     correct = (word) => spell.correct(word) || spell.correct(word[0].toLocaleUpperCase(code) + word.slice(1));
   }
+  // Must match DIGRAPHS in shared/languages.ts.
+  const DIGRAPHS = ['ch', 'dd', 'ff', 'ng', 'll', 'ph', 'rh', 'th'];
+  const joinDigraphs = (w) => {
+    if (!cfg.digraphs) return w;
+    let out = '';
+    for (let i = 0; i < w.length; i++) {
+      const pair = w.slice(i, i + 2);
+      if (cfg.digraphs.includes(pair)) {
+        out += String.fromCharCode(0xe000 + DIGRAPHS.indexOf(pair));
+        i++;
+      } else out += w[i];
+    }
+    return out;
+  };
   const alphabet = new Set(cfg.alphabet);
   const fold = (w) => {
     let out = '';
@@ -175,6 +276,7 @@ async function buildIntl(code, cfg) {
         out += base;
       }
     }
+    out = joinDigraphs(out);
     return [...out].length === LEN ? out : null;
   };
 
@@ -183,28 +285,20 @@ async function buildIntl(code, cfg) {
   const headwords = new Map();
   for (const line of readFileSync(dicPath, 'utf8').split('\n').slice(1)) {
     const [word, flags = ''] = line.trim().split(/\s/)[0].split('/');
-    if ([...word].length !== LEN || !/^\p{L}+$/u.test(word)) continue;
+    if ((!cfg.digraphs && [...word].length !== LEN) || !/^\p{L}+$/u.test(word)) continue;
     if (!(cfg.headword ?? ((w) => w === w.toLocaleLowerCase(code)))(word, flags)) continue;
     headwords.set(word.toLocaleLowerCase(code), word);
   }
 
-  const cacheDir = join(root, 'node_modules/.cache/wordlists');
-  mkdirSync(cacheDir, { recursive: true });
-  const freqPath = join(cacheDir, `${code}_full.txt`);
-  if (!existsSync(freqPath)) {
-    const res = await fetch(FREQ_URL(code));
-    if (!res.ok) throw new Error(`Download failed for ${code}: ${res.status}`);
-    writeFileSync(freqPath, await res.text());
-  }
+  const lines = await frequencies(code, cfg.freq);
 
   const answers = [];
   const rare = [];
   const guessable = new Set();
   const used = new Set();
-  for (const line of readFileSync(freqPath, 'utf8').split('\n')) {
-    const [word, count] = line.trim().split(' ');
+  for (const [word, count] of lines) {
     if (!word || Number(count) < 3) continue;
-    if ([...word].length !== LEN || !/^\p{L}+$/u.test(word)) continue;
+    if ((!cfg.digraphs && [...word].length !== LEN) || !/^\p{L}+$/u.test(word)) continue;
     const folded = fold(word);
     if (!folded) continue;
     if (!correct(word, Number(count))) continue;
@@ -215,9 +309,14 @@ async function buildIntl(code, cfg) {
     (answers.length < cfg.answers ? answers : rare).push(word);
   }
   if (cfg.fillFromHeadwords) {
-    for (const [lower, word] of headwords) {
+    // The dictionaries carry English loanwords ("ackee", "adieu"): leave those out of the answers.
+    const english = englishWords();
+    // A fixed shuffle (by a hash of the word), so the extra answers aren't all from the start of the alphabet.
+    const hash = (w) => [...w].reduce((h, c) => Math.imul(h ^ c.codePointAt(0), 16777619) >>> 0, 2166136261);
+    const shuffled = [...headwords].sort((a, b) => hash(a[0]) - hash(b[0]));
+    for (const [lower, word] of shuffled) {
       const folded = fold(lower);
-      if (!folded || used.has(folded) || INTL_BLOCK.has(lower)) continue;
+      if (!folded || used.has(folded) || INTL_BLOCK.has(lower) || english.has(lower)) continue;
       used.add(folded);
       if (answers.length < cfg.answers) answers.push(word);
       else if (rare.length < 2000) rare.push(word);
@@ -242,8 +341,7 @@ async function buildIntl(code, cfg) {
     join(out, 'LICENSE'),
     `Word lists for "${code}", built by scripts/build-wordlists.mjs from:
 
-1. FrequencyWords by Hermit Dave (https://github.com/hermitdave/FrequencyWords),
-   word frequencies counted from OpenSubtitles. Content licensed CC BY-SA 4.0.
+1. ${cfg.freq?.credit ?? 'FrequencyWords by Hermit Dave (https://github.com/hermitdave/FrequencyWords),\n   word frequencies counted from OpenSubtitles. Content licensed CC BY-SA 4.0.'}
 
 2. The Hunspell dictionary in the npm package ${pkg.name}@${pkg.version}
    (https://github.com/wooorm/dictionaries), licensed ${pkg.license}.

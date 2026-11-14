@@ -20,7 +20,21 @@ export interface LanguageInfo {
   alphabet: string;
   /** Letters that are written differently but count as one, like Greek final ς (σ). */
   fold?: Record<string, string>;
+  /**
+   * Pairs of letters that are one letter in this language, and take one tile:
+   * Welsh ll, dd, ch... Inside the game each is a single private-use character
+   * (see digraphChar), so everything that counts letters just works.
+   */
+  digraphs?: string[];
 }
+
+/** The single character a digraph is stored as: U+E000 onwards, in the order of DIGRAPHS. */
+export const DIGRAPHS = ['ch', 'dd', 'ff', 'ng', 'll', 'ph', 'rh', 'th'];
+export const digraphChar = (d: string) => String.fromCharCode(0xe000 + DIGRAPHS.indexOf(d));
+const WELSH = 'a b c ch d dd e f ff g ng h i j l ll m n o p ph r rh s t th u w y'
+  .split(' ')
+  .map((l) => (l.length > 1 ? digraphChar(l) : l))
+  .join('');
 
 const LATIN = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -34,6 +48,9 @@ export const LANGUAGES: LanguageInfo[] = [
   { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
   { code: 'ca', name: 'Catalan', nativeName: 'Català', wordLength: 5, maxGuesses: 6, alphabet: 'abcçdefghijklmnopqrstuvwxyz' },
   { code: 'eu', name: 'Basque', nativeName: 'Euskara', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
+  { code: 'cy', name: 'Welsh', nativeName: 'Cymraeg', wordLength: 5, maxGuesses: 6, alphabet: WELSH, digraphs: ['ch', 'dd', 'ff', 'ng', 'll', 'ph', 'rh', 'th'] },
+  { code: 'ga', name: 'Irish', nativeName: 'Gaeilge', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
+  { code: 'gd', name: 'Scottish Gaelic', nativeName: 'Gàidhlig', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
   { code: 'br', name: 'Breton', nativeName: 'Brezhoneg', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
   { code: 'pl', name: 'Polish', nativeName: 'Polski', wordLength: 5, maxGuesses: 6, alphabet: 'aąbcćdeęfghijklłmnńoópqrsśtuvwxyzźż' },
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnopqrstuvwxyzåäö' },

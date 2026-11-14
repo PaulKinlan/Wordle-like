@@ -1,7 +1,7 @@
 {
   "name": "Letterle",
   "short_name": "Letterle",
-  "description": "A new word every day in seven languages. Race your friends. No ads, no tracking.",
+  "description": "A new word every day, in many languages. Race your friends. No ads, no tracking.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

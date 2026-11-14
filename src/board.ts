@@ -1,4 +1,4 @@
-import type { Mark } from '../shared/game';
+import { displayLetter, type Mark } from '../shared/game';
 import { t as tr } from './i18n';
 import type { Row } from './storage';
 import { haptics } from './pwa';
@@ -128,5 +128,5 @@ export function setTileLocale(lang: string) {
 
 /** Uppercase for one tile. German ß has a capital (ẞ) that fits in one tile. */
 export function toUpper(letter: string) {
-  return letter === 'ß' ? 'ẞ' : letter.toLocaleUpperCase(tileLocale);
+  return letter === 'ß' ? 'ẞ' : displayLetter(letter).toLocaleUpperCase(tileLocale);
 }

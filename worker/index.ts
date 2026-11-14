@@ -199,10 +199,30 @@ export async function handleRooms(request: Request, rooms: DurableObjectNamespac
   return error(404, 'not_found', 'Unknown API route');
 }
 
+/**
+ * The installed app's colours. Android colours the system navigation bar from
+ * the manifest's theme_color, and a manifest can only have one, so a phone in
+ * dark mode gets the dark one (the Sec-CH-Prefers-Color-Scheme client hint,
+ * asked for in public/_headers). Chrome picks it up when it installs or
+ * updates the app.
+ */
+async function manifest(request: Request, assets: Fetcher): Promise<Response> {
+  const res = await assets.fetch(request);
+  const headers = new Headers(res.headers);
+  headers.append('Vary', 'Sec-CH-Prefers-Color-Scheme');
+  if (!res.ok || request.headers.get('Sec-CH-Prefers-Color-Scheme') !== 'dark') return new Response(res.body, { status: res.status, headers });
+  const m = (await res.json()) as Record<string, unknown>;
+  m.theme_color = '#121316';
+  m.background_color = '#121316';
+  headers.delete('Content-Length');
+  return new Response(JSON.stringify(m), { status: 200, headers });
+}
+
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/health') return health(env.DB, json);
+    if (url.pathname === '/manifest.webmanifest') return manifest(request, env.ASSETS);
     // Shared results (/s/...), race invites (/r/...) and their preview images (/og/...).
     if (/^\/(s|r|og)\//.test(url.pathname)) {
       try {

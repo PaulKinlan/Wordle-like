@@ -71,7 +71,7 @@ export function describeViolation(v: HardModeViolation): string {
   return v.count > 1 ? `Guess must contain ${v.count} × ${L}` : `Guess must contain ${L}`;
 }
 
-import { getLanguage } from './languages';
+import { digraphChar, DIGRAPHS, getLanguage } from './languages';
 
 const alphabets = new Map<string, Set<string>>();
 
@@ -99,8 +99,31 @@ export function normalizeWord(input: string, lang: string): string {
     const base = ch.normalize('NFD').replace(/\p{M}/gu, '');
     if (alphabet.has(base)) out += base;
   }
+  return joinDigraphs(out, getLanguage(lang)?.digraphs);
+}
+
+/** Welsh "llwyd" -> ["ll", "w", "y", "d"] as single characters, reading left to right. */
+function joinDigraphs(word: string, digraphs: string[] | undefined): string {
+  if (!digraphs) return word;
+  let out = '';
+  for (let i = 0; i < word.length; i++) {
+    const pair = word.slice(i, i + 2);
+    if (digraphs.includes(pair)) {
+      out += digraphChar(pair);
+      i++;
+    } else out += word[i];
+  }
   return out;
 }
+
+/** A tile's letter as people write it: the digraph for Welsh ll and friends, otherwise itself. */
+export function displayLetter(ch: string): string {
+  const i = ch.charCodeAt(0) - 0xe000;
+  return ch.length === 1 && i >= 0 && i < DIGRAPHS.length ? DIGRAPHS[i] : ch;
+}
+
+/** A normalised word written out in ordinary letters (digraphs expanded), e.g. for a text field. */
+export const expandWord = (word: string) => [...word].map(displayLetter).join('');
 
 export function statusAfter(marks: Mark[][], maxGuesses: number): GameStatus {
   const last = marks.at(-1);

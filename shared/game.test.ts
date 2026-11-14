@@ -71,3 +71,16 @@ describe('accents', () => {
     expect(evaluate('niños'.slice(0, 5), 'nonos')[1]).toBe('absent');
   });
 });
+
+describe('Welsh digraphs', () => {
+  it('makes ll, dd, ch... one tile each, reading left to right', async () => {
+    const { normalizeWord, expandWord, displayLetter, evaluate } = await import('./game');
+    const w = normalizeWord('Cyllell', 'cy');
+    expect([...w].map(displayLetter)).toEqual(['c', 'y', 'll', 'e', 'll']);
+    expect(expandWord(w)).toBe('cyllell');
+    expect([...normalizeWord('ffordd', 'cy')].map(displayLetter)).toEqual(['ff', 'o', 'r', 'dd']);
+    // Other languages are untouched.
+    expect(normalizeWord('llama', 'es')).toBe('llama');
+    expect(evaluate(normalizeWord('llaeth', 'cy'), normalizeWord('llaeth', 'cy')).every((m) => m === 'correct')).toBe(true);
+  });
+});
