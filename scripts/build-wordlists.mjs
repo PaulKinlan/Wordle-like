@@ -164,6 +164,23 @@ const INTL = {
       credit: 'UD Scottish Gaelic ARCOSG treebank (https://github.com/UniversalDependencies/UD_Scottish_Gaelic-ARCOSG), CC BY-SA 4.0.',
     },
   },
+  // Welsh: ch, dd, ff, ng, ll, ph, rh and th are single letters, one tile each,
+  // so a five-tile word can be longer than five letters ("cyllell" is c·y·ll·e·ll).
+  // Inside the game each is a private-use character (shared/languages.ts).
+  cy: {
+    spellFreeCount: 3,
+    alphabet: 'abcdefghijlmnoprstuwy',
+    digraphs: ['ch', 'dd', 'ff', 'ng', 'll', 'ph', 'rh', 'th'],
+    answers: 900,
+    fillFromHeadwords: true,
+    freq: {
+      url: ['train', 'dev', 'test'].map(
+        (part) => `https://raw.githubusercontent.com/UniversalDependencies/UD_Welsh-CCG/master/cy_ccg-ud-${part}.conllu`,
+      ),
+      format: 'conllu',
+      credit: 'UD Welsh CCG treebank (https://github.com/UniversalDependencies/UD_Welsh-CCG), CC BY-SA 4.0.',
+    },
+  },
   el: { spellFreeCount: 20, alphabet: 'αβγδεζηθικλμνξοπρστυφχψω', fold: { ς: 'σ' }, answers: 1400 },
 };
 
@@ -233,6 +250,20 @@ async function buildIntl(code, cfg) {
     const spell = nspell(dict);
     correct = (word) => spell.correct(word) || spell.correct(word[0].toLocaleUpperCase(code) + word.slice(1));
   }
+  // Must match DIGRAPHS in shared/languages.ts.
+  const DIGRAPHS = ['ch', 'dd', 'ff', 'ng', 'll', 'ph', 'rh', 'th'];
+  const joinDigraphs = (w) => {
+    if (!cfg.digraphs) return w;
+    let out = '';
+    for (let i = 0; i < w.length; i++) {
+      const pair = w.slice(i, i + 2);
+      if (cfg.digraphs.includes(pair)) {
+        out += String.fromCharCode(0xe000 + DIGRAPHS.indexOf(pair));
+        i++;
+      } else out += w[i];
+    }
+    return out;
+  };
   const alphabet = new Set(cfg.alphabet);
   const fold = (w) => {
     let out = '';
@@ -245,6 +276,7 @@ async function buildIntl(code, cfg) {
         out += base;
       }
     }
+    out = joinDigraphs(out);
     return [...out].length === LEN ? out : null;
   };
 
@@ -253,7 +285,7 @@ async function buildIntl(code, cfg) {
   const headwords = new Map();
   for (const line of readFileSync(dicPath, 'utf8').split('\n').slice(1)) {
     const [word, flags = ''] = line.trim().split(/\s/)[0].split('/');
-    if ([...word].length !== LEN || !/^\p{L}+$/u.test(word)) continue;
+    if ((!cfg.digraphs && [...word].length !== LEN) || !/^\p{L}+$/u.test(word)) continue;
     if (!(cfg.headword ?? ((w) => w === w.toLocaleLowerCase(code)))(word, flags)) continue;
     headwords.set(word.toLocaleLowerCase(code), word);
   }
@@ -266,7 +298,7 @@ async function buildIntl(code, cfg) {
   const used = new Set();
   for (const [word, count] of lines) {
     if (!word || Number(count) < 3) continue;
-    if ([...word].length !== LEN || !/^\p{L}+$/u.test(word)) continue;
+    if ((!cfg.digraphs && [...word].length !== LEN) || !/^\p{L}+$/u.test(word)) continue;
     const folded = fold(word);
     if (!folded) continue;
     if (!correct(word, Number(count))) continue;
@@ -279,7 +311,10 @@ async function buildIntl(code, cfg) {
   if (cfg.fillFromHeadwords) {
     // The dictionaries carry English loanwords ("ackee", "adieu"): leave those out of the answers.
     const english = englishWords();
-    for (const [lower, word] of headwords) {
+    // A fixed shuffle (by a hash of the word), so the extra answers aren't all from the start of the alphabet.
+    const hash = (w) => [...w].reduce((h, c) => Math.imul(h ^ c.codePointAt(0), 16777619) >>> 0, 2166136261);
+    const shuffled = [...headwords].sort((a, b) => hash(a[0]) - hash(b[0]));
+    for (const [lower, word] of shuffled) {
       const folded = fold(lower);
       if (!folded || used.has(folded) || INTL_BLOCK.has(lower) || english.has(lower)) continue;
       used.add(folded);
