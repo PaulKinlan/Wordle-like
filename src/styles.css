@@ -456,8 +456,8 @@ body:not(.typing) .tile.cursor {
   background: transparent;
   caret-color: transparent;
   cursor: text;
-  /* Taps go to the form underneath (keyboard.ts), so Android never shows a cursor handle. */
-  pointer-events: none;
+  /* Taps land on the field, so the browser opens the keyboard itself (keyboard.ts). */
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -1247,4 +1247,9 @@ dialog.sheet li {
   padding: 6px 14px;
   flex: none;
   width: auto;
+}
+
+/* Typing is off (game over, or a dialog is open): taps pass through the field. */
+.entry.locked {
+  pointer-events: none;
 }

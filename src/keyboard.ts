@@ -34,6 +34,8 @@ export class NativeEntry {
   private maxLength = 5;
   private enabled = true;
   private hiding: Promise<void> | null = null;
+  /** The browser itself has opened the keyboard on this page (see focus). */
+  private browserOpened = false;
 
   constructor(private o: EntryOptions) {
     const { input, form } = o;
@@ -55,14 +57,11 @@ export class NativeEntry {
       document.body.classList.remove('typing');
       if (this.enabled) debugLog('kb field lost focus', { to: describe((e as FocusEvent).relatedTarget as Element | null), vk: vkHeight() });
     });
-    // Taps land on the form, not the field (it has pointer-events: none): a tap
-    // into a text field makes Android show its cursor handle, a focus() call doesn't.
-    form.addEventListener('pointerup', () => this.focus(true));
-    // A tap on the board isn't on anything focusable, so its mousedown would
-    // move focus off the field straight after pointerup focused it (the log
-    // showed focus lost and taken back on every open). Keep focus where it is.
-    form.addEventListener('pointerdown', (e) => e.preventDefault());
-    form.addEventListener('mousedown', (e) => e.preventDefault());
+    // Taps land on the field itself (it covers the board, invisible), so the
+    // browser opens the keyboard its own way. A keyboard opened with
+    // navigator.virtualKeyboard.show() instead can't be closed again on
+    // Android Chrome (neither hide() nor blur() works); one the browser
+    // opened closes on blur.
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       debugLog('kb submit', { gesture: gesture() });
@@ -70,8 +69,7 @@ export class NativeEntry {
     });
 
     // The keyboard is only for the board: a tap anywhere else (a tab, a
-    // button, a menu, empty space) puts it away. This runs before the tap
-    // moves focus, while hide() still works (see hideKeyboard).
+    // button, a menu, empty space) puts it away.
     document.addEventListener(
       'pointerdown',
       (e) => {
@@ -80,13 +78,8 @@ export class NativeEntry {
       true,
     );
 
-    // If the keyboard is up while typing is on but focus has wandered off the
-    // field, keystrokes would go nowhere: put focus back on the board.
     vk?.addEventListener('geometrychange', () => {
-      if (vkHeight() <= 0 || !this.enabled || document.activeElement === input) return;
-      if (document.querySelector('dialog[open]')) return;
-      debugLog('kb refocus', { vk: vkHeight() });
-      input.focus();
+      if (vkHeight() > 0 && input.getAttribute('virtualkeyboardpolicy') !== 'manual') this.browserOpened = true;
     });
 
     // A physical keyboard should work even if focus has wandered.
@@ -113,7 +106,6 @@ export class NativeEntry {
       setTimeout(() => {
         if (!this.enabled || document.querySelector('dialog[open]')) return;
         this.focus(true);
-        debugLog('kb page back, refocused', { vk: vkHeight() });
       }, 150);
     });
 
@@ -132,34 +124,17 @@ export class NativeEntry {
       input.disabled = false;
       input.readOnly = false;
       input.removeAttribute('inputmode');
-      input.setAttribute('virtualkeyboardpolicy', 'manual');
+      input.classList.remove('locked');
       return Promise.resolve();
     }
-    const hidden = this.hideKeyboard();
-    // Android can bring the keyboard back once the keyboard app catches up
-    // with the Enter press: check again when that has settled.
-    setTimeout(() => {
-      if (!this.enabled && !this.hiding && vkHeight() > 0) {
-        debugLog('kb still up after 1.2s, hiding again');
-        void this.hideKeyboard();
-      }
-    }, 1200);
-    return hidden;
+    return this.hideKeyboard();
   }
 
   /**
-   * Puts the on-screen keyboard away. Each lever gets a moment to work before
-   * the next one is tried, because Chrome applies keyboard requests at the
-   * next frame: changing focus in the same task cancels them (the ?debug log
-   * showed hide() followed straight away by a blur leaving the keyboard up).
-   * 1. navigator.virtualKeyboard.hide() while the field is focused, editable
-   *    and on the "manual" policy (the API's own way).
-   * 2. If it's still up: switch the field to the "auto" policy, let a frame
-   *    pass, then blur (a blur under "auto" closes the keyboard).
-   * 3. If it's still up: disable the field, which Android can't keep a
-   *    keyboard open for.
-   * Each step goes to the ?debug log. Resolves once the keyboard is down
-   * (or every lever has been tried).
+   * Puts the on-screen keyboard away by taking focus off the field, which is
+   * what closes a keyboard the browser opened. If show() was used since (see
+   * focus), hide() is called first: that is its matching call. Resolves once
+   * the keyboard is down, or after a short wait if it isn't.
    */
   hideKeyboard(): Promise<void> {
     const { input } = this.o;
@@ -170,45 +145,21 @@ export class NativeEntry {
       return Promise.resolve(); // nothing to put away (not logged: every tap lands here)
     }
     debugLog('kb hide start', { focused, vk: vkHeight(), active: describe(document.activeElement), gesture: gesture() });
-    input.readOnly = false;
-    if (!focused) {
-      // hide() only acts for a focused field on the "manual" policy without
-      // inputmode="none" (spec and MDN). Under "manual", focusing doesn't
-      // raise the keyboard by itself.
-      input.removeAttribute('inputmode');
-      input.setAttribute('virtualkeyboardpolicy', 'manual');
-      input.focus({ preventScroll: true });
-    }
-    try {
-      vk?.hide();
-    } catch (e) {
-      debugLog('kb hide() threw', e);
-    }
-    if (this.enabled) return Promise.resolve(); // a tap elsewhere mid-game: the field keeps its policy
-    this.hiding = (async () => {
-      // hide() (called above) is the API's own way, and what the test page
-      // showed working. If it hasn't gone after a moment, blur as well: no
-      // refocusing, which only kept the keyboard attached.
-      const steps: [string, () => void | Promise<void>][] = [
-        ['hide()', () => undefined],
-        ['blur()', () => input.blur()],
-      ];
-      for (const [name, run] of steps) {
-        if (name !== 'hide()') {
-          debugLog(`kb try: ${name}`, { vk: vkHeight(), active: describe(document.activeElement), gesture: gesture() });
-          await run();
-        }
-        if (await this.closed()) {
-          debugLog(`kb closed by: ${name}`);
-          break;
-        }
+    if (focused && input.getAttribute('virtualkeyboardpolicy') === 'manual') {
+      try {
+        vk?.hide();
+      } catch (e) {
+        debugLog('kb hide() threw', e);
       }
-      if (document.activeElement === input) input.blur();
-      if (!this.enabled) this.lockField();
-      debugLog('kb hide done', { vk: vkHeight(), active: describe(document.activeElement) });
-    })().finally(() => {
-      this.hiding = null;
-    });
+    }
+    input.removeAttribute('virtualkeyboardpolicy');
+    input.blur();
+    if (!this.enabled) this.lockField();
+    this.hiding = this.closed(600)
+      .then((ok) => debugLog(ok ? 'kb closed' : 'kb STILL UP after blur', { vk: vkHeight(), active: describe(document.activeElement) }))
+      .finally(() => {
+        this.hiding = null;
+      });
     return this.hiding;
   }
 
@@ -230,11 +181,12 @@ export class NativeEntry {
     });
   }
 
-  /** Typing is off: no keyboard for this field until it's turned back on. */
+  /** Typing is off: no keyboard for this field, and taps pass through it, until it's turned back on. */
   private lockField() {
     const { input } = this.o;
     input.inputMode = 'none';
     input.readOnly = true;
+    input.classList.add('locked');
   }
 
   clear() {
@@ -242,19 +194,31 @@ export class NativeEntry {
     this.o.onChange('');
   }
 
-  /** Focuses the field; with showKeyboard (a tap on the board), also raises the keyboard. */
+  /**
+   * Focuses the field. With showKeyboard (New word, or coming back to the
+   * app mid-game) it also asks for the on-screen keyboard: a plain focus()
+   * can't, so this is what navigator.virtualKeyboard.show() is for. It needs
+   * the "manual" policy on the focused field; the policy goes back to normal
+   * when the keyboard is next put away.
+   *
+   * Only once the browser has opened the keyboard itself on this page (a tap
+   * on the board): on Android Chrome a keyboard whose first opening was
+   * show() can't be closed again. Before that, the player's tap opens it.
+   */
   focus(showKeyboard: boolean) {
     if (!this.enabled) return;
     const { input } = this.o;
+    const show = showKeyboard && !!vk && this.browserOpened;
+    if (show) input.setAttribute('virtualkeyboardpolicy', 'manual');
     input.focus({ preventScroll: true });
-    if (showKeyboard) {
+    if (show) {
       try {
-        vk?.show();
+        vk.show();
       } catch (e) {
         debugLog('kb show() threw', e);
       }
     }
-    debugLog('kb focus', { show: showKeyboard, vk: vkHeight() });
+    if (showKeyboard) debugLog('kb focus', { show, vk: vkHeight() });
   }
 
   private clean(value: string) {
