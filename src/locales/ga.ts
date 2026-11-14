@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Focal is annamh, agus caithfear gach leid a úsáid i dtomhaiseanna ina dhiaidh sin",
   "settings.contrast": "Dathanna ardchodarsnachta",
   "settings.contrastNote": "Níos éasca idirdhealú a dhéanamh má tá easnamh radharc dathanna ort",
+  "settings.hints": "Leideanna agus tú ag clóscríobh",
+  "settings.hintsNote": "Taispeántar litreacha a thriail tú cheana agus tú á gclóscríobh",
   "settings.theme": "Cuma",
   "settings.themeSystem": "Uathoibríoch",
   "settings.themeLight": "Geal",

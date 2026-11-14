@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Ett ovanligare ord, och varje ledtråd du hittar måste användas i senare gissningar",
   "settings.contrast": "Färger med hög kontrast",
   "settings.contrastNote": "Lättare att skilja åt vid färgseendebrister",
+  "settings.hints": "Tips medan du skriver",
+  "settings.hintsNote": "Visar bokstäver du redan har provat medan du skriver",
   "settings.theme": "Utseende",
   "settings.themeSystem": "Auto",
   "settings.themeLight": "Ljust",

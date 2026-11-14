@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryAnswerStore, shuffle } from './answers';
 import { handleApi, handleRooms } from './index';
-import { answerIndex, dailyNumber, parsePuzzleId } from './puzzles';
+import { dailyIndex, dailyNumber, parsePuzzleId, randomIndex } from './puzzles';
 
 const store = new MemoryAnswerStore();
 const call = (path: string, init?: RequestInit) => handleApi(new Request('https://x' + path, init), store);
@@ -18,16 +18,28 @@ describe('puzzle ids', () => {
     expect(dailyNumber('2026-02-30')).toBeNull();
   });
   it('refuses puzzles from the future', () => {
-    const now = Date.parse('2026-12-01T12:00:00Z');
-    expect(parsePuzzleId('d:2026-12-02', now)).not.toBeNull();
-    expect(parsePuzzleId('d:2026-12-04', now)).toBeNull();
-    expect(parsePuzzleId('r:nothex', now)).toBeNull();
+    // A day is served once it has started somewhere: UTC+14 is the furthest ahead.
+    expect(parsePuzzleId('d:2026-12-02', Date.parse('2026-12-01T09:00:00Z'))).toBeNull();
+    expect(parsePuzzleId('d:2026-12-02', Date.parse('2026-12-01T10:00:00Z'))).not.toBeNull();
+    expect(parsePuzzleId('d:2026-12-04', Date.parse('2026-12-01T12:00:00Z'))).toBeNull();
+    expect(parsePuzzleId('r:nothex')).toBeNull();
   });
-  it('maps puzzles onto the private order', () => {
-    expect(answerIndex({ kind: 'daily', date: '', number: 1, hard: false }, 10)).toBe(0);
-    expect(answerIndex({ kind: 'daily', date: '', number: 12, hard: false }, 10)).toBe(1);
-    expect(answerIndex({ kind: 'random', token: 'ffffffffffffffff', hard: true }, 10)).toBe(5);
+  it('maps daily puzzles onto the private order', () => {
+    expect(dailyIndex(1, 10)).toBe(0);
+    expect(dailyIndex(12, 10)).toBe(1);
     expect(parsePuzzleId('dh:2026-11-14', Date.parse('2026-11-14T00:00:00Z'))).toMatchObject({ hard: true, number: 1 });
+  });
+  it("doesn't let an unlimited token pick its row", async () => {
+    const at = (key: string, token: string) => randomIndex(key, 'en', token, 2000);
+    // The same token always means the same word...
+    expect(await at('k1', '0000000000000001')).toBe(await at('k1', '0000000000000001'));
+    // ...but which word depends on the server's key, not on the number in the token.
+    const rows = await Promise.all(['0000000000000000', '0000000000000001', '0000000000000002'].map((t) => at('k1', t)));
+    expect(rows).not.toEqual([0, 1, 2]);
+    expect(await Promise.all(['0000000000000000', '0000000000000001', '0000000000000002'].map((t) => at('k2', t)))).not.toEqual(rows);
+    // Each word pool has its own mapping.
+    expect(await randomIndex('k1', 'en:rare', '0000000000000001', 2000)).not.toBe(rows[1]);
+    for (const r of rows) expect(r).toBeGreaterThanOrEqual(0);
   });
   it('shuffles every word exactly once', () => {
     const words = Array.from({ length: 500 }, (_, i) => 'w' + i);
@@ -168,5 +180,22 @@ describe('race rooms API', () => {
     expect((await rooms$('/api/v1/rooms/ABC/socket')).status).toBe(404);
     const other = await rooms$('/api/v1/rooms/ABCDEF/socket', { headers: { Origin: 'https://evil.example' } });
     expect(other.status).toBe(403);
+  });
+});
+
+describe('bad input', () => {
+  const post = (path: string, body: string) => handleApi(new Request('https://x' + path, { method: 'POST', body }), store);
+  it('refuses a body that is not a JSON object', async () => {
+    for (const body of ['null', '[]', '"x"', 'nope', '']) {
+      await expect(post('/api/v1/en/play', body)).rejects.toMatchObject({ status: 400 });
+    }
+  });
+  it('refuses a body that is too big', async () => {
+    await expect(post('/api/v1/en/play', JSON.stringify({ puzzle: 'd:2026-11-14', guesses: ['a'.repeat(20000)] }))).rejects.toMatchObject({ status: 413 });
+  });
+  it("doesn't echo or process an over-long guess", async () => {
+    const r = await play({ puzzle: 'd:2026-11-14', guesses: ['a'.repeat(500)] });
+    expect(r.status).toBe(400);
+    expect(r.body.word).toBe('');
   });
 });

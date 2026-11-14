@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "あまり使われない単語。見つけたヒントはすべて次の回答で使う必要があります",
   "settings.contrast": "ハイコントラスト",
   "settings.contrastNote": "色覚に特性のある方にも見分けやすい配色",
+  "settings.hints": "入力中のヒント",
+  "settings.hintsNote": "入力中に、すでに試した文字を示します",
   "settings.theme": "外観",
   "settings.themeSystem": "自動",
   "settings.themeLight": "ライト",

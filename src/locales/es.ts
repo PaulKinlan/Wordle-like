@@ -80,6 +80,8 @@ const messages: Messages = {
   "settings.hardNote": "Una palabra menos común, y debes usar todas las pistas que encuentres",
   "settings.contrast": "Colores de alto contraste",
   "settings.contrastNote": "Más fáciles de distinguir con daltonismo",
+  "settings.hints": "Pistas al escribir",
+  "settings.hintsNote": "Marca las letras que ya has probado mientras las escribes",
   "settings.theme": "Apariencia",
   "settings.themeSystem": "Auto",
   "settings.themeLight": "Claro",

@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Gair llai cyffredin, ac mae'n rhaid defnyddio pob cliw mewn cynigion wedyn",
   "settings.contrast": "Lliwiau cyferbyniad uchel",
   "settings.contrastNote": "Haws eu gwahaniaethu os oes gennych chi ddiffyg golwg lliw",
+  "settings.hints": "Awgrymiadau wrth deipio",
+  "settings.hintsNote": "Yn dangos llythrennau rydych chi wedi'u trio'n barod wrth i chi deipio",
   "settings.theme": "Golwg",
   "settings.themeSystem": "Awto",
   "settings.themeLight": "Golau",

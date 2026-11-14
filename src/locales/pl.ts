@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Rzadsze słowo, a każdej znalezionej wskazówki trzeba użyć w kolejnych próbach",
   "settings.contrast": "Kolory o wysokim kontraście",
   "settings.contrastNote": "Łatwiejsze do odróżnienia przy zaburzeniach widzenia barw",
+  "settings.hints": "Podpowiedzi podczas pisania",
+  "settings.hintsNote": "Oznacza litery, które już były, gdy je wpisujesz",
   "settings.theme": "Wygląd",
   "settings.themeSystem": "Automatyczny",
   "settings.themeLight": "Jasny",

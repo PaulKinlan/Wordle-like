@@ -32,6 +32,14 @@
   // chosen local hour has come. The VAPID keys are made by the Worker and kept
   // in D1, so there's nothing to set up (secrets can override them).
   "triggers": { "crons": ["0 * * * *"] },
+  // Per-visitor rate limits (worker/http.ts): ordinary play, things that write
+  // to the database or draw an image, and making race rooms. Counted per
+  // minute, per address. Nothing to set up; the Worker runs without them too.
+  "ratelimits": [
+    { "name": "LIMIT_API", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "LIMIT_WRITES", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } },
+    { "name": "LIMIT_ROOMS", "namespace_id": "1003", "simple": { "limit": 5, "period": 60 } }
+  ],
   // Branch Previews (Workers Builds runs `npx wrangler preview` on branches).
   // They don't inherit the settings above. Each Preview gets its own Room
   // namespace automatically; the D1 database is a separate preview one, so
@@ -41,6 +49,11 @@
     "d1_databases": [
       { "binding": "DB", "database_name": "wordle-like-preview", "database_id": "3760372f-c816-4f82-8c3f-befc08db600a" }
     ],
-    "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] }
+    "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+    "ratelimits": [
+      { "name": "LIMIT_API", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+      { "name": "LIMIT_WRITES", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } },
+      { "name": "LIMIT_ROOMS", "namespace_id": "1003", "simple": { "limit": 5, "period": 60 } }
+    ]
   }
 }

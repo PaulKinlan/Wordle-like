@@ -149,7 +149,7 @@ const WORDS: Record<string, Record<string, string>> = {
 };
 
 function say(lang: string, key: string, vars: Record<string, string | number> = {}) {
-  const text = WORDS[lang]?.[key] ?? WORDS.en[key];
+  const text = (Object.hasOwn(WORDS, lang) ? WORDS[lang][key] : undefined) ?? WORDS.en[key];
   return text.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ''));
 }
 
@@ -469,7 +469,13 @@ function imageResponse(bytes: Uint8Array) {
 }
 
 /** Handles /s/..., /r/... and /og/...; null for anything else. */
-export async function handlePreview(request: Request, assets: Fetcher, ctx: ExecutionContext): Promise<Response | null> {
+export async function handlePreview(
+  request: Request,
+  assets: Fetcher,
+  ctx: ExecutionContext,
+  /** Asked before drawing a new image (not for cached ones): false means this visitor has had enough for now. */
+  mayDraw: () => Promise<boolean> = async () => true,
+): Promise<Response | null> {
   if (request.method !== 'GET' && request.method !== 'HEAD') return null;
   const url = new URL(request.url);
   const host = url.host;
@@ -492,11 +498,12 @@ export async function handlePreview(request: Request, assets: Fetcher, ctx: Exec
   if ((m = /^\/r\/([A-Za-z0-9]{6})\/?$/.exec(url.pathname))) {
     const code = m[1].toUpperCase();
     if (!ROOM_CODE.test(code)) return null;
-    const lang = url.searchParams.get('lang') ?? 'en';
+    const asked = url.searchParams.get('lang') ?? 'en';
+    const lang = Object.hasOwn(WORDS, asked) ? asked : 'en';
     return page(assets, request, {
       title: `Letterle: ${say(lang, 'raceTitle')}`,
       description: say(lang, 'descRace', { code }),
-      image: `${url.origin}/og/r/${code}.png?v=${OG_VERSION}${lang !== 'en' && WORDS[lang] ? `&lang=${lang}` : ''}`,
+      image: `${url.origin}/og/r/${code}.png?v=${OG_VERSION}${lang !== 'en' ? `&lang=${lang}` : ''}`,
       alt: `${say(lang, 'raceCode')} ${code}`,
       url: url.href,
       lang,
@@ -504,19 +511,29 @@ export async function handlePreview(request: Request, assets: Fetcher, ctx: Exec
   }
 
   if (url.pathname.startsWith('/og/')) {
-    const cache = (caches as unknown as { default: Cache }).default;
-    const hit = await cache.match(request);
-    if (hit) return hit;
-    let res: Response | null = null;
+    // Work out what's being asked for before drawing anything.
+    let draw: (() => Promise<Uint8Array>) | null = null;
+    // Cached by what's in the picture only: extra query strings don't make a new image.
+    const key = new URL(url.pathname, url.origin);
+    key.searchParams.set('v', String(OG_VERSION));
     if ((m = /^\/og\/s\/([a-z]{2,3})\/([a-z0-9]+)\/([0-2-]+)\.png$/.exec(url.pathname))) {
       const r = parseResult(m[1], m[2], m[3]);
-      if (r) res = imageResponse(await resultImage(r, host));
+      if (r) draw = () => resultImage(r, host);
     } else if ((m = /^\/og\/r\/([A-Z0-9]{6})\.png$/.exec(url.pathname)) && ROOM_CODE.test(m[1])) {
-      const lang = url.searchParams.get('lang') ?? 'en';
-      res = imageResponse(await raceImage(m[1], WORDS[lang] ? lang : 'en', host));
+      const code = m[1];
+      const asked = url.searchParams.get('lang') ?? 'en';
+      const lang = Object.hasOwn(WORDS, asked) ? asked : 'en';
+      if (lang !== 'en') key.searchParams.set('lang', lang);
+      draw = () => raceImage(code, lang, host);
     }
-    if (!res) return new Response('Not found', { status: 404 });
-    ctx.waitUntil(cache.put(request, res.clone()));
+    if (!draw) return new Response('Not found', { status: 404 });
+    const cache = (caches as unknown as { default: Cache }).default;
+    const cacheKey = new Request(key.href, { method: 'GET' });
+    const hit = await cache.match(cacheKey);
+    if (hit) return hit;
+    if (!(await mayDraw())) return new Response('Too many requests', { status: 429, headers: { 'Retry-After': '60' } });
+    const res = imageResponse(await draw());
+    ctx.waitUntil(cache.put(cacheKey, res.clone()));
     return res;
   }
   return null;

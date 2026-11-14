@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Daha nadir bir kelime ve bulduğun her ipucu sonraki tahminlerde kullanılmalı",
   "settings.contrast": "Yüksek kontrastlı renkler",
   "settings.contrastNote": "Renk körlüğünde ayırt etmesi daha kolay",
+  "settings.hints": "Yazarken ipuçları",
+  "settings.hintsNote": "Daha önce denediğin harfleri yazarken işaretler",
   "settings.theme": "Görünüm",
   "settings.themeSystem": "Otomatik",
   "settings.themeLight": "Açık",
