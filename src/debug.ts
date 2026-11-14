@@ -1,11 +1,11 @@
 // A debug panel for phones, where there's no console: open the game with
-import { SHORT_COMMIT } from '../shared/version';
 // ?debug and a log appears at the bottom of the page, with a Copy button.
 // It stays on for the tab until it's closed.
 //
 // The last few hundred lines are also kept on the device (even without
 // ?debug), so a problem seen in normal play still shows up when the log is
 // opened afterwards, across reloads. Nothing leaves the device.
+import { SHORT_COMMIT } from '../shared/version';
 
 const KEY = 'letterly:v1:debug';
 const LOG_KEY = 'letterly:v1:debuglog';
