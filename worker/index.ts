@@ -8,17 +8,20 @@
 //   GET  /:lang/words          every accepted guess, for instant validation
 //   POST /:lang/play           score guesses: { puzzle, guesses[], hard }
 //
+// The answers are never in this code; see answers.ts.
+//
 // Future steps plug in here: multiplayer rooms as a Durable Object under
 // /api/v1/rooms/*, and Web Push subscriptions under /api/v1/push/*.
 import { checkHardMode, describeViolation, evaluate, normalizeWord, statusAfter, type Mark } from '../shared/game';
 import { getLanguage, LANGUAGES } from '../shared/languages';
-import { answerFor, dailyNumber, newRandomToken, parsePuzzleId } from './puzzles';
-import { bundledWords, type WordSource } from './words';
+import { D1AnswerStore, type AnswerStore } from './answers';
+import { answerIndex, dailyNumber, newRandomToken, parsePuzzleId } from './puzzles';
+import { getWords } from './words';
 
 export interface Env {
   ASSETS: Fetcher;
-  /** Mixed into answer selection. Set with `wrangler secret put PUZZLE_SECRET`. */
-  PUZZLE_SECRET?: string;
+  /** Holds the private answer order. Created automatically on first deploy. */
+  DB: D1Database;
 }
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -39,7 +42,7 @@ function json(body: unknown, init: ResponseInit & { cache?: string } = {}): Resp
 const error = (status: number, code: string, message: string, extra: object = {}) =>
   json({ error: code, message, ...extra }, { status });
 
-export async function handleApi(request: Request, env: Env, words: WordSource = bundledWords): Promise<Response> {
+export async function handleApi(request: Request, answers: AnswerStore): Promise<Response> {
   const url = new URL(request.url);
   const parts = url.pathname.split('/').filter(Boolean); // ['api', 'v1', ...]
   if (parts[0] !== 'api' || parts[1] !== 'v1') return error(404, 'not_found', 'Unknown API route');
@@ -52,9 +55,8 @@ export async function handleApi(request: Request, env: Env, words: WordSource = 
 
   const lang = first ? getLanguage(first) : undefined;
   if (!lang || parts.length !== 4) return error(404, 'not_found', 'Unknown API route');
-  const list = await words.get(lang.code);
+  const list = getWords(lang.code);
   if (!list) return error(404, 'not_found', 'No word list for this language');
-  const secret = env.PUZZLE_SECRET || 'dev-only-secret';
 
   if (action === 'daily' && method === 'GET') {
     const date = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
@@ -84,7 +86,8 @@ export async function handleApi(request: Request, env: Env, words: WordSource = 
     if (!Array.isArray(body.guesses) || body.guesses.length < 1 || body.guesses.length > lang.maxGuesses) {
       return error(400, 'bad_request', 'Send between 1 and ' + lang.maxGuesses + ' guesses');
     }
-    const answer = await answerFor(ref, lang.code, list.answers, secret);
+    const count = await answers.count(lang.code, list.candidates);
+    const answer = await answers.at(lang.code, answerIndex(ref, count));
     const rows: { guess: string; marks: Mark[] }[] = [];
     for (const raw of body.guesses) {
       const guess = typeof raw === 'string' ? normalizeWord(raw, lang.code) : '';
@@ -123,7 +126,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) {
       try {
-        return await handleApi(request, env);
+        return await handleApi(request, new D1AnswerStore(env.DB));
       } catch (e) {
         console.error(e);
         return error(500, 'server_error', 'Something went wrong');

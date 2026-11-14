@@ -14,9 +14,13 @@
     // else is a static file, with index.html as the fallback.
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
-  }
+  },
+  // Keeps the private answer order (see worker/answers.ts). No database_id:
+  // Wrangler creates the database on the first deploy, and the Worker fills
+  // it on its first request.
+  "d1_databases": [{ "binding": "DB", "database_name": "wordle-like" }]
   // Later steps:
   // - Multiplayer: add a Durable Object binding + migration for game rooms.
-  // - Push: add a KV/D1 binding for subscriptions, VAPID keys as secrets,
+  // - Push: store subscriptions in the same D1 database, VAPID keys as secrets,
   //   and a "triggers": { "crons": [...] } entry for the daily notification.
 }

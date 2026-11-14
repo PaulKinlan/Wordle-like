@@ -1,38 +1,30 @@
-// Word lists, keyed by language code.
+// Word lists, keyed by language code. Bundled into the Worker.
 //
-// Lists are bundled into the Worker today. The WordSource interface is the
-// seam for moving them to KV or R2 later without touching the API code.
-import enAnswers from './words/en/answers.json';
+// candidates: words that can be an answer (their order is private, see answers.ts)
+// guessable:  every word accepted as a guess, candidates included
+import enCandidates from './words/en/candidates.json';
 import enAllowed from './words/en/allowed.json';
 
 export interface WordList {
-  /** Words that can be picked as the answer, in a stable order. */
-  answers: readonly string[];
-  /** Every word accepted as a guess (answers included). */
+  candidates: readonly string[];
   guessable: ReadonlySet<string>;
 }
 
-export interface WordSource {
-  get(lang: string): Promise<WordList | undefined>;
-}
-
-const bundled: Record<string, { answers: string[]; allowed: string[] }> = {
-  en: { answers: enAnswers, allowed: enAllowed },
+const bundled: Record<string, { candidates: string[]; allowed: string[] }> = {
+  en: { candidates: enCandidates, allowed: enAllowed },
 };
 
 const cache = new Map<string, WordList>();
 
-export const bundledWords: WordSource = {
-  async get(lang) {
-    const hit = cache.get(lang);
-    if (hit) return hit;
-    const raw = bundled[lang];
-    if (!raw) return undefined;
-    const list: WordList = {
-      answers: raw.answers,
-      guessable: new Set([...raw.answers, ...raw.allowed]),
-    };
-    cache.set(lang, list);
-    return list;
-  },
-};
+export function getWords(lang: string): WordList | undefined {
+  const hit = cache.get(lang);
+  if (hit) return hit;
+  const raw = bundled[lang];
+  if (!raw) return undefined;
+  const list: WordList = {
+    candidates: raw.candidates,
+    guessable: new Set([...raw.candidates, ...raw.allowed]),
+  };
+  cache.set(lang, list);
+  return list;
+}

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { handleApi, type Env } from './index';
-import { dailyNumber, parsePuzzleId } from './puzzles';
+import { MemoryAnswerStore, shuffle } from './answers';
+import { handleApi } from './index';
+import { answerIndex, dailyNumber, parsePuzzleId } from './puzzles';
 
-const env = { PUZZLE_SECRET: 'test' } as Env;
-const call = (path: string, init?: RequestInit) => handleApi(new Request('https://x' + path, init), env);
+const store = new MemoryAnswerStore();
+const call = (path: string, init?: RequestInit) => handleApi(new Request('https://x' + path, init), store);
 const play = (body: object) =>
   call('/api/v1/en/play', { method: 'POST', body: JSON.stringify(body) }).then(async (r) => ({
     status: r.status,
@@ -21,6 +22,17 @@ describe('puzzle ids', () => {
     expect(parsePuzzleId('d:2026-12-02', now)).not.toBeNull();
     expect(parsePuzzleId('d:2026-12-04', now)).toBeNull();
     expect(parsePuzzleId('r:nothex', now)).toBeNull();
+  });
+  it('maps puzzles onto the private order', () => {
+    expect(answerIndex({ kind: 'daily', date: '', number: 1 }, 10)).toBe(0);
+    expect(answerIndex({ kind: 'daily', date: '', number: 12 }, 10)).toBe(1);
+    expect(answerIndex({ kind: 'random', token: 'ffffffffffffffff' }, 10)).toBe(5);
+  });
+  it('shuffles every word exactly once', () => {
+    const words = Array.from({ length: 500 }, (_, i) => 'w' + i);
+    const out = shuffle(words);
+    expect(out).not.toEqual(words);
+    expect([...out].sort()).toEqual([...words].sort());
   });
 });
 
