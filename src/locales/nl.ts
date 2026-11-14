@@ -48,6 +48,8 @@ const messages: Messages = {
   "card.play": "Speel zelf op {host}",
   "settings.version": "Versie {version}",
   "help.bug": "Een fout gevonden? Meld het op GitHub",
+  "update.ready": "Er is een nieuwe versie van Letterle",
+  "update.button": "Bijwerken",
   "settings.haptics": "Trillen",
   "settings.hapticsNote": "Een lichte tril als de tegels omdraaien en als je wint",
   "settings.install": "App installeren",

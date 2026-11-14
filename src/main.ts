@@ -9,6 +9,7 @@ import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
 import { initDebug } from './debug';
 import { initTelemetry, track } from './telemetry';
+import { watchForUpdates } from './update';
 import { canVibrate, promptInstall, setHaptics, setUnplayedBadge, watchInstall } from './pwa';
 import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
@@ -808,6 +809,17 @@ function firstVisit() {
 }
 
 void init();
+
+// A newer version is live: offer it, without interrupting anything.
+watchForUpdates((live) => {
+  const bar = $('update-bar');
+  bar.hidden = false;
+  track('update_offered', { from: COMMIT.slice(0, 7), to: live.slice(0, 7) });
+  $('btn-update').addEventListener('click', () => {
+    track('update_applied');
+    location.reload();
+  });
+});
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   // The CSP requires Trusted Types; this policy only ever allows our own worker.

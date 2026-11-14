@@ -48,6 +48,8 @@ const messages: Messages = {
   "card.play": "Gioca anche tu su {host}",
   "settings.version": "Versione {version}",
   "help.bug": "Hai trovato un bug? Segnalalo su GitHub",
+  "update.ready": "È pronta una nuova versione di Letterle",
+  "update.button": "Aggiorna",
   "settings.haptics": "Vibrazione",
   "settings.hapticsNote": "Una leggera vibrazione quando le caselle girano e quando vinci",
   "settings.install": "Installa l'app",

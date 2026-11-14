@@ -55,6 +55,8 @@ const en = {
   'card.play': 'Play your own at {host}',
   'settings.version': 'Version {version}',
   'help.bug': 'Found a bug? Report it on GitHub',
+  'update.ready': 'A new version of Letterle is ready',
+  'update.button': 'Update',
   'settings.haptics': "Vibration",
   'settings.hapticsNote': "A light buzz as tiles flip and when you win",
   'settings.install': "Install the app",
