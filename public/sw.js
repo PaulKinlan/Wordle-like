@@ -76,7 +76,7 @@ self.addEventListener('push', (event) => {
     data = { body: event.data?.text() };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Letterly', {
+    self.registration.showNotification(data.title || 'Letterle', {
       body: data.body || "Today's word is ready",
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

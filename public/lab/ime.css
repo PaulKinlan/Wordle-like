@@ -1,0 +1,13 @@
+:root { color-scheme: light dark; font: 16px/1.45 system-ui, sans-serif; }
+body { margin: 0 auto; max-width: 40rem; padding: 16px 16px 50vh; }
+h1 { font-size: 1.4rem; margin: 0 0 8px; }
+ol { padding: 0; list-style: none; display: grid; gap: 14px; }
+li { border: 1px solid #8884; border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+li h2 { font-size: 1rem; margin: 0; }
+li code { font-size: 0.8rem; opacity: 0.75; word-break: break-all; }
+input, [contenteditable] { font: inherit; font-size: 18px; padding: 10px; border: 1px solid #8886; border-radius: 8px; min-height: 1.4em; }
+.got { font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; min-height: 1.4em; }
+.ask { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ask label { display: flex; gap: 4px; align-items: center; border: 1px solid #8886; border-radius: 99px; padding: 4px 10px; }
+button { font: inherit; padding: 10px 16px; border-radius: 99px; border: 0; background: #2f9e74; color: #fff; }
+.ua { font-size: 0.75rem; opacity: 0.6; word-break: break-all; }

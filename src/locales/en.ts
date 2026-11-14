@@ -50,6 +50,9 @@ const en = {
 
   'share.copied': 'Copied to clipboard',
   'share.failed': "Couldn't share or copy",
+  'card.won': 'Got it!',
+  'card.lost': 'So close',
+  'card.play': 'Play your own at {host}',
 
   'help.title': 'How to play',
   'help.p1': 'Guess the word in **six** tries. Tap the board and type with your phone\'s keyboard, then press Enter.',
@@ -84,7 +87,7 @@ const en = {
   'settings.uiNote': 'Menus and messages',
   'settings.push': 'Daily reminder',
   'settings.pushNote': 'A notification when the new word is ready',
-  'settings.pushInstall': 'Add Letterly to your Home Screen first (Share, then Add to Home Screen)',
+  'settings.pushInstall': 'Add Letterle to your Home Screen first (Share, then Add to Home Screen)',
   'settings.pushTime': 'Reminder time',
   'settings.pushTimeNote': "Skipped on days you've already played",
 
@@ -143,7 +146,7 @@ const en = {
   'race.again': 'Play again',
   'race.againHost': 'Same room, new word.',
   'race.againGuest': 'The host can start another round.',
-  'race.inviteText': 'Race me at Letterly! Code {code}',
+  'race.inviteText': 'Race me at Letterle! Code {code}',
   'race.inviteCopied': 'Invite link copied',
   'race.addName': 'Add your name first',
   'race.couldNotStart': 'Could not start a race',
