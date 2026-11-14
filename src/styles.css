@@ -1545,3 +1545,47 @@ body.osk-on .tile.cursor {
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }
+
+/* ------------------------------------------------------------ install */
+
+/* <install> is drawn by the browser where supported; install.ts shows it or
+   our own button beside it, never both. */
+install {
+  display: inline-flex;
+  font: inherit;
+}
+
+install[hidden],
+[data-install][hidden] {
+  display: none;
+}
+
+.result-install {
+  margin: -4px 0 0;
+  line-height: 1;
+}
+
+.result-install install {
+  font-size: 0.85rem;
+}
+
+.install-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.install-steps {
+  display: none;
+}
+
+#dlg-install[data-route='ios'] .install-ios,
+#dlg-install[data-route='menu'] .install-menu {
+  display: block;
+}
+
+#dlg-install:not([data-route='button']) .install-go {
+  display: none;
+}

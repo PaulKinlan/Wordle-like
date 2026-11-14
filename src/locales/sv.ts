@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Installera appen",
   "settings.installNote": "Öppna Letterle från hemskärmen, även offline",
   "settings.installButton": "Installera",
+  "install.title": "Lägg Letterle på hemskärmen",
+  "install.body": "Öppnas direkt på dagens ord, fungerar offline och kan påminna dig när ett nytt ord är klart.",
+  "install.ios": "Tryck på **Dela** i Safari och sedan på **Lägg till på hemskärmen**.",
+  "install.menu": "Öppna webbläsarens meny och välj **Installera app** eller **Lägg till på startskärmen**.",
+  "install.notNow": "Inte nu",
 
   "help.title": "Så spelar du",
   "help.p1": "Gissa ordet på **{n}** försök. Tryck på brädet, skriv med telefonens tangentbord och tryck på Enter.",

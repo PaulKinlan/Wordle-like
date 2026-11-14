@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Staliañ an arload",
   "settings.installNote": "Digeriñ Letterle diwar ar skramm degemer, zoken ezlinenn",
   "settings.installButton": "Staliañ",
+  "install.title": "Lakait Letterle war ho skramm degemer",
+  "install.body": "Digeriñ a ra war-eeun war ger an deiz, mont a ra en-dro ezlinenn, ha gallout a ra ho kelaouiñ pa vez prest ur ger nevez.",
+  "install.ios": "E Safari, stokit **Rannañ**, ha goude **Ouzhpennañ d'ar skramm degemer**.",
+  "install.menu": "Digorit lañser ho merdeer ha dibabit **Staliañ an arload** pe **Ouzhpennañ d'ar skramm degemer**.",
+  "install.notNow": "Diwezhatoc'h",
 
   "help.title": "Penaos c'hoari",
   "help.p1": "Kavit ar ger e **{n}** klask. Stokit an daolenn, skrivit gant klavier ho pellgomzer ha pouezit war Enter.",

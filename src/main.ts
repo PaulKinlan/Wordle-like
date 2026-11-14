@@ -12,7 +12,8 @@ import { initDebug } from './debug';
 import { initTelemetry, track } from './telemetry';
 import { watchForUpdates } from './update';
 import { registerAgentTools } from './webmcp';
-import { canVibrate, promptInstall, setHaptics, setUnplayedBadge, watchInstall } from './pwa';
+import { canVibrate, setHaptics, setUnplayedBadge } from './pwa';
+import { initInstall, noteFinishedGame, sheetRoute, takeNudge } from './install';
 import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
 import { resultUrl, shareCard, shareText, streakLine } from './share';
@@ -283,6 +284,7 @@ function reject(row: number, message: string) {
 
 
 function finish(g: SavedGame) {
+  noteFinishedGame();
   if (g.status === 'won') {
     board.bounce(g.rows.length - 1);
     toast(t(`praise.${Math.min(g.rows.length, 6)}` as 'praise.1'));
@@ -681,14 +683,21 @@ setOskBox.addEventListener('change', () => {
   syncOsk();
 });
 
-// Install button, where the browser offers one (Chrome, Edge, Samsung).
-watchInstall((available) => ($('install-row').hidden = !available));
-$('btn-install').addEventListener('click', () => {
-  track('install_prompt');
-  void promptInstall().then((accepted) => {
-    track(accepted ? 'install_accepted' : 'install_dismissed');
-    $('install-row').hidden = true;
-  });
+// Install offers: Settings row, end-of-game link and a one-time sheet (install.ts).
+function openInstallSheet() {
+  const dlg = $<HTMLDialogElement>('dlg-install');
+  dlg.dataset.route = sheetRoute();
+  openDialog('dlg-install');
+}
+initInstall({ openSheet: openInstallSheet });
+// The one-time sheet waits until the stats sheet after a finished game is closed.
+$('dlg-stats').addEventListener('close', () => {
+  if (race.isActive || !game || game.status === 'playing') return;
+  if (document.querySelector('dialog[open]')) return;
+  if (takeNudge()) {
+    track('install_nudge');
+    openInstallSheet();
+  }
 });
 
 /** A dot on the app icon while today's word (in the current language and mode) is unplayed. */
@@ -880,7 +889,9 @@ async function init() {
   }
   // On a computer, be ready to type straight away. Phones wait for a tap.
   if (matchMedia('(pointer: fine)').matches) entry.focus(false);
-  if (firstVisit()) openDialog('dlg-help');
+  // ?install-sheet opens the install sheet straight away, for testing it.
+  if (new URLSearchParams(location.search).has('install-sheet')) openInstallSheet();
+  else if (firstVisit()) openDialog('dlg-help');
 }
 
 function showVersion() {

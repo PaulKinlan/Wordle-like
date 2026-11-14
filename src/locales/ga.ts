@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Suiteáil an aip",
   "settings.installNote": "Oscail Letterle ó do scáileán baile, fiú as líne",
   "settings.installButton": "Suiteáil",
+  "install.title": "Cuir Letterle ar do scáileán baile",
+  "install.body": "Osclaíonn sé díreach ar fhocal an lae, oibríonn sé as líne, agus is féidir leis tú a chur i gcuimhne nuair a bhíonn focal nua réidh.",
+  "install.ios": "In Safari, tapáil **Comhroinn**, ansin **Cuir leis an Scáileán Baile**.",
+  "install.menu": "Oscail roghchlár do bhrabhsálaí agus roghnaigh **Suiteáil an aip** nó **Cuir leis an scáileán baile**.",
+  "install.notNow": "Ní anois",
 
   "help.title": "Conas imirt",
   "help.p1": "Tomhais an focal i **{n}** iarracht. Tapáil an clár, clóscríobh le méarchlár an fhóin, ansin brúigh Enter.",

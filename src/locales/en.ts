@@ -67,6 +67,11 @@ const en = {
   'settings.install': "Install the app",
   'settings.installNote': "Open Letterle from your home screen, even offline",
   'settings.installButton': "Install",
+  'install.title': "Get Letterle on your home screen",
+  'install.body': "It opens straight to today's word, works offline, and can remind you when a new word is ready.",
+  'install.ios': "In Safari, tap **Share**, then **Add to Home Screen**.",
+  'install.menu': "Open your browser's menu and choose **Install app** or **Add to Home screen**.",
+  'install.notNow': "Not now",
 
   'help.title': 'How to play',
   'help.p1': 'Guess the word in **{n}** tries. Tap the board and type with your phone\'s keyboard, then press Enter.',

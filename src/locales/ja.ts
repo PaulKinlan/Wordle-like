@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "アプリをインストール",
   "settings.installNote": "ホーム画面から Letterle を開けます。オフラインでも使えます",
   "settings.installButton": "インストール",
+  "install.title": "Letterle をホーム画面に追加",
+  "install.body": "今日の単語がすぐに開き、オフラインでも遊べて、新しい単語の準備ができたらお知らせできます。",
+  "install.ios": "Safari で **共有** をタップし、**ホーム画面に追加** を選びます。",
+  "install.menu": "ブラウザのメニューを開き、**アプリをインストール** または **ホーム画面に追加** を選びます。",
+  "install.notNow": "今はしない",
 
   "help.title": "遊び方",
   "help.p1": "**{n}回**以内に単語を当てましょう。ボードをタップしてスマホのキーボードで入力し、Enter を押します。",

@@ -65,6 +65,11 @@ const messages: Messages = {
   "settings.install": "Zainstaluj aplikację",
   "settings.installNote": "Otwieraj Letterle z ekranu głównego, nawet offline",
   "settings.installButton": "Zainstaluj",
+  "install.title": "Dodaj Letterle do ekranu głównego",
+  "install.body": "Otwiera się od razu na słowie dnia, działa offline i może przypomnieć, gdy pojawi się nowe słowo.",
+  "install.ios": "W Safari stuknij **Udostępnij**, a potem **Do ekranu początkowego**.",
+  "install.menu": "Otwórz menu przeglądarki i wybierz **Zainstaluj aplikację** lub **Dodaj do ekranu głównego**.",
+  "install.notNow": "Nie teraz",
 
   "help.title": "Jak grać",
   "help.p1": "Odgadnij słowo w **{n}** próbach. Dotknij planszy, pisz na klawiaturze telefonu i naciśnij Enter.",
