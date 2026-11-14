@@ -18,9 +18,12 @@
   // Keeps the private answer order (see worker/answers.ts). No database_id:
   // Wrangler creates the database on the first deploy, and the Worker fills
   // it on its first request.
-  "d1_databases": [{ "binding": "DB", "database_name": "wordle-like" }]
+  "d1_databases": [{ "binding": "DB", "database_name": "wordle-like" }],
+  // Multiplayer: one Durable Object per race room (worker/room.ts), with
+  // SQLite-backed storage. Created on deploy; nothing to set up by hand.
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
   // Later steps:
-  // - Multiplayer: add a Durable Object binding + migration for game rooms.
   // - Push: store subscriptions in the same D1 database, VAPID keys as secrets,
   //   and a "triggers": { "crons": [...] } entry for the daily notification.
 }

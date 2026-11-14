@@ -36,11 +36,49 @@
         <div class="segmented" role="tablist">
           <button type="button" role="tab" id="mode-daily" aria-selected="true">Daily</button>
           <button type="button" role="tab" id="mode-unlimited" aria-selected="false">Unlimited</button>
+          <button type="button" role="tab" id="mode-race" aria-selected="false">Race</button>
         </div>
         <p class="subtitle" id="subtitle" aria-live="polite"></p>
       </nav>
 
       <main class="play">
+        <!-- Multiplayer: before a race starts. -->
+        <section class="race-lobby" id="race-lobby" hidden>
+          <div class="race-card" id="race-intro">
+            <h2>Race your friends</h2>
+            <p>Everyone gets the same word. When someone finishes a row, everyone else has <strong>5 seconds</strong> to finish theirs, or that row is lost.</p>
+            <p>First to find the word wins. If nobody does, the best single row wins: <strong>2 points</strong> for each green letter and <strong>1 point</strong> for each yellow.</p>
+            <label class="field">
+              <span>Your name</span>
+              <input id="race-name" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" enterkeyhint="go" />
+            </label>
+            <button class="primary wide" id="race-create" type="button">Start a race</button>
+            <p class="fineprint" id="race-config"></p>
+          </div>
+          <div class="race-card" id="race-room" hidden>
+            <p class="race-code-label">Race code</p>
+            <p class="race-code" id="race-code"></p>
+            <p class="fineprint" id="race-room-config"></p>
+            <button class="secondary wide" id="race-invite" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
+              Invite friends
+            </button>
+            <ul class="race-players" id="race-players" aria-label="Players"></ul>
+            <button class="primary wide" id="race-start" type="button">Start the race</button>
+            <p class="fineprint" id="race-wait" aria-live="polite"></p>
+            <button class="link" id="race-leave" type="button">Leave this race</button>
+          </div>
+        </section>
+
+        <!-- Multiplayer: during a race, above the board. -->
+        <div class="race-bar" id="race-bar" hidden>
+          <div class="opponents" id="opponents" aria-label="Other players"></div>
+          <div class="race-timer" id="race-timer" role="timer" aria-live="off" hidden>
+            <span class="race-timer-fill" id="race-timer-fill"></span>
+            <span class="race-timer-text" id="race-timer-text"></span>
+          </div>
+        </div>
+
         <form class="board-wrap" id="entry-form" autocomplete="off">
           <div class="board" id="board" role="grid" aria-label="Guesses"></div>
           <!-- The phone's own keyboard types into this field. It sits over the
@@ -94,6 +132,7 @@
         </ul>
         <p><strong>Daily</strong> is one word a day, the same for everyone. <strong>Unlimited</strong> gives you a fresh word whenever you want.</p>
         <p><strong>Hard mode</strong> picks a rarer word, and you must use every hint you've found in later guesses. It has its own daily word and its own stats.</p>
+        <p><strong>Race</strong> against friends: start a race, send the invite link, and everyone plays the same word. When someone finishes a row, the others have 5 seconds to finish theirs. First to find the word wins; if nobody does, the best single row wins (2 points per green, 1 per yellow).</p>
         <p><strong>Other languages</strong> are in Settings. Accents are optional: É counts as E. Letters that are their own letter, like Spanish Ñ or German Ä, count separately.</p>
       </form>
     </dialog>
@@ -111,6 +150,19 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
             Share
           </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-race" class="sheet" aria-labelledby="race-title" tabindex="-1" autofocus closedby="any">
+      <form method="dialog">
+        <header class="sheet-head"><h2 id="race-title">Race over</h2><button class="close" type="submit" value="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
+        <p id="race-outcome"></p>
+        <ol class="standings" id="race-standings"></ol>
+        <p class="fineprint" id="race-scoring">If nobody finds the word, each player's best row scores 2 points per green letter and 1 per yellow. A tie goes to whoever got there first.</p>
+        <div class="stats-foot">
+          <p class="fineprint" id="race-again-note"></p>
+          <button class="primary" id="race-again" type="button">Play again</button>
         </div>
       </form>
     </dialog>

@@ -9,6 +9,9 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
   guesses. It has its own daily word, saved game and stats.
 - **Seven languages**: English, Spanish, French, German, Italian, Portuguese and Dutch,
   each with its own daily word. The picker lists your device's languages first.
+- **Race**: play friends on the same word in real time (up to 4 players). Share an
+  invite link; when someone finishes a row, everyone else has 5 seconds to finish
+  theirs. First to find the word wins, otherwise the best single row on points.
 - **Share**: a spoiler-free emoji grid through the share sheet, or copied to the clipboard.
 - **Stats**: played, win rate, streaks and guess distribution, kept on your device.
 - **Installable PWA** that opens offline, with a strict Content Security Policy.
@@ -59,9 +62,42 @@ All routes are under `/api/v1` and keyed by language code (`en`, `es`, `fr`, `de
 | `GET /:lang/words` | Every accepted guess (cached by the service worker for instant checks) |
 | `POST /:lang/play` | `{ puzzle, guesses }` → `{ rows, status, hard, answer? }` |
 
+| `POST /rooms` | `{ lang, hard }` → `{ code }`: a new race room |
+| `GET /rooms/:code/socket` | WebSocket for one player in a race (see below) |
+
 Puzzle ids are `d:<date>` (daily) or `r:<16 hex>` (unlimited), with `dh:`/`rh:`
 for hard mode, which draws from the rare-word pool (`en:rare`, its own private order). Daily puzzle #1
 is 14 November 2026.
+
+### Multiplayer races
+
+Each race room is a [Durable Object](https://developers.cloudflare.com/durable-objects/)
+(`worker/room.ts`), named by its 6-character code, with SQLite storage. The
+binding and migration are in `wrangler.jsonc`, so Cloudflare creates it on
+deploy; there's nothing to set up. Players connect over a WebSocket using the
+hibernation API, so a quiet room costs nothing, and keep-alive pings are
+answered without waking it. Rooms delete themselves after a day without activity.
+
+The rules live in `worker/race.ts` (pure code, unit tested) and
+`shared/race.ts` (scoring and message types):
+
+- The host starts a round once at least one friend is connected. The room picks
+  a random word from the same private order as unlimited play.
+- Every guess is checked and scored on the server. Other players only ever see
+  your colours, never your letters, and nobody sees the answer until the end.
+- When a player finishes row *k*, everyone who hasn't finished row *k* has
+  5 seconds to do it, counted from when they finished their previous row if
+  that was later. A row that runs out is lost (shown hatched). The room uses a
+  Durable Object alarm for the clock, so it's enforced even if a phone is asleep.
+- The first player to find the word wins. If nobody does, each player's best
+  single row scores 2 points per green and 1 per yellow; a tie goes to whoever
+  reached that score first.
+- Players rejoin with a token kept on their device, so a reload or a dropped
+  connection puts them back where they were. Someone who joins mid-round plays
+  from the next round, and the host can start another round with a new word.
+
+Messages are JSON: the client sends `join`, `start`, `guess` and `ping`; the
+room replies with `welcome`, `state` (each player's own view) and `error`.
 
 ### Word lists
 
@@ -148,7 +184,5 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 
 ## Ready for later steps
 
-- **Multiplayer**: add a Durable Object for rooms under `/api/v1/rooms/*`;
-  `shared/game.ts` already scores guesses on the server.
 - **Push notifications**: store subscriptions in the same D1 database, VAPID keys as Worker
   secrets, a cron trigger in `wrangler.jsonc`, and a `push` handler in `public/sw.js`.

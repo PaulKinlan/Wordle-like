@@ -5,6 +5,7 @@ import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../sha
 import { api, ApiError } from './api';
 import { Board, renderTracker } from './board';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
+import { RaceClient } from './race';
 import { shareText } from './share';
 import {
   currentStreak,
@@ -35,6 +36,7 @@ const els = {
   typeHint: $('type-hint'),
   tabDaily: $<HTMLButtonElement>('mode-daily'),
   tabUnlimited: $<HTMLButtonElement>('mode-unlimited'),
+  tabRace: $<HTMLButtonElement>('mode-race'),
   setHard: $<HTMLInputElement>('set-hard'),
   setContrast: $<HTMLInputElement>('set-contrast'),
   setLang: $<HTMLSelectElement>('set-lang'),
@@ -53,19 +55,47 @@ const entry = new NativeEntry({
   form: els.form,
   normalize: (text) => normalizeWord(text, lang),
   onChange: (letters) => {
+    if (race.isActive) return race.onLetters(letters);
     current = letters;
     draw();
   },
-  onSubmit: () => void submit(),
+  onSubmit: () => (race.isActive ? race.submit() : void submit()),
 });
+
+const race = new RaceClient({
+  board,
+  entry,
+  tracker: els.tracker,
+  toast: (m, ms) => toast(m, ms),
+  openDialog: (id) => openDialog(id),
+  config: () => ({ lang, hard: settings.hard }),
+  setSubtitle: (text) => {
+    els.subtitle.textContent = text;
+  },
+  words: (code) => words.get(code),
+  loadWords: (code) => void loadWords(code),
+});
+
+function selectTab(tab: 'daily' | 'unlimited' | 'race') {
+  els.tabDaily.setAttribute('aria-selected', String(tab === 'daily'));
+  els.tabUnlimited.setAttribute('aria-selected', String(tab === 'unlimited'));
+  els.tabRace.setAttribute('aria-selected', String(tab === 'race'));
+}
+
+function openRace(code?: string | null) {
+  selectTab('race');
+  els.result.hidden = true;
+  els.typeHint.hidden = true;
+  race.show(code);
+}
 
 // ---------------------------------------------------------------- game flow
 
 async function startMode(mode: Mode, fresh = false) {
+  if (race.isActive) race.hide();
   settings.mode = mode;
   saveSettings(settings);
-  els.tabDaily.setAttribute('aria-selected', String(mode === 'daily'));
-  els.tabUnlimited.setAttribute('aria-selected', String(mode === 'unlimited'));
+  selectTab(mode);
 
   const info = getLanguage(lang) ?? getLanguage(DEFAULT_LANGUAGE)!;
   const hard = settings.hard;
@@ -187,7 +217,7 @@ function finish() {
 // ---------------------------------------------------------------- drawing
 
 function draw(skipTracker = false) {
-  if (!game) return;
+  if (!game || race.isActive) return;
   const playing = game.status === 'playing';
   board.render(game.rows, current, playing);
   if (!skipTracker) drawTracker();
@@ -205,7 +235,7 @@ function draw(skipTracker = false) {
 }
 
 function drawTracker() {
-  if (!game) return;
+  if (!game || race.isActive) return;
   const alphabet = [...(getLanguage(game.lang)?.alphabet ?? 'abcdefghijklmnopqrstuvwxyz')];
   renderTracker(els.tracker, alphabet, game.rows);
 }
@@ -316,7 +346,7 @@ function openDialog(id: string) {
 }
 
 for (const dlg of document.querySelectorAll('dialog')) {
-  dlg.addEventListener('close', () => draw());
+  dlg.addEventListener('close', () => (race.isActive ? race.show() : draw()));
   // Tap outside the sheet to close it.
   dlg.addEventListener('click', (e) => {
     if (e.target === dlg) dlg.close();
@@ -334,6 +364,7 @@ $('btn-stats').addEventListener('click', openStats);
 $('btn-settings').addEventListener('click', () => openDialog('dlg-settings'));
 els.tabDaily.addEventListener('click', () => void startMode('daily'));
 els.tabUnlimited.addEventListener('click', () => void startMode('unlimited'));
+els.tabRace.addEventListener('click', () => openRace());
 els.btnNew.addEventListener('click', () => {
   if (game?.mode === 'daily') void startMode('unlimited');
   else void startMode('unlimited', true);
@@ -345,7 +376,8 @@ els.btnNew.addEventListener('click', () => {
 els.setHard.addEventListener('change', () => {
   settings.hard = els.setHard.checked;
   saveSettings(settings);
-  void startMode(settings.mode);
+  if (race.isActive) race.show(); // applies to the next race you start
+  else void startMode(settings.mode);
 });
 
 els.btnShare.addEventListener('click', () => void share());
@@ -383,12 +415,13 @@ els.setLang.addEventListener('change', () => {
   settings.lang = els.setLang.value;
   lang = settings.lang;
   saveSettings(settings);
-  void startMode(settings.mode);
+  if (race.isActive) race.show();
+  else void startMode(settings.mode);
 });
 
 // A new day brings a new daily word.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && game?.mode === 'daily' && game.date !== localDate()) {
+  if (document.visibilityState === 'visible' && !race.isActive && game?.mode === 'daily' && game.date !== localDate()) {
     void startMode('daily');
   }
 });
@@ -422,6 +455,12 @@ async function chooseLanguage() {
 async function init() {
   await chooseLanguage();
   await startMode(settings.mode);
+  // An invite link (/?race=CODE) opens the race straight away.
+  const invited = RaceClient.codeFromUrl();
+  if (invited) {
+    openRace(invited);
+    return;
+  }
   // On a computer, be ready to type straight away. Phones wait for a tap.
   if (matchMedia('(pointer: fine)').matches) entry.focus(false);
   if (firstVisit()) openDialog('dlg-help');

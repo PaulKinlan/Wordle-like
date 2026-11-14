@@ -13,18 +13,26 @@
 //
 // The answers are never in this code; see answers.ts.
 //
-// Future steps plug in here: multiplayer rooms as a Durable Object under
-// /api/v1/rooms/*, and Web Push subscriptions under /api/v1/push/*.
+// Race rooms (multiplayer) are Durable Objects, see room.ts:
+//   POST /rooms                 { lang, hard } -> { code }
+//   GET  /rooms/:code/socket    WebSocket for one player
+//
+// Web Push subscriptions will go under /api/v1/push/*.
 import { checkHardMode, describeViolation, evaluate, normalizeWord, statusAfter, type Mark } from '../shared/game';
 import { getLanguage, LANGUAGES } from '../shared/languages';
 import { D1AnswerStore, type AnswerStore } from './answers';
 import { answerIndex, dailyNumber, newRandomToken, parsePuzzleId } from './puzzles';
 import { getWords } from './words';
+import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
+
+export { Room } from './room';
 
 export interface Env {
   ASSETS: Fetcher;
   /** Holds the private answer order. Created automatically on first deploy. */
   DB: D1Database;
+  /** One Durable Object per race room. */
+  ROOMS: DurableObjectNamespace;
 }
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -131,11 +139,53 @@ const shape = (lang: { code: string; wordLength: number; maxGuesses: number }) =
   maxGuesses: lang.maxGuesses,
 });
 
+function newRoomCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return [...bytes].map((b) => ROOM_ALPHABET[b % ROOM_ALPHABET.length]).join('');
+}
+
+/** Creates race rooms and connects players to them. */
+export async function handleRooms(request: Request, rooms: DurableObjectNamespace): Promise<Response> {
+  const url = new URL(request.url);
+  const parts = url.pathname.split('/').filter(Boolean); // ['api', 'v1', 'rooms', ...]
+  if (parts.length === 3 && request.method === 'POST') {
+    let body: { lang?: unknown; hard?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return error(400, 'bad_request', 'Expected a JSON body');
+    }
+    const lang = typeof body.lang === 'string' ? getLanguage(body.lang) : undefined;
+    if (!lang || !getWords(lang.code)) return error(400, 'bad_language', 'Unknown language');
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = newRoomCode();
+      const stub = rooms.get(rooms.idFromName(code));
+      const res = await stub.fetch('https://room/init', {
+        method: 'POST',
+        body: JSON.stringify({ code, lang: lang.code, hard: body.hard === true }),
+      });
+      if (res.ok) return json({ code });
+    }
+    return error(503, 'busy', 'Could not make a race, try again');
+  }
+  if (parts.length === 5 && parts[4] === 'socket' && request.method === 'GET') {
+    const code = parts[3].toUpperCase();
+    if (!ROOM_CODE.test(code)) return error(404, 'no_room', 'No such race');
+    // Only our own pages may open a socket (the browser always sends Origin).
+    const origin = request.headers.get('Origin');
+    if (origin && new URL(origin).host !== url.host) return error(403, 'forbidden', 'Wrong origin');
+    const stub = rooms.get(rooms.idFromName(code));
+    return stub.fetch(new Request('https://room/socket', request));
+  }
+  return error(404, 'not_found', 'Unknown API route');
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/')) {
       try {
+        if (url.pathname.startsWith('/api/v1/rooms')) return await handleRooms(request, env.ROOMS);
         return await handleApi(request, new D1AnswerStore(env.DB));
       } catch (e) {
         console.error(e);
