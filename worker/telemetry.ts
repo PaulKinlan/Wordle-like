@@ -12,7 +12,7 @@
 // IP + user agent + a random salt that changes every day and is then
 // deleted, so a visitor can be counted within a day but never followed
 // across days, and the hash can't be turned back into an IP. No cookies.
-import { BUILT, COMMIT, COMMIT_URL, SHORT_COMMIT } from '../shared/version';
+import { BUILT, COMMIT, COMMIT_URL, REPO_URL } from '../shared/version';
 import { BadBody, readText } from './http';
 
 export interface TelemetryEnv {
@@ -602,8 +602,32 @@ export async function pruneTelemetry(db: D1Database) {
   await db.prepare("DELETE FROM app_config WHERE k LIKE 'salt:%' AND k < ?1").bind(`salt:${today}`).run();
 }
 
-export async function health(db: D1Database, json: Json): Promise<Response> {
+let version: { commit: string; built: string } | undefined;
+
+/**
+ * The build this Worker belongs to. The deploy bundles the Worker without the
+ * commit Vite defines (shared/version.ts then says "dev"), so it is read from
+ * /version.json, which the same build writes beside the page.
+ */
+export async function buildVersion(assets: Fetcher | undefined, origin: string): Promise<{ commit: string; built: string }> {
+  if (COMMIT !== 'dev') return { commit: COMMIT, built: BUILT };
+  if (version) return version;
+  try {
+    const res = await assets!.fetch(new URL('/version.json', origin));
+    const v = (await res.json()) as { commit?: unknown; built?: unknown };
+    if (typeof v.commit === 'string' && /^[0-9a-f]{7,40}$/.test(v.commit)) {
+      version = { commit: v.commit, built: typeof v.built === 'string' ? v.built : '' };
+      return version;
+    }
+  } catch {
+    // No file (a test, or a build without it): "dev" it is.
+  }
+  return { commit: COMMIT, built: BUILT };
+}
+
+export async function health(db: D1Database, json: Json, assets?: Fetcher, origin = 'https://letterle.app'): Promise<Response> {
   const started = Date.now();
+  const { commit, built } = await buildVersion(assets, origin);
   let database = 'ok';
   try {
     await db.prepare('SELECT 1').first();
@@ -614,10 +638,10 @@ export async function health(db: D1Database, json: Json): Promise<Response> {
   return json(
     {
       status: ok ? 'ok' : 'degraded',
-      commit: COMMIT,
-      shortCommit: SHORT_COMMIT,
-      commitUrl: COMMIT_URL,
-      built: BUILT,
+      commit,
+      shortCommit: commit === 'dev' ? 'dev' : commit.slice(0, 7),
+      commitUrl: commit === 'dev' ? COMMIT_URL : `${REPO_URL}/commit/${commit}`,
+      built,
       checks: { database, databaseMs: Date.now() - started },
       time: new Date().toISOString(),
     },
