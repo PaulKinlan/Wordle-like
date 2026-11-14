@@ -1,9 +1,10 @@
 import './styles.css';
 import { dailyNumber, localDate } from '../shared/daily';
-import { checkHardMode, describeViolation, normalizeWord } from '../shared/game';
+import { checkHardMode, normalizeWord, type HardModeViolation } from '../shared/game';
 import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../shared/languages';
 import { api, ApiError } from './api';
-import { Board, renderTracker } from './board';
+import { Board, renderTracker, toUpper } from './board';
+import { setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
@@ -73,6 +74,7 @@ const race = new RaceClient({
   setSubtitle: (text) => {
     els.subtitle.textContent = text;
   },
+  describeViolation: (v) => describeViolation(v),
   words: (code) => words.get(code),
   loadWords: (code) => void loadWords(code),
 });
@@ -164,10 +166,10 @@ async function submit() {
   if (!game || busy || game.status !== 'playing') return;
   const row = game.rows.length;
   const guess = current;
-  if ([...guess].length < game.wordLength) return reject(row, 'Not enough letters');
+  if ([...guess].length < game.wordLength) return reject(row, t('err.short'));
 
   const list = words.get(game.lang);
-  if (list && !list.has(guess)) return reject(row, 'Not in word list');
+  if (list && !list.has(guess)) return reject(row, t('err.notWord'));
 
   if (game.hard) {
     const v = checkHardMode(game.rows, guess);
@@ -189,10 +191,29 @@ async function submit() {
     drawTracker();
     if (game.status !== 'playing') finish();
   } catch (e) {
-    reject(row, e instanceof ApiError ? e.message : 'Something went wrong');
+    reject(row, e instanceof ApiError ? apiMessage(e) : t('err.generic'));
   } finally {
     busy = false;
   }
+}
+
+/** Messages for errors the server sends back, in the interface language. */
+function apiMessage(e: ApiError) {
+  if (e.code === 'hard_mode' && e.violation) return describeViolation(e.violation);
+  if (e.code === 'not_in_list') return t('err.notWord');
+  if (e.code === 'wrong_length') return t('err.short');
+  if (e.code === 'offline') return t('err.offline');
+  return e.message;
+}
+
+function describeViolation(v: HardModeViolation) {
+  const letter = toUpper(v.letter);
+  if (v.kind === 'position') return t('err.position', { n: v.position + 1, letter });
+  return v.count > 1 ? t('err.includeMany', { count: v.count, letter }) : t('err.include', { letter });
+}
+
+function upperWord(word: string, code: string) {
+  return [...word].map((c) => (c === 'ß' ? 'ẞ' : c.toLocaleUpperCase(code))).join('');
 }
 
 function reject(row: number, message: string) {
@@ -200,7 +221,6 @@ function reject(row: number, message: string) {
   board.shake(row);
 }
 
-const PRAISE = ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!', 'Phew!'];
 
 function finish() {
   if (!game) return;
@@ -208,9 +228,9 @@ function finish() {
   if (game.mode === 'daily' && game.date) void markPlayedToday(game.date);
   if (game.status === 'won') {
     board.bounce(game.rows.length - 1);
-    toast(PRAISE[Math.min(game.rows.length, PRAISE.length) - 1]);
+    toast(t(`praise.${Math.min(game.rows.length, 6)}` as 'praise.1'));
   } else {
-    toast((game.answer ?? '').toLocaleUpperCase(), 3000);
+    toast(upperWord(game.answer ?? '', game.lang), 3000);
   }
   showResult();
   setTimeout(() => openStats(), 1600);
@@ -228,11 +248,11 @@ function draw(skipTracker = false) {
 
   const info = getLanguage(game.lang);
   const langLabel = LANGUAGES.length > 1 && info ? ` · ${info.nativeName}` : '';
-  const hardLabel = game.hard ? ' · Hard' : '';
+  const hardLabel = game.hard ? ` · ${t('sub.hard')}` : '';
   els.subtitle.textContent =
     game.mode === 'daily'
-      ? `No. ${game.number ?? '?'} · ${formatDate(game.date)}${langLabel}${hardLabel}`
-      : `Play as many as you like${langLabel}${hardLabel}`;
+      ? `${t('sub.daily', { n: game.number ?? '?', date: formatDate(game.date) })}${langLabel}${hardLabel}`
+      : `${t('sub.unlimited')}${langLabel}${hardLabel}`;
   syncHardSetting();
 }
 
@@ -250,20 +270,20 @@ function showResult() {
   els.result.hidden = !done;
   if (!game || !done) return;
   const g = game;
-  const word = (g.answer ?? '').toLocaleUpperCase();
-  const outcome = g.status === 'won' ? `Solved in ${g.rows.length}/${g.maxGuesses}.` : `The word was ${word}.`;
+  const word = upperWord(g.answer ?? '', g.lang);
+  const outcome = g.status === 'won' ? t('result.solved', { n: g.rows.length, max: g.maxGuesses }) : t('result.was', { word });
   if (g.mode === 'daily') {
-    els.btnNew.textContent = 'Play unlimited';
+    els.btnNew.textContent = t('playUnlimited');
     const stats = loadStats(g.lang, g.mode, g.hard, g.maxGuesses);
     const fire = streakLine(g, currentStreak(stats, g.mode, g.number));
     const tick = () => {
-      els.resultText.textContent = `${outcome}${fire ? ` ${fire}.` : ''} Next word in ${untilMidnight()}`;
+      els.resultText.textContent = `${outcome}${fire ? ` ${fire}.` : ''} ${t('result.next', { time: untilMidnight() })}`;
     };
     tick();
     countdown = window.setInterval(tick, 1000);
   } else {
-    els.btnNew.textContent = 'New word';
-    els.resultText.textContent = g.status === 'won' ? `${outcome} The word was ${word}.` : outcome;
+    els.btnNew.textContent = t('newWord');
+    els.resultText.textContent = g.status === 'won' ? `${outcome} ${t('result.was', { word })}` : outcome;
   }
 }
 
@@ -278,7 +298,7 @@ function untilMidnight() {
 function formatDate(date?: string) {
   if (!date) return '';
   const d = new Date(date + 'T12:00:00');
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(uiLang(), { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 let toastTimer: number | undefined;
@@ -296,8 +316,8 @@ function openStats() {
   const s = loadStats(game.lang, game.mode, game.hard, game.maxGuesses);
   const info = getLanguage(game.lang);
   $('stats-scope').textContent = [
-    game.mode === 'daily' ? 'Daily' : 'Unlimited',
-    game.hard ? 'Hard' : '',
+    game.mode === 'daily' ? t('mode.daily') : t('mode.unlimited'),
+    game.hard ? t('sub.hard') : '',
     info?.nativeName ?? game.lang,
   ]
     .filter(Boolean)
@@ -305,10 +325,10 @@ function openStats() {
   els.statsShare.hidden = game.status === 'playing';
   const today = game.mode === 'daily' ? dailyNumber(localDate()) ?? undefined : undefined;
   const cells: [string, string][] = [
-    [String(s.played), 'Played'],
-    [s.played ? String(Math.round((s.wins / s.played) * 100)) : '0', 'Win %'],
-    [String(currentStreak(s, game.mode, today)), 'Streak'],
-    [String(s.maxStreak), 'Best streak'],
+    [String(s.played), t('stats.played')],
+    [s.played ? String(Math.round((s.wins / s.played) * 100)) : '0', t('stats.win')],
+    [String(currentStreak(s, game.mode, today)), t('stats.streak')],
+    [String(s.maxStreak), t('stats.best')],
   ];
   $('stats-grid').replaceChildren(
     ...cells.map(([value, label]) => {
@@ -410,9 +430,9 @@ async function share() {
   }
   try {
     await navigator.clipboard.writeText(text);
-    toast('Copied to clipboard');
+    toast(t('share.copied'));
   } catch {
-    toast("Couldn't share or copy");
+    toast(t('share.failed'));
   }
 }
 
@@ -445,7 +465,8 @@ async function setupReminders() {
   if (availability === 'unsupported' || availability === 'off') return;
   pushRow.hidden = false;
   if (availability === 'install-first') {
-    $('push-note').textContent = 'Add Letterly to your Home Screen first (Share, then Add to Home Screen)';
+    $('push-note').dataset.i18n = 'settings.pushInstall';
+    $('push-note').textContent = t('settings.pushInstall');
     pushSwitch.disabled = true;
     return;
   }
@@ -453,7 +474,7 @@ async function setupReminders() {
     ...Array.from({ length: 24 }, (_, h) => {
       const o = document.createElement('option');
       o.value = String(h);
-      o.textContent = new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      o.textContent = new Date(2000, 0, 1, h).toLocaleTimeString(uiLang(), { hour: 'numeric', minute: '2-digit' });
       return o;
     }),
   );
@@ -467,12 +488,12 @@ async function updateReminders() {
   pushSwitch.disabled = true;
   try {
     if (pushSwitch.checked) {
-      const problem = await enablePush(Number(pushHour.value), lang);
+      const problem = await enablePush(Number(pushHour.value), lang, uiLang());
       if (problem) {
         pushSwitch.checked = false;
-        toast(problem, 3000);
+        toast(t(problem), 3000);
       } else {
-        toast(`Reminder set for ${pushHour.selectedOptions[0]?.textContent ?? ''}`);
+        toast(t('push.set', { time: pushHour.selectedOptions[0]?.textContent ?? '' }));
       }
     } else {
       await disablePush();
@@ -495,9 +516,65 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// ---------------------------------------------------------------- interface language
+
+const UI_KEY = 'letterly:v1:ui-lang';
+const setUiLang = $<HTMLSelectElement>('set-ui-lang');
+
+function savedUiLang(): string | null {
+  try {
+    return localStorage.getItem(UI_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Offers the device's languages first, but stays in English unless chosen. */
+function fillUiLanguages(hints: string[]) {
+  const order = orderLanguages(
+    UI_LANGUAGES.map((l) => l.code),
+    navigator.languages ?? [navigator.language],
+    hints,
+  );
+  setUiLang.replaceChildren(
+    ...order.map((code) => {
+      const info = UI_LANGUAGES.find((l) => l.code === code)!;
+      const o = document.createElement('option');
+      o.value = code;
+      o.textContent = info.nativeName === info.name ? info.name : `${info.nativeName} (${info.name})`;
+      return o;
+    }),
+  );
+  setUiLang.value = uiLang();
+}
+
+async function applyUiLanguage(code: string) {
+  await setUiLanguage(code);
+  translatePage();
+  setUiLang.value = uiLang();
+  if (race.isActive) race.show();
+  else {
+    draw();
+    showResult();
+  }
+  // Reminders are written in the interface language: update the server's copy.
+  await setupReminders();
+  if (pushSwitch.checked) void enablePush(Number(pushHour.value), lang, uiLang());
+}
+
+setUiLang.addEventListener('change', () => {
+  try {
+    localStorage.setItem(UI_KEY, setUiLang.value);
+  } catch {
+    /* private mode: applies to this visit */
+  }
+  void applyUiLanguage(setUiLang.value);
+});
+
 async function chooseLanguage() {
   // Keyboard layout first, then the device's languages, then the rest.
   const hints = await keyboardLanguageHints();
+  fillUiLanguages(hints);
   const order = orderLanguages(
     LANGUAGES.map((l) => l.code),
     navigator.languages ?? [navigator.language],
@@ -512,16 +589,18 @@ async function chooseLanguage() {
       return o;
     }),
   );
-  if (!settings.lang) {
-    // Use the device's language when we have it; otherwise English.
-    const preferred = [...hints, ...(navigator.languages ?? [])].map((t) => t.split('-')[0].toLowerCase());
-    lang = order.find((code) => preferred.includes(code)) ?? DEFAULT_LANGUAGE;
-  }
+  // English unless the player picks another: the device's languages are only
+  // offered first in the list.
   els.setLang.value = lang;
   els.setLang.disabled = LANGUAGES.length < 2;
 }
 
 async function init() {
+  const ui = savedUiLang();
+  if (ui && ui !== 'en') {
+    await setUiLanguage(ui);
+    translatePage();
+  }
   void setupReminders();
   await chooseLanguage();
   await startMode(settings.mode);

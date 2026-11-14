@@ -2,7 +2,7 @@
 // WebSocket and draws the lobby, the other players' colours, the row clock
 // and the results. The board and the native keyboard entry are shared with
 // solo play (main.ts hands them over while the Race tab is open).
-import type { Mark } from '../shared/game';
+import { checkHardMode, type HardModeViolation, type Mark } from '../shared/game';
 import { getLanguage } from '../shared/languages';
 import {
   ROOM_CODE,
@@ -12,7 +12,8 @@ import {
   type ServerMessage,
 } from '../shared/race';
 import type { Board } from './board';
-import { renderTracker } from './board';
+import { renderTracker, toUpper } from './board';
+import { t, type MessageKey } from './i18n';
 import type { NativeEntry } from './keyboard';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -46,10 +47,19 @@ export interface RaceHost {
   config(): { lang: string; hard: boolean };
   /** The subtitle under the tabs. */
   setSubtitle(text: string): void;
+  /** A hard mode rule broken, in the interface language. */
+  describeViolation(v: HardModeViolation): string;
   /** Words the client knows are valid, if loaded. */
   words(lang: string): Set<string> | undefined;
   loadWords(lang: string): void;
 }
+
+const ERRORS: Record<string, MessageKey> = {
+  not_host: 'race.notHost',
+  need_players: 'race.needPlayers',
+  room_full: 'race.full',
+  server_error: 'err.generic',
+};
 
 export class RaceClient {
   private ws?: WebSocket;
@@ -161,9 +171,14 @@ export class RaceClient {
     if (!s || s.status !== 'playing' || this.sending) return;
     const row = s.mine.length;
     const guess = this.current;
-    if ([...guess].length < s.wordLength) return this.reject(row, 'Not enough letters');
+    if ([...guess].length < s.wordLength) return this.reject(row, t('err.short'));
     const list = this.host.words(s.lang);
-    if (list && !list.has(guess)) return this.reject(row, 'Not in word list');
+    if (list && !list.has(guess)) return this.reject(row, t('err.notWord'));
+    if (s.hard) {
+      const done = s.mine.filter((r): r is { guess: string; marks: Mark[] } => r.guess !== null);
+      const v = checkHardMode(done, guess);
+      if (v) return this.reject(row, this.host.describeViolation(v));
+    }
     this.sending = true;
     this.send({ t: 'guess', word: guess });
   }
@@ -183,7 +198,7 @@ export class RaceClient {
     const name = this.els.name.value.trim();
     if (!name) {
       this.els.name.focus();
-      this.host.toast('Add your name first');
+      this.host.toast(t('race.addName'));
       return;
     }
     store.set('name', name);
@@ -199,12 +214,12 @@ export class RaceClient {
         body: JSON.stringify(this.host.config()),
       });
       const body = (await res.json()) as { code?: string; message?: string };
-      if (!res.ok || !body.code) throw new Error(body.message ?? 'Could not start a race');
+      if (!res.ok || !body.code) throw new Error(t('race.couldNotStart'));
       this.code = body.code;
       store.set('race', this.code);
       this.connect();
     } catch (e) {
-      this.host.toast(e instanceof Error && e.message !== 'Failed to fetch' ? e.message : "You're offline");
+      this.host.toast(e instanceof TypeError ? t('race.offline') : t('race.couldNotStart'));
     } finally {
       this.els.create.disabled = false;
     }
@@ -238,10 +253,10 @@ export class RaceClient {
       this.ws = undefined;
       this.sending = false;
       if (ev.code === 4000) {
-        this.host.toast('This race is open in another tab');
+        this.host.toast(t('race.otherTab'));
         return;
       }
-      if (ev.code === 4001 || ev.code === 1008) return this.forget('That race has ended');
+      if (ev.code === 4001 || ev.code === 1008) return this.forget(t('race.ended'));
       if (!this.code) return;
       // Reconnect with backoff; the room remembers us by our token.
       const delay = Math.min(10_000, 500 * 2 ** this.retry++);
@@ -259,7 +274,7 @@ export class RaceClient {
 
   private send(msg: ClientMessage) {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
-    else this.host.toast('Reconnecting…');
+    else this.host.toast(t('race.reconnecting'));
   }
 
   private forget(message?: string) {
@@ -287,10 +302,12 @@ export class RaceClient {
     }
     if (msg.t === 'error') {
       this.sending = false;
-      if (msg.code === 'room_full') return this.forget(msg.message);
+      if (msg.code === 'room_full') return this.forget(t('race.full'));
       const row = this.state?.mine.length ?? 0;
-      if (['not_in_list', 'hard_mode', 'wrong_length'].includes(msg.code)) this.reject(row, msg.message);
-      else this.host.toast(msg.message);
+      if (msg.code === 'hard_mode') this.reject(row, msg.message);
+      else if (msg.code === 'not_in_list') this.reject(row, t('err.notWord'));
+      else if (msg.code === 'wrong_length') this.reject(row, t('err.short'));
+      else this.host.toast(ERRORS[msg.code] ? t(ERRORS[msg.code]) : msg.message);
       return;
     }
     if (msg.t !== 'state') return;
@@ -309,7 +326,7 @@ export class RaceClient {
     this.draw();
     if (newRow && this.active) {
       const row = s.mine.length - 1;
-      if (s.mine[row].guess === null) this.host.toast('Too slow, row lost');
+      if (s.mine[row].guess === null) this.host.toast(t('race.lostRow'));
       void this.host.board.reveal(row);
     }
     if (s.status === 'finished' && s.result && this.shownResultRound !== s.round) {
@@ -339,7 +356,7 @@ export class RaceClient {
 
   private describe(lang: string, hard: boolean) {
     const info = getLanguage(lang);
-    return `${info?.nativeName ?? lang} · ${hard ? 'Hard' : 'Normal'}`;
+    return `${info?.nativeName ?? lang} · ${hard ? t('race.hard') : t('race.normal')}`;
   }
 
   private drawLobby() {
@@ -351,24 +368,26 @@ export class RaceClient {
     if (!joined) {
       const cfg = this.host.config();
       const connecting = !!this.code && !!this.name();
-      e.create.textContent = this.code ? `Join race ${this.code}` : 'Start a race';
+      e.create.textContent = this.code ? t('race.join', { code: this.code }) : t('race.create');
       e.create.disabled = connecting && this.ws?.readyState === WebSocket.CONNECTING;
       e.config.textContent = this.code
-        ? 'Pick your name, then join.'
-        : `${this.describe(cfg.lang, cfg.hard)}. Change the language or hard mode in Settings.`;
-      this.host.setSubtitle(this.code ? `Race ${this.code}` : 'Play against friends');
+        ? t('race.pickName')
+        : t('race.configNote', { config: this.describe(cfg.lang, cfg.hard) });
+      this.host.setSubtitle(this.code ? t('race.sub', { code: this.code }) : t('race.subIntro'));
       return;
     }
     e.code.textContent = s.code;
     e.roomConfig.textContent = this.describe(s.lang, s.hard);
-    this.host.setSubtitle(`Race ${s.code} · ${this.describe(s.lang, s.hard)}`);
+    this.host.setSubtitle(`${t('race.sub', { code: s.code })} · ${this.describe(s.lang, s.hard)}`);
     e.players.replaceChildren(
       ...s.players.map((p) => {
         const li = document.createElement('li');
         const name = document.createElement('span');
-        name.textContent = p.name + (p.id === this.me ? ' (you)' : '');
+        name.textContent = p.id === this.me ? t('race.you', { name: p.name }) : p.name;
         const tag = document.createElement('small');
-        tag.textContent = !p.connected ? 'away' : p.id === s.hostId ? 'host' : s.status === 'playing' ? 'next round' : 'ready';
+        tag.textContent = t(
+          !p.connected ? 'race.away' : p.id === s.hostId ? 'race.host' : s.status === 'playing' ? 'race.nextRound' : 'race.ready',
+        );
         li.classList.toggle('away', !p.connected);
         li.append(name, tag);
         return li;
@@ -380,12 +399,12 @@ export class RaceClient {
     e.start.disabled = others < 1;
     e.wait.textContent =
       s.status === 'playing'
-        ? "A round is under way. You'll join the next one."
+        ? t('race.underway')
         : host
           ? others < 1
-            ? 'Send the invite. You can start once someone joins.'
-            : 'Everyone in? Start when ready.'
-          : 'Waiting for the host to start.';
+            ? t('race.sendInvite')
+            : t('race.everyoneIn')
+          : t('race.waitHost');
   }
 
   private drawRace() {
@@ -403,9 +422,9 @@ export class RaceClient {
     this.drawBoard();
     const subtitle = playing
       ? done
-        ? 'Waiting for the others…'
-        : `Race ${s.code} · ${this.describe(s.lang, s.hard)}`
-      : 'Race over';
+        ? t('race.waitOthers')
+        : `${t('race.sub', { code: s.code })} · ${this.describe(s.lang, s.hard)}`
+      : t('race.over');
     this.host.setSubtitle(subtitle);
     this.drawOpponents();
     this.runTimer();
@@ -450,7 +469,13 @@ export class RaceClient {
         }
         card.setAttribute(
           'aria-label',
-          `${p.name}: ${p.rows.length} of ${s.maxGuesses} rows${p.solved ? ', found the word' : ''}${p.connected ? '' : ', away'}`,
+          [
+            t('race.rowsOf', { name: p.name, n: p.rows.length, max: s.maxGuesses }),
+            p.solved ? t('race.solvedTag') : '',
+            p.connected ? '' : t('race.away'),
+          ]
+            .filter(Boolean)
+            .join(', '),
         );
         card.append(name, grid);
         return card;
@@ -477,7 +502,7 @@ export class RaceClient {
       const secs = Math.ceil(left / 1000);
       if (secs !== lastSecond) {
         lastSecond = secs;
-        e.timerText.textContent = left > 0 ? `${secs}s to finish this row` : 'Time!';
+        e.timerText.textContent = left > 0 ? t('race.timer', { n: secs }) : t('race.time');
         e.timer.classList.toggle('urgent', secs <= 2);
       }
       if (left > 0 && this.active) this.timerFrame = requestAnimationFrame(frame);
@@ -490,30 +515,33 @@ export class RaceClient {
     if (!s?.result) return;
     const { result } = s;
     const winner = s.players.find((p) => p.id === result.winnerId);
-    const word = result.answer.toLocaleUpperCase(s.lang);
+    const word = [...result.answer].map((c) => toUpper(c)).join('');
     const solved = result.standings.find((x) => x.solved);
     const e = this.els;
-    $('race-title').textContent = result.winnerId === this.me ? 'You win!' : 'Race over';
+    $('race-title').textContent = result.winnerId === this.me ? t('race.youWin') : t('race.over');
+    const one = solved?.rows === 1;
     e.outcome.textContent = solved
-      ? `${winner?.id === this.me ? 'You' : (winner?.name ?? 'Someone')} found ${word} first, in ${solved.rows} ${solved.rows === 1 ? 'row' : 'rows'}.`
+      ? winner?.id === this.me
+        ? t(one ? 'race.youFoundFirstOne' : 'race.youFoundFirst', { word, n: solved.rows })
+        : t(one ? 'race.foundFirstOne' : 'race.foundFirst', { name: winner?.name ?? '?', word, n: solved.rows })
       : winner
-        ? `Nobody found ${word}, so the best single row wins.`
-        : `Nobody found ${word}, and nobody scored. It's a draw.`;
+        ? t('race.bestRowWins', { word })
+        : t('race.draw', { word });
     e.standings.replaceChildren(
       ...result.standings.map((st) => {
         const li = document.createElement('li');
         li.classList.toggle('winner', st.id === result.winnerId);
         const name = document.createElement('strong');
-        name.textContent = st.name + (st.id === this.me ? ' (you)' : '');
+        name.textContent = st.id === this.me ? t('race.you', { name: st.name }) : st.name;
         const detail = document.createElement('span');
         detail.textContent = st.solved
-          ? `Found it in ${st.rows}`
+          ? t('race.foundIn', { n: st.rows })
           : st.bestRow
-            ? `Best row ${st.bestRow}: ${st.greens} green, ${st.yellows} yellow`
-            : 'No rows scored';
+            ? t('race.bestRow', { n: st.bestRow, greens: st.greens, yellows: st.yellows })
+            : t('race.noRows');
         const pts = document.createElement('b');
         pts.className = 'pts';
-        pts.textContent = st.solved ? '✓' : `${st.points} pts`;
+        pts.textContent = st.solved ? '✓' : t('race.pts', { n: st.points });
         li.append(name, detail, pts);
         return li;
       }),
@@ -521,14 +549,14 @@ export class RaceClient {
     $('race-scoring').hidden = !!solved;
     const host = s.hostId === this.me;
     e.again.hidden = !host;
-    e.againNote.textContent = host ? 'Same room, new word.' : 'The host can start another round.';
+    e.againNote.textContent = host ? t('race.againHost') : t('race.againGuest');
     this.host.openDialog('dlg-race');
   }
 
   private async invite() {
     if (!this.code) return;
     const url = `${location.origin}/?race=${this.code}`;
-    const text = `Race me at Letterly! Code ${this.code}`;
+    const text = t('race.inviteText', { code: this.code });
     try {
       if (navigator.share) {
         await navigator.share({ text, url });
@@ -539,7 +567,7 @@ export class RaceClient {
     }
     try {
       await navigator.clipboard.writeText(`${text}\n${url}`);
-      this.host.toast('Invite link copied');
+      this.host.toast(t('race.inviteCopied'));
     } catch {
       this.host.toast(url, 4000);
     }

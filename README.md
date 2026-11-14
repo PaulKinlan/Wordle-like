@@ -12,6 +12,9 @@ keyboard: you type with your phone's own keyboard, one letter per tile.
 - **Race**: play friends on the same word in real time (up to 4 players). Share an
   invite link; when someone finishes a row, everyone else has 5 seconds to finish
   theirs. First to find the word wins, otherwise the best single row on points.
+- **Interface language**: menus and messages in English, Spanish, French, German,
+  Italian, Portuguese or Dutch, chosen separately from the word language. English is
+  the default; your device's languages are listed first.
 - **Share**: a picture of your grid (made on the device) plus a spoiler-free emoji grid,
   through the share sheet, or the text copied to the clipboard. Daily shares include your streak.
 - **Daily reminder**: an optional notification at the time you choose, skipped on days
@@ -162,6 +165,25 @@ Rebuild them with `npm run words` (or `npm run words -- es fr` for some).
 To add a language: add it to `shared/languages.ts` (with its alphabet), add it
 to `INTL` in `scripts/build-wordlists.mjs`, run `npm run words -- <code>`, and
 import the three lists in `worker/words.ts`. The tests check every list.
+
+### Interface language
+
+The interface language is a separate setting from the word language, so you
+can play Spanish words with English menus. It stays English until the player
+picks another. The picker lists languages that match the keyboard layout and
+`navigator.languages` first, then the rest (the same ordering as the word
+language picker, which also defaults to English).
+
+Messages live in `src/locales/<code>.ts`. `en.ts` is the source; the type
+check fails if another locale misses a key, and a unit test checks that
+placeholders like `{n}` match. Static text in `index.html` is marked with
+`data-i18n` (text), `data-i18n-rich` (with `**bold**`, rendered as
+`<strong>` without using HTML, so Trusted Types stay happy) and
+`data-i18n-aria` (aria-label). Other locales load on demand as small chunks.
+The non-English translations were machine-assisted; corrections from native
+speakers are welcome. To add one, copy `es.ts`, translate it and add it to
+`UI_LANGUAGES` and `loaders` in `src/i18n.ts`. Daily reminder texts are in
+`worker/push.ts`.
 
 ### Accents
 

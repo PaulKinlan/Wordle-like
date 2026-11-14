@@ -76,6 +76,8 @@ export function localTime(tz: string, now: Date): { date: string; hour: number }
   return { date: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')) };
 }
 
+let migrated = false;
+
 async function ensureTable(db: D1Database) {
   await db
     .prepare(
@@ -91,7 +93,23 @@ async function ensureTable(db: D1Database) {
       )`,
     )
     .run();
+  if (!migrated) {
+    // Added after the first release: the interface language for the message.
+    await db.prepare('ALTER TABLE push_subs ADD COLUMN ui TEXT').run().catch(() => undefined);
+    migrated = true;
+  }
 }
+
+/** The reminder text in each interface language. */
+const REMINDER: Record<string, (n: number | null, name: string) => string> = {
+  en: (n, name) => `Word No. ${n} is ready${name}. Keep your streak going!`,
+  es: (n, name) => `La palabra n.º ${n} ya está lista${name}. ¡No pierdas la racha!`,
+  fr: (n, name) => `Le mot n° ${n} est prêt${name}. Gardez votre série !`,
+  de: (n, name) => `Wort Nr. ${n} ist bereit${name}. Halte deine Serie!`,
+  it: (n, name) => `La parola n. ${n} è pronta${name}. Non interrompere la serie!`,
+  pt: (n, name) => `A palavra n.º ${n} está pronta${name}. Mantém a sequência!`,
+  nl: (n, name) => `Woord nr. ${n} staat klaar${name}. Houd je reeks vast!`,
+};
 
 const B64URL = /^[A-Za-z0-9_-]+$/;
 
@@ -135,6 +153,7 @@ export async function handlePush(
     const tz = isTimeZone(body.tz) ? body.tz : 'UTC';
     const hour = Number.isInteger(body.hour) && (body.hour as number) >= 0 && (body.hour as number) < 24 ? (body.hour as number) : 9;
     const lang = typeof body.lang === 'string' && getLanguage(body.lang) ? body.lang : 'en';
+    const ui = typeof body.ui === 'string' && REMINDER[body.ui] ? body.ui : 'en';
     const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM push_subs').first<{ n: number }>();
     const exists = await env.DB.prepare('SELECT 1 FROM push_subs WHERE endpoint = ?1').bind(endpoint).first();
     if (!exists && (count?.n ?? 0) >= MAX_SUBSCRIPTIONS) return error(503, 'full', 'Too many subscribers');
@@ -142,11 +161,11 @@ export async function handlePush(
     const today = localTime(tz, new Date());
     const lastSent = today.hour >= hour ? today.date : null;
     await env.DB.prepare(
-      `INSERT INTO push_subs (endpoint, p256dh, auth, tz, hour, lang, last_sent, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-       ON CONFLICT (endpoint) DO UPDATE SET p256dh = ?2, auth = ?3, tz = ?4, hour = ?5, lang = ?6`,
+      `INSERT INTO push_subs (endpoint, p256dh, auth, tz, hour, lang, last_sent, created_at, ui)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+       ON CONFLICT (endpoint) DO UPDATE SET p256dh = ?2, auth = ?3, tz = ?4, hour = ?5, lang = ?6, ui = ?9`,
     )
-      .bind(endpoint, p256dh, auth, tz, hour, lang, lastSent, new Date().toISOString())
+      .bind(endpoint, p256dh, auth, tz, hour, lang, lastSent, new Date().toISOString(), ui)
       .run();
     return json({ ok: true, hour, tz });
   }
@@ -176,6 +195,7 @@ interface SubRow {
   hour: number;
   lang: string;
   last_sent: string | null;
+  ui?: string | null;
 }
 
 /** Which subscribers are due now: their chosen hour, not yet sent today. */
@@ -208,7 +228,7 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
         { endpoint: row.endpoint, p256dh: row.p256dh, auth: row.auth },
         {
           title: 'Letterly',
-          body: `Word No. ${number} is ready${row.lang !== 'en' && name ? ` (${name})` : ''}. Keep your streak going!`,
+          body: (REMINDER[row.ui ?? 'en'] ?? REMINDER.en)(number, row.lang !== 'en' && name ? ` (${name})` : ''),
           url: '/',
           tag: 'daily',
         },

@@ -8,6 +8,8 @@ export interface PushPrefs {
   hour: number;
   lang: string;
   tz: string;
+  /** Interface language, for the notification text. */
+  ui: string;
 }
 
 export type PushAvailability = 'ok' | 'install-first' | 'unsupported' | 'off';
@@ -66,28 +68,28 @@ async function savePrefs(prefs: PushPrefs | null) {
   }
 }
 
-/** Asks permission, subscribes and tells the server. Returns an error message, or null. */
-export async function enablePush(hour: number, lang: string): Promise<string | null> {
+/** Asks permission, subscribes and tells the server. Returns an error message key, or null. */
+export async function enablePush(hour: number, lang: string, ui: string): Promise<'push.unavailable' | 'push.blocked' | 'push.failed' | null> {
   const key = await serverKey();
-  if (!key) return 'Reminders are not available right now';
+  if (!key) return 'push.unavailable';
   const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return 'Notifications are blocked. Allow them in your browser settings.';
+  if (permission !== 'granted') return 'push.blocked';
   try {
     const reg = await registration();
     const sub =
       (await reg.pushManager.getSubscription()) ??
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }));
-    const prefs: PushPrefs = { hour, lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' };
+    const prefs: PushPrefs = { hour, lang, ui, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' };
     const res = await fetch('/api/v1/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub.toJSON(), ...prefs }),
     });
-    if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { message?: string }).message);
+    if (!res.ok) throw new Error('subscribe failed');
     await savePrefs(prefs);
     return null;
-  } catch (e) {
-    return e instanceof Error && e.message ? e.message : "Couldn't turn on reminders";
+  } catch {
+    return 'push.failed';
   }
 }
 

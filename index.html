@@ -18,25 +18,25 @@
   <body>
     <div class="app">
       <header class="topbar">
-        <button class="icon-btn" id="btn-help" type="button" aria-label="How to play">
+        <button class="icon-btn" id="btn-help" type="button" aria-label="How to play" data-i18n-aria="app.help">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" /><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.2-2.5 3.9" /><circle class="dot" cx="12" cy="17.2" r=".6" /></svg>
         </button>
         <h1 class="brand">Letterly</h1>
         <div class="topbar-right">
-          <button class="icon-btn" id="btn-stats" type="button" aria-label="Statistics">
+          <button class="icon-btn" id="btn-stats" type="button" aria-label="Statistics" data-i18n-aria="app.stats">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V5M19 20v-9" /></svg>
           </button>
-          <button class="icon-btn" id="btn-settings" type="button" aria-label="Settings">
+          <button class="icon-btn" id="btn-settings" type="button" aria-label="Settings" data-i18n-aria="app.settings">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg>
           </button>
         </div>
       </header>
 
-      <nav class="modes" aria-label="Game mode">
+      <nav class="modes" aria-label="Game mode" data-i18n-aria="app.modes">
         <div class="segmented" role="tablist">
-          <button type="button" role="tab" id="mode-daily" aria-selected="true">Daily</button>
-          <button type="button" role="tab" id="mode-unlimited" aria-selected="false">Unlimited</button>
-          <button type="button" role="tab" id="mode-race" aria-selected="false">Race</button>
+          <button type="button" role="tab" id="mode-daily" aria-selected="true" data-i18n="mode.daily">Daily</button>
+          <button type="button" role="tab" id="mode-unlimited" aria-selected="false" data-i18n="mode.unlimited">Unlimited</button>
+          <button type="button" role="tab" id="mode-race" aria-selected="false" data-i18n="mode.race">Race</button>
         </div>
         <p class="subtitle" id="subtitle" aria-live="polite"></p>
       </nav>
@@ -45,34 +45,34 @@
         <!-- Multiplayer: before a race starts. -->
         <section class="race-lobby" id="race-lobby" hidden>
           <div class="race-card" id="race-intro">
-            <h2>Race your friends</h2>
-            <p>Everyone gets the same word. When someone finishes a row, everyone else has <strong>5 seconds</strong> to finish theirs, or that row is lost.</p>
-            <p>First to find the word wins. If nobody does, the best single row wins: <strong>2 points</strong> for each green letter and <strong>1 point</strong> for each yellow.</p>
+            <h2 data-i18n="race.title">Race your friends</h2>
+            <p data-i18n-rich="race.p1">Everyone gets the same word. When someone finishes a row, everyone else has <strong>5 seconds</strong> to finish theirs, or that row is lost.</p>
+            <p data-i18n-rich="race.p2">First to find the word wins. If nobody does, the best single row wins: <strong>2 points</strong> for each green letter and <strong>1 point</strong> for each yellow.</p>
             <label class="field">
-              <span>Your name</span>
+              <span data-i18n="race.name">Your name</span>
               <input id="race-name" type="text" maxlength="20" autocomplete="nickname" autocapitalize="words" enterkeyhint="go" />
             </label>
             <button class="primary wide" id="race-create" type="button">Start a race</button>
             <p class="fineprint" id="race-config"></p>
           </div>
           <div class="race-card" id="race-room" hidden>
-            <p class="race-code-label">Race code</p>
+            <p class="race-code-label" data-i18n="race.codeLabel">Race code</p>
             <p class="race-code" id="race-code"></p>
             <p class="fineprint" id="race-room-config"></p>
             <button class="secondary wide" id="race-invite" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
-              Invite friends
+              <span data-i18n="race.invite">Invite friends</span>
             </button>
-            <ul class="race-players" id="race-players" aria-label="Players"></ul>
-            <button class="primary wide" id="race-start" type="button">Start the race</button>
+            <ul class="race-players" id="race-players" aria-label="Players" data-i18n-aria="race.players"></ul>
+            <button class="primary wide" id="race-start" type="button" data-i18n="race.start">Start the race</button>
             <p class="fineprint" id="race-wait" aria-live="polite"></p>
-            <button class="link" id="race-leave" type="button">Leave this race</button>
+            <button class="link" id="race-leave" type="button" data-i18n="race.leave">Leave this race</button>
           </div>
         </section>
 
         <!-- Multiplayer: during a race, above the board. -->
         <div class="race-bar" id="race-bar" hidden>
-          <div class="opponents" id="opponents" aria-label="Other players"></div>
+          <div class="opponents" id="opponents" aria-label="Other players" data-i18n-aria="race.others"></div>
           <div class="race-timer" id="race-timer" role="timer" aria-live="off" hidden>
             <span class="race-timer-fill" id="race-timer-fill"></span>
             <span class="race-timer-text" id="race-timer-text"></span>
@@ -80,7 +80,7 @@
         </div>
 
         <form class="board-wrap" id="entry-form" autocomplete="off">
-          <div class="board" id="board" role="grid" aria-label="Guesses"></div>
+          <div class="board" id="board" role="grid" aria-label="Guesses" data-i18n-aria="board.label"></div>
           <!-- The phone's own keyboard types into this field. It sits over the
                board, invisible; the tiles show what's typed one letter each. -->
           <input
@@ -99,56 +99,57 @@
             data-1p-ignore
             data-lpignore="true"
             aria-label="Type your guess, then press Enter"
+            data-i18n-aria="board.entry"
           />
         </form>
         <div class="toast" id="toast" role="status" aria-live="assertive"></div>
       </main>
 
       <section class="footer">
-        <div class="tracker" id="tracker" aria-label="Letters you have tried"></div>
+        <div class="tracker" id="tracker" aria-label="Letters you have tried" data-i18n-aria="board.tracker"></div>
         <div class="result" id="result" hidden>
           <p class="result-text" id="result-text"></p>
           <div class="result-actions">
             <button class="primary" id="btn-share" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
-              Share
+              <span data-i18n="share">Share</span>
             </button>
             <button class="secondary" id="btn-new" type="button">New word</button>
           </div>
         </div>
-        <p class="type-hint" id="type-hint">Tap the board and type with your keyboard</p>
+        <p class="type-hint" id="type-hint" data-i18n="board.hint">Tap the board and type with your keyboard</p>
       </section>
     </div>
 
     <dialog id="dlg-help" class="sheet" aria-labelledby="help-title" tabindex="-1" autofocus closedby="any">
       <form method="dialog">
-        <header class="sheet-head"><h2 id="help-title">How to play</h2><button class="close" type="submit" value="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
-        <p>Guess the word in <strong>six</strong> tries. Tap the board and type with your phone's keyboard, then press Enter.</p>
-        <p>After each guess the tiles change colour:</p>
+        <header class="sheet-head"><h2 id="help-title" data-i18n="help.title">How to play</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
+        <p data-i18n-rich="help.p1">Guess the word in <strong>six</strong> tries. Tap the board and type with your phone's keyboard, then press Enter.</p>
+        <p data-i18n="help.p2">After each guess the tiles change colour:</p>
         <ul class="legend">
-          <li><span class="tile sample correct">P</span> in the word and in the right spot</li>
-          <li><span class="tile sample present">L</span> in the word but in another spot</li>
-          <li><span class="tile sample absent">Y</span> not in the word</li>
+          <li><span class="tile sample correct">P</span> <span data-i18n="help.correct">in the word and in the right spot</span></li>
+          <li><span class="tile sample present">L</span> <span data-i18n="help.present">in the word but in another spot</span></li>
+          <li><span class="tile sample absent">Y</span> <span data-i18n="help.absent">not in the word</span></li>
         </ul>
-        <p><strong>Daily</strong> is one word a day, the same for everyone. <strong>Unlimited</strong> gives you a fresh word whenever you want.</p>
-        <p><strong>Hard mode</strong> picks a rarer word, and you must use every hint you've found in later guesses. It has its own daily word and its own stats.</p>
-        <p><strong>Race</strong> against friends: start a race, send the invite link, and everyone plays the same word. When someone finishes a row, the others have 5 seconds to finish theirs. First to find the word wins; if nobody does, the best single row wins (2 points per green, 1 per yellow).</p>
-        <p><strong>Other languages</strong> are in Settings. Accents are optional: É counts as E. Letters that are their own letter, like Spanish Ñ or German Ä, count separately.</p>
+        <p data-i18n-rich="help.modes"><strong>Daily</strong> is one word a day, the same for everyone. <strong>Unlimited</strong> gives you a fresh word whenever you want.</p>
+        <p data-i18n-rich="help.hard"><strong>Hard mode</strong> picks a rarer word, and you must use every hint you've found in later guesses. It has its own daily word and its own stats.</p>
+        <p data-i18n-rich="help.race"><strong>Race</strong> against friends: start a race, send the invite link, and everyone plays the same word. When someone finishes a row, the others have 5 seconds to finish theirs. First to find the word wins; if nobody does, the best single row wins (2 points per green, 1 per yellow).</p>
+        <p data-i18n-rich="help.languages"><strong>Other languages</strong> are in Settings. Accents are optional: É counts as E. Letters that are their own letter, like Spanish Ñ or German Ä, count separately.</p>
       </form>
     </dialog>
 
     <dialog id="dlg-stats" class="sheet" aria-labelledby="stats-title" tabindex="-1" autofocus closedby="any">
       <form method="dialog">
-        <header class="sheet-head"><h2 id="stats-title">Statistics</h2><button class="close" type="submit" value="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
+        <header class="sheet-head"><h2 id="stats-title" data-i18n="stats.title">Statistics</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
         <p class="stats-scope" id="stats-scope"></p>
         <div class="stats-grid" id="stats-grid"></div>
-        <h3>Guess distribution</h3>
+        <h3 data-i18n="stats.dist">Guess distribution</h3>
         <div class="dist" id="stats-dist"></div>
         <div class="stats-foot">
-          <p class="fineprint">Stats stay on this device.</p>
+          <p class="fineprint" data-i18n="stats.local">Stats stay on this device.</p>
           <button class="primary" id="stats-share" type="button" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
-            Share
+            <span data-i18n="share">Share</span>
           </button>
         </div>
       </form>
@@ -156,38 +157,42 @@
 
     <dialog id="dlg-race" class="sheet" aria-labelledby="race-title" tabindex="-1" autofocus closedby="any">
       <form method="dialog">
-        <header class="sheet-head"><h2 id="race-title">Race over</h2><button class="close" type="submit" value="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
+        <header class="sheet-head"><h2 id="race-title">Race over</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
         <p id="race-outcome"></p>
         <ol class="standings" id="race-standings"></ol>
-        <p class="fineprint" id="race-scoring">If nobody finds the word, each player's best row scores 2 points per green letter and 1 per yellow. A tie goes to whoever got there first.</p>
+        <p class="fineprint" id="race-scoring" data-i18n="race.scoring">If nobody finds the word, each player's best row scores 2 points per green letter and 1 per yellow. A tie goes to whoever got there first.</p>
         <div class="stats-foot">
           <p class="fineprint" id="race-again-note"></p>
-          <button class="primary" id="race-again" type="button">Play again</button>
+          <button class="primary" id="race-again" type="button" data-i18n="race.again">Play again</button>
         </div>
       </form>
     </dialog>
 
     <dialog id="dlg-settings" class="sheet" aria-labelledby="settings-title" tabindex="-1" autofocus closedby="any">
       <form method="dialog">
-        <header class="sheet-head"><h2 id="settings-title">Settings</h2><button class="close" type="submit" value="close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
+        <header class="sheet-head"><h2 id="settings-title" data-i18n="settings.title">Settings</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
         <label class="setting">
-          <span><strong>Hard mode</strong><small>A rarer word, and every hint you find must be used in later guesses</small></span>
+          <span><strong data-i18n="settings.hard">Hard mode</strong><small data-i18n="settings.hardNote">A rarer word, and every hint you find must be used in later guesses</small></span>
           <input type="checkbox" class="switch" id="set-hard" />
         </label>
         <label class="setting">
-          <span><strong>High contrast colours</strong><small>Easier to tell apart for colour vision deficiency</small></span>
+          <span><strong data-i18n="settings.contrast">High contrast colours</strong><small data-i18n="settings.contrastNote">Easier to tell apart for colour vision deficiency</small></span>
           <input type="checkbox" class="switch" id="set-contrast" />
         </label>
         <label class="setting">
-          <span><strong>Language</strong><small>Word list for new games</small></span>
+          <span><strong data-i18n="settings.lang">Word language</strong><small data-i18n="settings.langNote">Word list for new games</small></span>
           <select id="set-lang"></select>
         </label>
+        <label class="setting">
+          <span><strong data-i18n="settings.ui">Interface language</strong><small data-i18n="settings.uiNote">Menus and messages</small></span>
+          <select id="set-ui-lang"></select>
+        </label>
         <label class="setting" id="push-row" hidden>
-          <span><strong>Daily reminder</strong><small id="push-note">A notification when the new word is ready</small></span>
+          <span><strong data-i18n="settings.push">Daily reminder</strong><small id="push-note" data-i18n="settings.pushNote">A notification when the new word is ready</small></span>
           <input type="checkbox" class="switch" id="set-push" />
         </label>
         <label class="setting" id="push-hour-row" hidden>
-          <span><strong>Reminder time</strong><small>Skipped on days you've already played</small></span>
+          <span><strong data-i18n="settings.pushTime">Reminder time</strong><small data-i18n="settings.pushTimeNote">Skipped on days you've already played</small></span>
           <select id="set-push-hour"></select>
         </label>
       </form>
