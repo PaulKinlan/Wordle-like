@@ -262,10 +262,17 @@ button {
 .board {
   --gap: 6px;
   /* Tiles grow to fill the space, whatever the keyboard leaves us. */
-  --tile: min(
-    64px,
-    calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols)),
-    calc((100cqh - (var(--rows) - 1) * var(--gap)) / var(--rows))
+  /* board.ts measures the space and sets --tile-px (same sum, in pixels):
+     with container units every tile depends on the wrapper, and one typed
+     letter lays out the whole board. The units are the fallback until the
+     script has run. */
+  --tile: var(
+    --tile-px,
+    min(
+      64px,
+      calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols)),
+      calc((100cqh - (var(--rows) - 1) * var(--gap)) / var(--rows))
+    )
   );
   display: grid;
   gap: var(--gap);

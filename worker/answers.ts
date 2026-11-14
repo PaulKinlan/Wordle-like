@@ -37,6 +37,12 @@ export function shuffle<T>(items: readonly T[]): T[] {
 // Neither changes once made, so each is read from D1 once per running Worker.
 const counts = new Map<string, number>();
 let puzzleKey: string | undefined;
+// The stored order never changes either, so a word read once is remembered:
+// everyone playing today's word asks for the same row with every guess, and
+// the database read is most of the time a guess takes. A few thousand short
+// words at most; the Worker's memory is never sent anywhere.
+const words = new Map<string, string>();
+const MAX_REMEMBERED = 5000;
 
 export class D1AnswerStore implements AnswerStore {
   constructor(private db: D1Database) {}
@@ -71,11 +77,16 @@ export class D1AnswerStore implements AnswerStore {
   }
 
   async at(lang: string, index: number): Promise<string> {
+    const cacheKey = `${lang}/${index}`;
+    const hit = words.get(cacheKey);
+    if (hit !== undefined) return hit;
     const row = await this.db
       .prepare('SELECT word FROM answers WHERE lang = ?1 AND idx = ?2')
       .bind(lang, index)
       .first<{ word: string }>();
     if (!row) throw new Error(`Missing answer ${lang}/${index}`);
+    if (words.size >= MAX_REMEMBERED) words.clear();
+    words.set(cacheKey, row.word);
     return row.word;
   }
 

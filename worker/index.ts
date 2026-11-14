@@ -268,6 +268,19 @@ export default {
         return error(500, 'server_error', 'Something went wrong');
       }
     }
+    // Built files have their contents in their names. One that isn't there
+    // (an old tab asking for a file from before a deploy) would get the home
+    // page back, and public/_headers marks /assets/* as never changing, so
+    // the browser would keep that wrong answer for a year. Say 404 instead.
+    // (wrangler.jsonc sends /assets/* here first for this.)
+    if (url.pathname.startsWith('/assets/')) {
+      const res = await env.ASSETS.fetch(request);
+      if (!res.headers.get('Content-Type')?.startsWith('text/html')) return res;
+      return new Response('Not found', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...SECURITY_HEADERS },
+      });
+    }
     return env.ASSETS.fetch(request);
   },
 
