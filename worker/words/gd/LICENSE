@@ -1,0 +1,10 @@
+Word lists for "gd", built by scripts/build-wordlists.mjs from:
+
+1. UD Scottish Gaelic ARCOSG treebank (https://github.com/UniversalDependencies/UD_Scottish_Gaelic-ARCOSG), CC BY-SA 4.0.
+
+2. The Hunspell dictionary in the npm package dictionary-gd@2.0.0
+   (https://github.com/wooorm/dictionaries), licensed GPL-3.0.
+   See that package for the full licence and its authors.
+
+These lists are a derived selection of words and are distributed under the
+same terms.

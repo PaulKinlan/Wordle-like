@@ -47,6 +47,12 @@ import trRare from './words/tr/rare.json';
 import elAllowed from './words/el/allowed.json';
 import elCandidates from './words/el/candidates.json';
 import elRare from './words/el/rare.json';
+import gaAllowed from './words/ga/allowed.json';
+import gaCandidates from './words/ga/candidates.json';
+import gaRare from './words/ga/rare.json';
+import gdAllowed from './words/gd/allowed.json';
+import gdCandidates from './words/gd/candidates.json';
+import gdRare from './words/gd/rare.json';
 import ptAllowed from './words/pt/allowed.json';
 import ptCandidates from './words/pt/candidates.json';
 import ptRare from './words/pt/rare.json';
@@ -74,6 +80,8 @@ const bundled: Record<string, Raw> = {
   pl: { candidates: plCandidates, rare: plRare, allowed: plAllowed },
   sv: { candidates: svCandidates, rare: svRare, allowed: svAllowed },
   tr: { candidates: trCandidates, rare: trRare, allowed: trAllowed },
+  ga: { candidates: gaCandidates, rare: gaRare, allowed: gaAllowed },
+  gd: { candidates: gdCandidates, rare: gdRare, allowed: gdAllowed },
   el: { candidates: elCandidates, rare: elRare, allowed: elAllowed },
 };
 

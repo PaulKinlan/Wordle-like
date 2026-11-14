@@ -1,0 +1,10 @@
+Word lists for "ga", built by scripts/build-wordlists.mjs from:
+
+1. Irish Word Frequency List by Michal Boleslav Měchura (https://github.com/michmech/irish-word-frequency), Open Database License.
+
+2. The Hunspell dictionary in the npm package dictionary-ga@3.0.0
+   (https://github.com/wooorm/dictionaries), licensed GPL-2.0.
+   See that package for the full licence and its authors.
+
+These lists are a derived selection of words and are distributed under the
+same terms.

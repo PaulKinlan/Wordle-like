@@ -34,6 +34,8 @@ export const LANGUAGES: LanguageInfo[] = [
   { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
   { code: 'ca', name: 'Catalan', nativeName: 'Català', wordLength: 5, maxGuesses: 6, alphabet: 'abcçdefghijklmnopqrstuvwxyz' },
   { code: 'eu', name: 'Basque', nativeName: 'Euskara', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
+  { code: 'ga', name: 'Irish', nativeName: 'Gaeilge', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
+  { code: 'gd', name: 'Scottish Gaelic', nativeName: 'Gàidhlig', wordLength: 5, maxGuesses: 6, alphabet: LATIN },
   { code: 'br', name: 'Breton', nativeName: 'Brezhoneg', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnñopqrstuvwxyz' },
   { code: 'pl', name: 'Polish', nativeName: 'Polski', wordLength: 5, maxGuesses: 6, alphabet: 'aąbcćdeęfghijklłmnńoópqrsśtuvwxyzźż' },
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska', wordLength: 5, maxGuesses: 6, alphabet: 'abcdefghijklmnopqrstuvwxyzåäö' },
