@@ -32,6 +32,7 @@ import { handleTelemetry, health, pruneTelemetry, recordEvent, recordServerError
 import { ROOM_ALPHABET, ROOM_CODE } from '../shared/race';
 import { handlePreview } from './og';
 import { BadBody, readObject, withinLimit, type LimitEnv } from './http';
+import { deltaResponse, useAsDictionary, versioned } from './dictionary';
 
 export { Room } from './room';
 
@@ -274,8 +275,21 @@ export default {
     // the browser would keep that wrong answer for a year. Say 404 instead.
     // (wrangler.jsonc sends /assets/* here first for this.)
     if (url.pathname.startsWith('/assets/')) {
+      // The main script and stylesheet: only what changed, for a browser that has an older build (dictionary.ts).
+      const file = versioned(url.pathname);
+      if (file) {
+        const delta = await deltaResponse(request, env.ASSETS, file).catch(() => null);
+        if (delta) return delta;
+      }
       const res = await env.ASSETS.fetch(request);
-      if (!res.headers.get('Content-Type')?.startsWith('text/html')) return res;
+      if (!res.headers.get('Content-Type')?.startsWith('text/html')) {
+        if (!file || !res.ok) return res;
+        // Kept by the browser as the dictionary for the next build.
+        const headers = new Headers(res.headers);
+        headers.set('Use-As-Dictionary', useAsDictionary(file.kind));
+        headers.set('Vary', 'Accept-Encoding, Available-Dictionary');
+        return new Response(res.body, { status: res.status, headers });
+      }
       return new Response('Not found', {
         status: 404,
         headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', ...SECURITY_HEADERS },

@@ -267,6 +267,27 @@ To use a custom domain later, add it under the Worker's *Settings → Domains & 
 - **Debug log:** open the game with `?debug` for a log panel at the bottom of the page (`src/debug.ts`).
 - **Bug reports:** "How to play" links to a new GitHub issue with the version, mode and browser filled in.
 
+## Small updates (compression dictionaries)
+
+After a release, a browser that already has the previous script and stylesheet
+downloads only what changed
+([Compression Dictionary Transport](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Compression_dictionary_transport),
+Chrome and Edge 130+). A typical release's 23 KB script becomes about 2 KB.
+
+- The build (`scripts/dictionaries.ts`) reads `/dictionaries.json` from the
+  live site, fetches the last five builds' script and stylesheet, and writes
+  this build's files as deltas against each (`/assets/delta/*.dcz`). The older
+  files are kept in `/assets/` so the next build can read them too.
+- The Worker (`worker/dictionary.ts`) marks the script and stylesheet with
+  `Use-As-Dictionary`, and answers a request that carries `Available-Dictionary`
+  with the matching delta. No match, or another browser: the ordinary file.
+- **One setting to turn on:** Cloudflare dashboard, the letterle.app zone,
+  Speed > Settings > Content Optimization > Shared Dictionaries. While it is
+  off Cloudflare removes these headers and nothing changes for anyone, so it
+  is also the off switch.
+- `DICTIONARY_SOURCE=off npm run build` skips the deltas; the build also
+  carries on without them if the live site can't be reached.
+
 ## Search and link previews
 
 `scripts/seo.ts` is a Vite plugin that runs at build time:
