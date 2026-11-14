@@ -21,13 +21,19 @@ function loadLines(): string[] {
   }
 }
 
+// Two tabs (say a Custom Tab and Chrome itself) share storage: each save adds
+// only its own new lines to what's stored, so neither wipes out the other.
+const pending: string[] = [];
+const TAB = Math.random().toString(36).slice(2, 5);
 let saveTimer = 0;
 function saveLines() {
   if (saveTimer) return;
   saveTimer = window.setTimeout(() => {
     saveTimer = 0;
     try {
-      localStorage.setItem(LOG_KEY, JSON.stringify(lines.slice(-MAX_LINES)));
+      const stored = loadLines();
+      stored.push(...pending.splice(0));
+      localStorage.setItem(LOG_KEY, JSON.stringify(stored.slice(-MAX_LINES)));
     } catch {
       /* storage full or blocked */
     }
@@ -53,7 +59,9 @@ export function debugLog(...parts: unknown[]) {
     .join(' ');
   console.debug('[letterle]', text);
   const t = new Date().toISOString().slice(11, 19);
-  lines.push(`${t} ${text}`);
+  const line = `${t} [${TAB}] ${text}`;
+  lines.push(line);
+  pending.push(line);
   if (lines.length > MAX_LINES) lines.splice(0, lines.length - MAX_LINES);
   saveLines();
   if (pre) pre.textContent = lines.join('\n');
@@ -71,7 +79,16 @@ export function initDebug() {
   const copy = document.createElement('button');
   copy.type = 'button';
   copy.textContent = 'Copy';
-  copy.addEventListener('click', () => void navigator.clipboard?.writeText(lines.join('\n')).catch(() => undefined));
+  // Copy what's stored, so lines from other tabs are included too.
+  copy.addEventListener('click', () => {
+    let all = lines;
+    try {
+      all = [...loadLines(), ...pending];
+    } catch {
+      /* use this tab's lines */
+    }
+    void navigator.clipboard?.writeText(all.join('\n')).catch(() => undefined);
+  });
   const close = document.createElement('button');
   close.type = 'button';
   close.textContent = 'Turn off';
@@ -88,7 +105,12 @@ export function initDebug() {
   clear.textContent = 'Clear';
   clear.addEventListener('click', () => {
     lines.length = 0;
-    saveLines();
+    pending.length = 0;
+    try {
+      localStorage.removeItem(LOG_KEY);
+    } catch {
+      /* ignore */
+    }
     if (pre) pre.textContent = '';
   });
   summary.append(' ', copy, ' ', clear, ' ', close);
