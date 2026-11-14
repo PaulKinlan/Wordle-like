@@ -340,3 +340,54 @@ export async function sendDailyReminders(env: PushEnv, now = new Date()): Promis
   }
   return { sent, removed };
 }
+
+// ---------------------------------------------------------------- race alerts
+
+/** A player's push subscription, kept in the race room while they wait for friends. */
+export interface RaceAlert {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  ui: string;
+}
+
+const RACE_JOINED: Record<string, (name: string, code: string) => { title: string; body: string }> = {
+  en: (n, c) => ({ title: `${n} joined your race`, body: `Race ${c}. Tap to get ready.` }),
+  es: (n, c) => ({ title: `${n} se ha unido a tu carrera`, body: `Carrera ${c}. Toca para prepararte.` }),
+  fr: (n, c) => ({ title: `${n} a rejoint votre course`, body: `Course ${c}. Touchez pour vous préparer.` }),
+  de: (n, c) => ({ title: `${n} ist deinem Rennen beigetreten`, body: `Rennen ${c}. Tippe, um loszulegen.` }),
+  it: (n, c) => ({ title: `${n} si è unito alla tua sfida`, body: `Sfida ${c}. Tocca per prepararti.` }),
+  pt: (n, c) => ({ title: `${n} entrou na tua corrida`, body: `Corrida ${c}. Toca para te preparares.` }),
+  nl: (n, c) => ({ title: `${n} doet mee aan je race`, body: `Race ${c}. Tik om klaar te gaan staan.` }),
+};
+
+/** Checks a subscription a player sent to their race room. */
+export function parseRaceAlert(raw: unknown, ui: unknown): RaceAlert | null {
+  const sub = raw as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } } | null;
+  const p256dh = sub?.keys?.p256dh;
+  const auth = sub?.keys?.auth;
+  if (!isPushEndpoint(sub?.endpoint) || typeof p256dh !== 'string' || typeof auth !== 'string') return null;
+  if (p256dh.length > 200 || auth.length > 100) return null;
+  return { endpoint: sub.endpoint, p256dh, auth, ui: typeof ui === 'string' && RACE_JOINED[ui] ? ui : 'en' };
+}
+
+/**
+ * Tells a waiting player that a friend has joined. Returns false when the
+ * subscription is gone, so the room can forget it.
+ */
+export async function sendRaceJoined(env: PushEnv, alert: RaceAlert, name: string, code: string): Promise<boolean> {
+  const keys = await getVapidKeys(env);
+  if (!keys) return true;
+  const text = (RACE_JOINED[alert.ui] ?? RACE_JOINED.en)(name, code);
+  const status = await sendPush(
+    { endpoint: alert.endpoint, p256dh: alert.p256dh, auth: alert.auth },
+    { ...text, kind: 'race', url: `/r/${code}`, image: `/og/r/${code}.png?v=1`, tag: `race-${code}` },
+    keys,
+    // A join is only worth knowing about for a few minutes.
+    { topic: `race${code}`, ttl: 600 },
+  ).catch((e) => {
+    console.error('race push failed', e);
+    return 0;
+  });
+  return status !== 404 && status !== 410;
+}

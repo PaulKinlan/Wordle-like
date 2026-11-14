@@ -121,6 +121,8 @@ const en = {
   'race.hard': 'Hard',
   'race.codeLabel': 'Race code',
   'race.invite': 'Invite friends',
+  'race.notify': 'Tell me when a friend joins',
+  'race.notifyOn': 'We\'ll let you know when someone joins',
   'race.players': 'Players',
   'race.others': 'Other players',
   'race.start': 'Start the race',

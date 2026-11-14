@@ -104,6 +104,8 @@ const messages: Messages = {
   "race.hard": "Difficile",
   "race.codeLabel": "Code de la course",
   "race.invite": "Inviter des amis",
+  "race.notify": "Prévenez-moi quand un ami arrive",
+  "race.notifyOn": "On vous préviendra quand quelqu’un arrive",
   "race.players": "Joueurs",
   "race.others": "Autres joueurs",
   "race.start": "Lancer la course",

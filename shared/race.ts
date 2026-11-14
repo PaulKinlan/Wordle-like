@@ -116,6 +116,8 @@ export type ClientMessage =
   | { t: 'join'; name: string; token?: string }
   | { t: 'start' }
   | { t: 'guess'; word: string }
+  /** Push me when someone joins (a PushSubscription's JSON, and the interface language for the text). */
+  | { t: 'notify'; sub: { endpoint: string; keys: { p256dh: string; auth: string } }; ui: string }
   | { t: 'ping' };
 
 export type ServerMessage =

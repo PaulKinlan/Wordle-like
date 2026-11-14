@@ -79,7 +79,7 @@ self.addEventListener('push', (event) => {
     data = { body: event.data?.text() };
   }
   // A dot on the app icon until today's word is played (Chrome, installed apps).
-  self.navigator.setAppBadge?.().catch(() => undefined);
+  if (data.kind !== 'race') self.navigator.setAppBadge?.().catch(() => undefined);
   event.waitUntil(
     self.registration.showNotification(data.title || 'Letterle', {
       body: data.body || "Today's word is ready",
@@ -89,7 +89,9 @@ self.addEventListener('push', (event) => {
       // Windows and ChromeOS). Others just ignore it.
       image: data.image || '/og.png',
       tag: data.tag || 'daily',
-      data: { url: data.url || '/' },
+      data: { url: data.url || '/', kind: data.kind || 'daily' },
+      // "A friend joined": buzz even if an older one is still showing.
+      renotify: data.kind === 'race',
       // Buttons, where supported (Android shows the first two).
       actions: data.actions
         ? [
@@ -108,6 +110,17 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   if (event.action === 'snooze') {
     event.waitUntil(snooze());
+    return;
+  }
+  // "A friend joined your race": back to the app (it's already in the race), or open the invite link.
+  if (event.notification.data?.kind === 'race') {
+    const url = new URL(event.notification.data.url, self.location.origin).href;
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        const client = list.find((c) => new URL(c.url).origin === self.location.origin && 'focus' in c);
+        return client ? client.focus() : self.clients.openWindow(url);
+      }),
+    );
     return;
   }
   const play = event.action === 'race' ? 'race' : 'daily';
