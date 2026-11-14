@@ -442,6 +442,11 @@ export class RaceClient {
     this.runTimer();
   }
 
+  /** Repaints the board, e.g. after a display setting changes. */
+  redraw() {
+    this.drawBoard();
+  }
+
   private drawBoard() {
     const s = this.state;
     if (!this.active || !s || s.status === 'lobby') return;

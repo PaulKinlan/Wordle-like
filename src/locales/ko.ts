@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "덜 쓰이는 단어, 그리고 찾은 힌트를 다음 추측에서 모두 써야 해요",
   "settings.contrast": "고대비 색상",
   "settings.contrastNote": "색각 이상이 있어도 구분하기 쉬운 색상",
+  "settings.hints": "입력 중 힌트",
+  "settings.hintsNote": "이미 써 본 글자를 입력할 때 표시합니다",
   "settings.theme": "화면 모드",
   "settings.themeSystem": "자동",
   "settings.themeLight": "밝게",

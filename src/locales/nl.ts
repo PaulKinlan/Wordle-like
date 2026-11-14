@@ -80,6 +80,8 @@ const messages: Messages = {
   "settings.hardNote": "Een zeldzamer woord, en elke gevonden hint moet je opnieuw gebruiken",
   "settings.contrast": "Kleuren met hoog contrast",
   "settings.contrastNote": "Makkelijker te onderscheiden bij kleurenblindheid",
+  "settings.hints": "Hints tijdens het typen",
+  "settings.hintsNote": "Laat zien welke letters je al hebt geprobeerd terwijl je typt",
   "settings.theme": "Weergave",
   "settings.themeSystem": "Auto",
   "settings.themeLight": "Licht",

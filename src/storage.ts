@@ -10,6 +10,8 @@ export interface Settings {
   mode: Mode;
   /** Vibrate on tile flips and wins, where the phone can. Missing means on. */
   haptics?: boolean;
+  /** Mark already-tried letters in the row being typed. Missing means on. */
+  typingHints?: boolean;
 }
 
 export interface Row {

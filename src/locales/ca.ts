@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Una paraula menys habitual, i cal fer servir totes les pistes en els intents següents",
   "settings.contrast": "Colors d'alt contrast",
   "settings.contrastNote": "Més fàcils de distingir si tens dificultats amb els colors",
+  "settings.hints": "Pistes mentre escrius",
+  "settings.hintsNote": "Marca les lletres que ja has provat mentre les escrius",
   "settings.theme": "Aspecte",
   "settings.themeSystem": "Automàtic",
   "settings.themeLight": "Clar",
