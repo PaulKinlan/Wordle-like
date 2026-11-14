@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#17181b"/>
+  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="800" font-size="150" text-anchor="middle" fill="#fff">
+    <rect x="72" y="72" width="168" height="168" rx="34" fill="#2f9e74"/>
+    <rect x="272" y="72" width="168" height="168" rx="34" fill="#d9a21b"/>
+    <rect x="72" y="272" width="168" height="168" rx="34" fill="#3b3f46"/>
+    <rect x="272" y="272" width="168" height="168" rx="34" fill="#2f9e74"/>
+    <text x="156" y="210">L</text>
+    <text x="356" y="210">E</text>
+    <text x="156" y="410">T</text>
+    <text x="356" y="410">S</text>
+  </g>
+</svg>
