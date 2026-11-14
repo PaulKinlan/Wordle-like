@@ -86,3 +86,13 @@ describe('VAPID keys', () => {
     expect(await getVapidKeys(env, 'https://x.example')).toEqual({ ...own, subject: 'mailto:me@example.com' });
   });
 });
+
+describe('snooze', () => {
+  it('sends again once a snooze runs out, even after today’s reminder', () => {
+    const now = new Date('2026-11-14T18:00:00Z');
+    const sent = row('Europe/London', 9, '2026-11-14');
+    expect(due([{ ...sent, snooze_until: now.getTime() - 1000 }], now)).toHaveLength(1);
+    expect(due([{ ...sent, snooze_until: now.getTime() + 1000 }], now)).toHaveLength(0);
+    expect(due([{ ...sent, snooze_until: null }], now)).toHaveLength(0);
+  });
+});
