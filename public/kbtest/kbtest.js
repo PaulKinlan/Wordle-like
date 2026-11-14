@@ -88,5 +88,31 @@ openBtn.addEventListener('click', open);
 const blank = document.createElement('span');
 tests.prepend(openBtn, blank);
 
+// The ordinary field: the browser shows the keyboard itself on a tap, and the
+// page never calls show() or hide().
+const plain = document.getElementById('plain');
+const pstate = () => ({ vk: height(), focused: document.activeElement === plain, gesture: gesture() });
+const plainTests = {
+  'blur() · tap': async () => plain.blur(),
+  'blur() · timer 6s': async () => { log('waiting 6s, no tap…'); await wait(6000); log('before', pstate()); plain.blur(); },
+  'readonly + blur() · timer 6s': async () => { log('waiting 6s, no tap…'); await wait(6000); log('before', pstate()); plain.readOnly = true; plain.blur(); },
+  'hide() · tap (no policy)': async () => vk?.hide(),
+};
+const pt = document.getElementById('plaintests');
+for (const [name, run] of Object.entries(plainTests)) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = `Plain: ${name}`;
+  b.addEventListener('pointerdown', (e) => e.preventDefault());
+  b.addEventListener('click', async () => {
+    plain.readOnly = false;
+    log(`--- plain test: ${name}`, pstate());
+    await run();
+    await wait(800);
+    log('after 0.8s', pstate(), height() > 0 ? 'STILL UP' : 'CLOSED');
+  });
+  pt.append(b);
+}
+
 document.getElementById('copy').addEventListener('click', () => navigator.clipboard.writeText(lines.join('\n')).then(() => log('copied')));
 document.getElementById('clear').addEventListener('click', () => { lines.length = 0; logEl.textContent = ''; });
