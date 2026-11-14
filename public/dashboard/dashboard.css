@@ -91,3 +91,6 @@ h3 { font-size: 0.9rem; font-weight: 600; color: var(--muted); margin: 14px 0 6p
 .tview summary { margin: 4px 0 8px; }
 .signin { display: inline-block; margin-top: 8px; }
 .spark path, .spark line { vector-effect: non-scaling-stroke; }
+
+.title { display: flex; align-items: center; gap: 12px; }
+.home { color: var(--text); text-decoration: none; font-weight: 600; padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
