@@ -7,6 +7,7 @@ import { getLanguage } from '../shared/languages';
 import type { ClientMessage, ServerMessage } from '../shared/race';
 import { D1AnswerStore } from './answers';
 import { Race, RaceError, type RaceData } from './race';
+import { parseRaceAlert, sendRaceJoined } from './push';
 import { recordEvent } from './telemetry';
 import { getWords } from './words';
 import type { Env } from './index';
@@ -115,7 +116,9 @@ export class Room extends DurableObject<Env> {
     try {
       if (msg.t === 'ping') return this.send(ws, { t: 'pong' });
       if (msg.t === 'join') {
+        const before = race.data.players.length;
         const p = race.join(msg.name, msg.token, now);
+        if (race.data.players.length > before) this.alertJoined(race, p.id, p.name);
         // One socket per player: close an older tab of the same player.
         for (const other of this.ctx.getWebSockets()) {
           const a = other.deserializeAttachment() as Attachment | null;
@@ -133,6 +136,11 @@ export class Room extends DurableObject<Env> {
           this.usage('started');
         } else if (msg.t === 'guess') {
           race.guess(id, msg.word, now);
+        } else if (msg.t === 'notify') {
+          const alert = parseRaceAlert(msg.sub, msg.ui);
+          const me = race.data.players.find((p) => p.id === id);
+          if (!alert || !me) throw new RaceError('bad_request', 'Could not turn on alerts');
+          me.alert = alert;
         } else {
           return;
         }
@@ -145,6 +153,21 @@ export class Room extends DurableObject<Env> {
     if (before === 'playing' && race.data.status === 'finished') this.usage('finished');
     await this.save();
     this.broadcast();
+  }
+
+  /** Pushes "Sam joined your race" to everyone else who asked for it. */
+  private alertJoined(race: Race, newId: string, name: string) {
+    for (const p of race.data.players) {
+      if (p.id === newId || !p.alert) continue;
+      const alert = p.alert;
+      this.ctx.waitUntil(
+        sendRaceJoined(this.env, alert, name, race.data.code).then(async (ok) => {
+          if (ok || p.alert !== alert) return;
+          delete p.alert; // the subscription has gone
+          await this.save();
+        }),
+      );
+    }
   }
 
   /** For the dashboard: races started and finished. */

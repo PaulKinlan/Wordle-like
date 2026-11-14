@@ -72,6 +72,28 @@ async function savePrefs(prefs: PushPrefs | null) {
   }
 }
 
+/**
+ * For "tell me when a friend joins" in a race: asks permission and returns the
+ * push subscription to hand to the room, or an error message key.
+ */
+export async function raceSubscription(): Promise<PushSubscriptionJSON | 'push.unavailable' | 'push.blocked' | 'push.failed'> {
+  const key = await serverKey();
+  if (!key) return 'push.unavailable';
+  if ((await Notification.requestPermission()) !== 'granted') return 'push.blocked';
+  try {
+    const reg = await registration();
+    const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }));
+    return sub.toJSON();
+  } catch (e) {
+    reportError('race alerts', e);
+    return 'push.failed';
+  }
+}
+
+/** Whether race alerts can be offered here (push supported and not blocked). */
+export const canAlert = () =>
+  'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && Notification.permission !== 'denied';
+
 /** Asks permission, subscribes and tells the server. Returns an error message key, or null. */
 export async function enablePush(hour: number, lang: string, ui: string): Promise<'push.unavailable' | 'push.blocked' | 'push.failed' | null> {
   const key = await serverKey();

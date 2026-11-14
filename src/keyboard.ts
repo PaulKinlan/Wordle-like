@@ -47,7 +47,9 @@ export class NativeEntry {
       document.body.classList.add('typing');
     });
     input.addEventListener('blur', () => document.body.classList.remove('typing'));
-    input.addEventListener('pointerup', () => this.focus(true));
+    // Taps land on the form, not the field (it has pointer-events: none): a tap
+    // into a text field makes Android show its cursor handle, a focus() call doesn't.
+    form.addEventListener('pointerup', () => this.focus(true));
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (this.enabled) o.onSubmit();
@@ -83,21 +85,35 @@ export class NativeEntry {
     this.enabled = on;
     if (!on) this.hideKeyboard();
     this.o.input.readOnly = !on;
+    // inputmode="none" tells the browser this field never wants a keyboard,
+    // which takes it down on Android even if hide() was missed.
+    if (on) this.o.input.removeAttribute('inputmode');
+    else this.o.input.inputMode = 'none';
   }
 
   /**
    * Puts the on-screen keyboard away. With virtualkeyboardpolicy="manual",
    * hide() only works while the field is focused and editable, and blur()
-   * alone leaves the keyboard up, so hide first, then blur.
+   * alone leaves the keyboard up. So: hide while focused, then blur a frame
+   * later, once the browser has acted on it. Where the VirtualKeyboard API
+   * exists, focusing doesn't raise the keyboard (manual policy), so this also
+   * refocuses briefly if focus has already moved on with the keyboard still up.
    */
   hideKeyboard() {
     const { input } = this.o;
-    if (document.activeElement === input) {
-      input.readOnly = false;
-      vk?.hide();
-      input.blur();
-    }
+    const focused = document.activeElement === input;
+    if (!focused && !(vk && vk.boundingRect.height > 0)) return;
+    input.readOnly = false;
+    if (!focused) input.focus({ preventScroll: true });
+    vk?.hide();
+    requestAnimationFrame(() => {
+      if (document.activeElement === input && !this.raising) input.blur();
+      if (!this.enabled) input.readOnly = true;
+    });
   }
+
+  /** Set while focus(true) is raising the keyboard, so a pending hide doesn't undo it. */
+  private raising = false;
 
   clear() {
     this.o.input.value = '';
@@ -108,7 +124,11 @@ export class NativeEntry {
   focus(showKeyboard: boolean) {
     if (!this.enabled) return;
     this.o.input.focus({ preventScroll: true });
-    if (showKeyboard) vk?.show();
+    if (showKeyboard) {
+      this.raising = true;
+      vk?.show();
+      requestAnimationFrame(() => requestAnimationFrame(() => (this.raising = false)));
+    }
   }
 
   private clean(value: string) {

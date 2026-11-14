@@ -55,6 +55,13 @@
   color-scheme: dark;
 }
 
+/* Switching Appearance cross-fades the whole page (main.ts). */
+:root.theme-fade::view-transition-old(root),
+:root.theme-fade::view-transition-new(root) {
+  animation-duration: 350ms;
+  animation-timing-function: ease;
+}
+
 :root.high-contrast {
   --correct: #f5793a;
   --present: #6fb2f2;
@@ -391,6 +398,14 @@ body:not(.typing) .tile.cursor {
   color: transparent;
   background: transparent;
   caret-color: transparent;
+  cursor: text;
+  /* Taps go to the form underneath (keyboard.ts), so Android never shows a cursor handle. */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.board-wrap {
   cursor: text;
 }
 
@@ -1141,3 +1156,35 @@ dialog.sheet li {
 }
 .help-bug a { color: inherit; }
 .secondary.small { padding: 6px 14px; flex: none; color: inherit; font: inherit; font-weight: 700; }
+
+/* ------------------------------------------------------------ update */
+
+.update-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow);
+}
+
+.update-bar[hidden] {
+  display: none;
+}
+
+.update-bar .primary.small {
+  padding: 6px 14px;
+  flex: none;
+  width: auto;
+}

@@ -13,9 +13,10 @@ import {
 } from '../shared/race';
 import type { Board } from './board';
 import { renderTracker, toUpper } from './board';
-import { t, type MessageKey } from './i18n';
+import { t, uiLang, type MessageKey } from './i18n';
 import type { NativeEntry } from './keyboard';
 import { keepAwake } from './pwa';
+import { canAlert, raceSubscription } from './push';
 import { track } from './telemetry';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -90,6 +91,7 @@ export class RaceClient {
     code: $('race-code'),
     roomConfig: $('race-room-config'),
     invite: $<HTMLButtonElement>('race-invite'),
+    notify: $<HTMLButtonElement>('race-notify'),
     players: $('race-players'),
     start: $<HTMLButtonElement>('race-start'),
     wait: $('race-wait'),
@@ -114,6 +116,7 @@ export class RaceClient {
       if (ev.key === 'Enter') void this.createOrJoin();
     });
     e.invite.addEventListener('click', () => void this.invite());
+    e.notify.addEventListener('click', () => void this.turnOnAlerts());
     e.start.addEventListener('click', () => this.send({ t: 'start' }));
     e.again.addEventListener('click', () => {
       this.send({ t: 'start' });
@@ -128,9 +131,10 @@ export class RaceClient {
     });
   }
 
-  /** The room code in a link like /?race=ABC123, if any. */
+  /** The room code in an invite link, /r/ABC123 (or the older /?race=ABC123), if any. */
   static codeFromUrl(): string | null {
-    const code = new URLSearchParams(location.search).get('race')?.toUpperCase() ?? null;
+    const fromPath = /^\/r\/([A-Za-z0-9]{6})\/?$/.exec(location.pathname)?.[1];
+    const code = (fromPath ?? new URLSearchParams(location.search).get('race'))?.toUpperCase() ?? null;
     return code && ROOM_CODE.test(code) ? code : null;
   }
 
@@ -289,7 +293,7 @@ export class RaceClient {
     this.me = null;
     this.state = undefined;
     if (message) this.host.toast(message, 2500);
-    if (RaceClient.codeFromUrl()) history.replaceState(null, '', location.pathname);
+    if (RaceClient.codeFromUrl()) history.replaceState(null, '', '/');
     this.draw();
   }
 
@@ -401,6 +405,8 @@ export class RaceClient {
     );
     const host = s.hostId === this.me;
     const others = s.players.filter((p) => p.connected && p.id !== this.me).length;
+    // Offered while waiting in the lobby, until turned on for this race.
+    e.notify.hidden = s.status === 'playing' || !canAlert() || store.get(`race-alert:${s.code}`) === '1';
     e.start.hidden = !host || s.status === 'playing';
     e.start.disabled = others < 1;
     e.wait.textContent =
@@ -559,9 +565,27 @@ export class RaceClient {
     this.host.openDialog('dlg-race');
   }
 
+  /** "Tell me when a friend joins": a push notification from the room, even if the app is in the background. */
+  private async turnOnAlerts() {
+    if (!this.code) return;
+    const code = this.code;
+    const sub = await raceSubscription();
+    if (typeof sub === 'string') {
+      this.host.toast(t(sub), 3000);
+      track('race_alert_failed', { problem: sub });
+      return;
+    }
+    this.send({ t: 'notify', sub: sub as Extract<ClientMessage, { t: 'notify' }>['sub'], ui: uiLang() });
+    store.set(`race-alert:${code}`, '1');
+    track('race_alert_on');
+    this.host.toast(t('race.notifyOn'), 2500);
+    if (this.state) this.draw();
+  }
+
   private async invite() {
     if (!this.code) return;
-    const url = `${location.origin}/?race=${this.code}`;
+    // The link preview (worker/og.ts) shows the code, in the sender's language.
+    const url = `${location.origin}/r/${this.code}${uiLang() === 'en' ? '' : `?lang=${uiLang()}`}`;
     const text = t('race.inviteText', { code: this.code });
     try {
       if (navigator.share) {

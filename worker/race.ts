@@ -1,5 +1,6 @@
 // The state of one race room, without any Cloudflare APIs, so it can be
 // tested directly. worker/room.ts wraps it in a Durable Object.
+import type { RaceAlert } from './push';
 import { checkHardMode, describeViolation, evaluate, normalizeWord, type Mark } from '../shared/game';
 import {
   cleanName,
@@ -22,6 +23,8 @@ export interface RacePlayer {
   /** When this player was ready to start their current row. */
   readyAt: number;
   solvedAt?: number;
+  /** Push subscription for "a friend joined" alerts; never sent to other players. */
+  alert?: RaceAlert;
 }
 
 export interface RaceData {
