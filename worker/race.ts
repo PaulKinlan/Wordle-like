@@ -76,8 +76,44 @@ export class Race {
     return this.data.players.find((p) => p.id === id);
   }
 
+  /**
+   * Who can start and cancel. The first player is the host, but if they're
+   * away (left, or lost their connection) while no round is running, the
+   * longest-waiting connected player stands in, so the room never gets stuck.
+   */
+  host(connected: (id: string) => boolean): string {
+    const d = this.data;
+    if (d.status === 'playing' || connected(d.hostId)) return d.hostId;
+    return d.players.find((p) => connected(p.id))?.id ?? d.hostId;
+  }
+
+  /** Whether a player's seat is being used: connected, or in the round that's running. */
+  private seated(p: RacePlayer, connected: (id: string) => boolean) {
+    return connected(p.id) || (this.data.status === 'playing' && p.inRound);
+  }
+
+  private remove(p: RacePlayer) {
+    const d = this.data;
+    d.players = d.players.filter((x) => x !== p);
+    if (d.hostId === p.id) d.hostId = d.players[0]?.id ?? '';
+  }
+
+  /**
+   * Leaves for good. In the middle of a round they're playing, the seat is
+   * kept (their rows still count, and run out on the clock). Returns true if
+   * the player was removed.
+   */
+  leave(id: string, now: number): boolean {
+    const d = this.data;
+    const p = this.player(id);
+    if (!p || (d.status === 'playing' && p.inRound)) return false;
+    d.lastActivity = now;
+    this.remove(p);
+    return true;
+  }
+
   /** Joins, or rejoins with a token. Returns the player's id and token. */
-  join(name: unknown, token: unknown, now: number): RacePlayer {
+  join(name: unknown, token: unknown, now: number, connected: (id: string) => boolean = () => true): RacePlayer {
     const d = this.data;
     d.lastActivity = now;
     const existing = typeof token === 'string' ? d.players.find((p) => p.token === token) : undefined;
@@ -85,7 +121,12 @@ export class Race {
       existing.name = cleanName(name ?? existing.name);
       return existing;
     }
-    if (d.players.length >= MAX_PLAYERS) throw new RaceError('room_full', `This race is full (${MAX_PLAYERS} players)`);
+    if (d.players.length >= MAX_PLAYERS) {
+      // Someone who has gone away gives up their seat to someone who is here.
+      const gone = d.players.find((p) => !this.seated(p, connected));
+      if (!gone) throw new RaceError('room_full', `This race is full (${MAX_PLAYERS} players)`);
+      this.remove(gone);
+    }
     const p: RacePlayer = {
       id: randomId(6),
       token: randomId(16),
@@ -100,13 +141,26 @@ export class Race {
     return p;
   }
 
-  /** The host starts a round (or the next one) with a new answer. */
-  start(by: string, answer: string, now: number, connected: (id: string) => boolean) {
+  /** Throws unless this player may start a round now. Returns who would play. */
+  canStart(by: string, connected: (id: string) => boolean): RacePlayer[] {
     const d = this.data;
-    if (by !== d.hostId) throw new RaceError('not_host', 'Only the host can start');
+    if (by !== this.host(connected)) throw new RaceError('not_host', 'Only the host can start');
     if (d.status === 'playing') throw new RaceError('in_progress', 'The race has already started');
     const players = d.players.filter((p) => connected(p.id));
     if (players.length < 2) throw new RaceError('need_players', 'Wait for a friend to join');
+    return players;
+  }
+
+  /** Throws unless this player may close the room for everyone. */
+  canCancel(by: string, connected: (id: string) => boolean) {
+    if (by !== this.host(connected)) throw new RaceError('not_host', 'Only the host can cancel');
+  }
+
+  /** The host starts a round (or the next one) with a new answer. */
+  start(by: string, answer: string, now: number, connected: (id: string) => boolean) {
+    const d = this.data;
+    const players = this.canStart(by, connected);
+    d.hostId = by; // a stand-in who starts the round is the host from here on
     d.status = 'playing';
     d.round++;
     d.answer = answer;
@@ -220,7 +274,7 @@ export class Race {
       maxGuesses: d.maxGuesses,
       status: d.status,
       round: d.round,
-      hostId: d.hostId,
+      hostId: this.host(connected),
       players: d.players.map((p) => ({
         id: p.id,
         name: p.name,
