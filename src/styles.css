@@ -1589,3 +1589,110 @@ install[hidden],
 #dlg-install:not([data-route='button']) .install-go {
   display: none;
 }
+
+/* ---- Chrome feature experiments (progressive: other browsers keep the
+   look above). ---- */
+
+/* Squircles: the smooth curve of an app icon instead of a circular arc. A
+   squircle looks squarer at the same radius, hence the larger one. */
+@supports (corner-shape: squircle) {
+  .tile {
+    border-radius: calc(var(--radius) * 1.7);
+    corner-shape: squircle;
+  }
+  .osk-key,
+  .tracker span,
+  .result,
+  .toast,
+  dialog.sheet {
+    corner-shape: squircle;
+  }
+  .osk-key {
+    border-radius: 11px;
+  }
+  .result {
+    border-radius: 26px;
+  }
+  .toast {
+    border-radius: 20px;
+  }
+  dialog.sheet {
+    border-radius: 36px;
+  }
+}
+
+/* Two characters on one tile (Welsh "ll", "ch"…) shrink to fit instead of
+   spilling over. One letter is unchanged. */
+@supports (text-fit: shrink) {
+  .tile {
+    text-fit: shrink;
+    padding-inline: calc(var(--tile) * 0.1);
+  }
+}
+
+/* The win: tile-coloured pieces fall over the board, each with its own
+   start, drift, spin and timing picked by CSS random(). board.ts adds them
+   only where random() works. */
+@property --drift {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@supports (width: random(1px, 2px)) {
+  .confetti i {
+    --drift: random(-60px, 60px);
+    --spin: random(360deg, 900deg);
+    position: absolute;
+    top: -16px;
+    left: random(4%, 96%);
+    width: random(7px, 11px);
+    height: random(10px, 16px);
+    border-radius: 2px;
+    background: var(--correct);
+    rotate: random(0deg, 180deg);
+    animation: confetti-fall random(1100ms, 1700ms) cubic-bezier(0.3, 0.6, 0.6, 1) random(0ms, 350ms) both;
+  }
+  .confetti i:nth-child(3n + 1) {
+    background: var(--present);
+  }
+  .confetti i:nth-child(5n + 2) {
+    background: var(--accent);
+    border-radius: 50%;
+    width: 9px;
+    height: 9px;
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), calc(100cqh + 32px)) rotate(var(--spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
+}

@@ -147,6 +147,21 @@ export class Board {
       t.style.setProperty('--i', String(i));
       t.classList.add('bounce');
     });
+    this.celebrate();
+  }
+
+  /** Confetti over the board on a win, where CSS random() can scatter it. */
+  private celebrate() {
+    const wrap = this.el.parentElement;
+    if (!wrap || !CSS.supports('width', 'random(1px, 2px)')) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    wrap.querySelector('.confetti')?.remove();
+    const box = document.createElement('div');
+    box.className = 'confetti';
+    box.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 28; i++) box.append(document.createElement('i'));
+    wrap.append(box);
+    setTimeout(() => box.remove(), 2400);
   }
 }
 
