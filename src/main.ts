@@ -3,7 +3,7 @@ import { dailyNumber, localDate } from '../shared/daily';
 import { checkHardMode, normalizeWord, type HardModeViolation } from '../shared/game';
 import { DEFAULT_LANGUAGE, getLanguage, LANGUAGES, orderLanguages } from '../shared/languages';
 import { api, ApiError } from './api';
-import { Board, renderTracker, setTileLocale, toUpper } from './board';
+import { Board, renderTracker, setTileLocale, setTypingHints, toUpper } from './board';
 import { fillRich, pageVars, setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
@@ -211,8 +211,9 @@ async function submit() {
     }
     if (game !== g) return;
     current = '';
-    entry.clear();
+    // Typing off first, so clearing the field can't bring the keyboard back.
     if (g.status !== 'playing') entry.setEnabled(false);
+    entry.clear();
     draw(true);
     await board.reveal(row);
     if (game !== g) return;
@@ -410,9 +411,13 @@ function openStats() {
   openDialog('dlg-stats');
 }
 
-function openDialog(id: string) {
+async function openDialog(id: string) {
   const dlg = $<HTMLDialogElement>(id);
   entry.setEnabled(false);
+  // Let the keyboard go down before the dialog makes the field inert, or
+  // Android drops the request and leaves it up over the dialog.
+  await entry.hideKeyboard();
+  if (dlg.open) return;
   dlg.showModal();
   // Start focus on the sheet itself rather than its first button, so the
   // close button doesn't open with a focus ring. Tab reaches it as usual.
@@ -568,6 +573,19 @@ setHapticsBox.addEventListener('change', () => {
   settings.haptics = setHapticsBox.checked;
   saveSettings(settings);
   setHaptics(setHapticsBox.checked);
+});
+
+// Already-tried hints on the row being typed: on unless turned off.
+const setHintsBox = $<HTMLInputElement>('set-hints');
+setTypingHints(settings.typingHints !== false);
+setHintsBox.checked = settings.typingHints !== false;
+setHintsBox.addEventListener('change', () => {
+  track('setting', { typingHints: setHintsBox.checked });
+  settings.typingHints = setHintsBox.checked;
+  saveSettings(settings);
+  setTypingHints(setHintsBox.checked);
+  if (race.isActive) race.redraw();
+  else draw(true);
 });
 
 // Install button, where the browser offers one (Chrome, Edge, Samsung).

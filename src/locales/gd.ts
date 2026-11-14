@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Facal nas annasaiche, agus feumar gach sanas a chleachdadh anns na tomhasan às dèidh sin",
   "settings.contrast": "Dathan le iomsgaradh àrd",
   "settings.contrastNote": "Nas fhasa an aithneachadh ma tha dath-dhoille ort",
+  "settings.hints": "Sanasan fhad 's a tha thu a' sgrìobhadh",
+  "settings.hintsNote": "Seallaidh e na litrichean a dh'fheuch thu mar-thà fhad 's a tha thu gan sgrìobhadh",
   "settings.theme": "Coltas",
   "settings.themeSystem": "Fèin-obrachail",
   "settings.themeLight": "Soilleir",

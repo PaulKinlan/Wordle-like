@@ -13,6 +13,7 @@
 // it in D1 (push_config). Worker secrets can override it (see the README).
 import { dailyNumber } from '../shared/daily';
 import { getLanguage } from '../shared/languages';
+import { readObject } from './http';
 import { b64url, sendPush, type VapidKeys } from './webpush';
 
 export interface PushEnv {
@@ -50,9 +51,18 @@ async function ensureConfigTable(db: D1Database) {
   await db.prepare('CREATE TABLE IF NOT EXISTS push_config (k TEXT PRIMARY KEY, v TEXT NOT NULL)').run();
 }
 
+/** The stored keys never change, so they're read from D1 once per running Worker. */
+let storedVapid: StoredVapid | null = null;
+
 async function readStored(db: D1Database): Promise<StoredVapid | null> {
-  const row = await db.prepare("SELECT v FROM push_config WHERE k = 'vapid'").first<{ v: string }>();
-  return row ? (JSON.parse(row.v) as StoredVapid) : null;
+  if (storedVapid) return storedVapid;
+  // The table may not exist yet.
+  const row = await db
+    .prepare("SELECT v FROM push_config WHERE k = 'vapid'")
+    .first<{ v: string }>()
+    .catch(() => null);
+  storedVapid = row ? (JSON.parse(row.v) as StoredVapid) : null;
+  return storedVapid;
 }
 
 /** A new P-256 key pair in the encodings VAPID uses. */
@@ -81,9 +91,9 @@ export async function getVapidKeys(env: PushEnv, origin?: string): Promise<Vapid
       subject: subject || SITE_URL,
     };
   }
-  await ensureConfigTable(env.DB);
   let stored = await readStored(env.DB);
   if (!stored && origin) {
+    await ensureConfigTable(env.DB);
     const fresh: StoredVapid = { ...(await generateVapidKeys()), origin };
     // If two requests race, the first insert wins and both read it back.
     await env.DB.prepare("INSERT OR IGNORE INTO push_config (k, v) VALUES ('vapid', ?)")
@@ -136,6 +146,7 @@ export function localTime(tz: string, now: Date): { date: string; hour: number }
 let migrated = false;
 
 async function ensureTable(db: D1Database) {
+  if (migrated) return;
   await db
     .prepare(
       `CREATE TABLE IF NOT EXISTS push_subs (
@@ -227,12 +238,7 @@ export async function handlePush(
   if (request.method !== 'POST') return error(404, 'not_found', 'Unknown API route');
   if (!keys) return error(404, 'push_off', 'Notifications are not set up');
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return error(400, 'bad_request', 'Expected a JSON body');
-  }
+  const body = await readObject(request, 8 * 1024);
   await ensureTable(env.DB);
 
   if (action === 'subscribe') {
@@ -403,7 +409,7 @@ export function parseRaceAlert(raw: unknown, ui: unknown): RaceAlert | null {
   const p256dh = sub?.keys?.p256dh;
   const auth = sub?.keys?.auth;
   if (!isPushEndpoint(sub?.endpoint) || typeof p256dh !== 'string' || typeof auth !== 'string') return null;
-  if (p256dh.length > 200 || auth.length > 100) return null;
+  if (!B64URL.test(p256dh) || !B64URL.test(auth) || p256dh.length > 100 || auth.length > 40) return null;
   return { endpoint: sub.endpoint, p256dh, auth, ui: typeof ui === 'string' && RACE_JOINED[ui] ? ui : 'en' };
 }
 

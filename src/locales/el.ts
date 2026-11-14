@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Μια πιο σπάνια λέξη, και κάθε στοιχείο που βρίσκεις πρέπει να χρησιμοποιηθεί στις επόμενες προσπάθειες",
   "settings.contrast": "Χρώματα υψηλής αντίθεσης",
   "settings.contrastNote": "Πιο εύκολα στη διάκριση για όσους έχουν δυσχρωματοψία",
+  "settings.hints": "Υποδείξεις κατά την πληκτρολόγηση",
+  "settings.hintsNote": "Σημειώνει τα γράμματα που έχεις ήδη δοκιμάσει καθώς τα γράφεις",
   "settings.theme": "Εμφάνιση",
   "settings.themeSystem": "Αυτόματα",
   "settings.themeLight": "Φωτεινό",

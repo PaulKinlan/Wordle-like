@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Ur ger rouesoc'h, ha ret implijout pep titour er c'hlaskoù da-heul",
   "settings.contrast": "Livioù dargemm uhel",
   "settings.contrastNote": "Aesoc'h da ziforc'hañ evit an dud o deus kudennoù gant al livioù",
+  "settings.hints": "Titouroù en ur skrivañ",
+  "settings.hintsNote": "Diskouez a ra al lizherennoù klasket dija en ur skrivañ anezho",
   "settings.theme": "Neuz",
   "settings.themeSystem": "Emgefreek",
   "settings.themeLight": "Sklaer",

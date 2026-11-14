@@ -80,6 +80,8 @@ const messages: Messages = {
   "settings.hardNote": "Un mot plus rare, et chaque indice trouvé doit être réutilisé",
   "settings.contrast": "Couleurs à fort contraste",
   "settings.contrastNote": "Plus faciles à distinguer en cas de daltonisme",
+  "settings.hints": "Indices pendant la saisie",
+  "settings.hintsNote": "Signale les lettres déjà essayées pendant que vous tapez",
   "settings.theme": "Apparence",
   "settings.themeSystem": "Auto",
   "settings.themeLight": "Clair",

@@ -88,6 +88,8 @@ const messages: Messages = {
   "settings.hardNote": "Hitz arraroagoa, eta aurkitutako pista guztiak erabili behar dira hurrengo saiakeretan",
   "settings.contrast": "Kontraste handiko koloreak",
   "settings.contrastNote": "Bereizteko errazagoak koloreak ondo ikusten ez badituzu",
+  "settings.hints": "Pistak idaztean",
+  "settings.hintsNote": "Dagoeneko probatu dituzun hizkiak markatzen ditu idazten dituzunean",
   "settings.theme": "Itxura",
   "settings.themeSystem": "Automatikoa",
   "settings.themeLight": "Argia",

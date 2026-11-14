@@ -93,6 +93,8 @@ const en = {
   'settings.hardNote': 'A rarer word, and every hint you find must be used in later guesses',
   'settings.contrast': 'High contrast colours',
   'settings.contrastNote': 'Easier to tell apart for colour vision deficiency',
+  "settings.hints": "Letter hints while typing",
+  "settings.hintsNote": "Marks letters you've already tried as you type them",
   'settings.theme': 'Appearance',
   'settings.themeSystem': 'Auto',
   'settings.themeLight': 'Light',

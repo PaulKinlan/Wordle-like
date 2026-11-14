@@ -80,6 +80,8 @@ const messages: Messages = {
   "settings.hardNote": "Ein selteneres Wort, und jeder gefundene Hinweis muss wiederverwendet werden",
   "settings.contrast": "Kontrastreiche Farben",
   "settings.contrastNote": "Leichter zu unterscheiden bei Farbsehschwäche",
+  "settings.hints": "Hinweise beim Tippen",
+  "settings.hintsNote": "Zeigt beim Tippen, welche Buchstaben du schon probiert hast",
   "settings.theme": "Darstellung",
   "settings.themeSystem": "Auto",
   "settings.themeLight": "Hell",
