@@ -55,7 +55,7 @@ const els = {
 };
 
 const settings = loadSettings();
-const board = new Board(els.board);
+const board = new Board(els.board, $('btn-enter'));
 let game: SavedGame | null = null;
 let current = '';
 let busy = false;
@@ -91,6 +91,14 @@ function syncOsk() {
   entry.setOwnKeyboard(on);
   $('osk').hidden = !on || !entry.isEnabled;
 }
+
+// The Enter button at the end of the row being typed (placed by board.ts).
+// Pressing it must not take focus from the field: that would close the
+// phone's keyboard mid-guess. So no default on press; the click still comes.
+const enterBtn = $<HTMLButtonElement>('btn-enter');
+enterBtn.addEventListener('pointerdown', (e) => e.preventDefault());
+enterBtn.addEventListener('mousedown', (e) => e.preventDefault());
+enterBtn.addEventListener('click', () => entry.submit());
 
 const race = new RaceClient({
   board,

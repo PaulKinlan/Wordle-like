@@ -18,7 +18,11 @@ export class Board {
   /** The space the board may fill (its wrapper's size), once measured. */
   private space?: { width: number; height: number };
 
-  constructor(private el: HTMLElement) {
+  constructor(
+    private el: HTMLElement,
+    /** The Enter button: sits just after the row being typed, shown once it's full. */
+    private enter?: HTMLElement,
+  ) {
     // The tile size in plain pixels. The stylesheet can work it out by itself
     // from container units, but then every tile depends on the wrapper's size
     // and changing one letter lays out the whole board again (about 15 times
@@ -45,9 +49,15 @@ export class Board {
       (this.space.height - (this.rows - 1) * GAP) / this.rows,
     );
     this.el.style.setProperty('--tile-px', `${Math.max(0, Math.floor(size * 100) / 100)}px`);
+    // The Enter button goes in the space beside the row. When the tiles fill
+    // the width (keyboard down, narrow phone) there's none, so it sits on the
+    // last tile's corner instead.
+    const side = (this.space.width - (this.cols * size + (this.cols - 1) * GAP)) / 2;
+    this.el.classList.toggle('enter-tight', side < Math.min(size * 0.8, 48) + GAP);
   }
 
   build(rows: number, cols: number) {
+    if (this.enter) this.el.after(this.enter);
     this.el.replaceChildren();
     this.el.style.setProperty('--cols', String(cols));
     this.el.style.setProperty('--rows', String(rows));
@@ -77,7 +87,17 @@ export class Board {
   /** Paints finished rows, the row being typed, and empty rows below. */
   render(rows: Row[], current: string, active: boolean) {
     const letters = [...current];
+    const typing = active ? this.rowEls[rows.length] : undefined;
+    if (this.enter) {
+      if (typing && this.enter.parentElement !== typing) typing.append(this.enter);
+      this.enter.classList.toggle('ready', !!typing && letters.length >= this.cols);
+    }
     const known = letterHints(showHints ? rows : []);
+    // The row being typed stands out; the empty rows below it step back.
+    this.rowEls.forEach((row, r) => {
+      row.classList.toggle('active', r === rows.length && active);
+      row.classList.toggle('upcoming', r > rows.length || (r === rows.length && !active));
+    });
     this.tiles.forEach((tiles, r) => {
       const done = rows[r];
       tiles.forEach((t, c) => {
