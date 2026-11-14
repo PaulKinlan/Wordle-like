@@ -22,7 +22,6 @@ import {
   loadSettings,
   loadStats,
   recordResult,
-  recordSkip,
   saveGame,
   saveSettings,
   type Mode,
@@ -490,7 +489,8 @@ els.tabDaily.addEventListener('click', () => void startMode('daily'));
 els.tabUnlimited.addEventListener('click', () => void startMode('unlimited'));
 els.tabRace.addEventListener('click', () => openRace());
 // Skip: Unlimited only, while a word is in play. The first tap asks, the
-// second gets a new word. Like the Enter button it never takes focus from
+// second gets a new word. A skipped word isn't counted in any stat
+// (Paul's choice). Like the Enter button it never takes focus from
 // the field, so the phone's keyboard stays exactly as it was (up or down).
 let skipConfirm: number | undefined;
 let skipping = false;
@@ -523,7 +523,6 @@ els.btnSkip.addEventListener('click', async () => {
   try {
     const { answer } = await api.skip(g.lang, g.puzzle);
     track('skip_word', { guesses: g.rows.length });
-    recordSkip(g);
     if (game !== g) return;
     await startMode('unlimited', true);
     toast(t('result.was', { word: upperWord(answer, g.lang) }), 2500);
