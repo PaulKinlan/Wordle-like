@@ -33,6 +33,7 @@ export interface EntryOptions {
 export class NativeEntry {
   private maxLength = 5;
   private enabled = true;
+  private hiding: Promise<void> | null = null;
 
   constructor(private o: EntryOptions) {
     const { input, form } = o;
@@ -65,7 +66,7 @@ export class NativeEntry {
     document.addEventListener(
       'pointerdown',
       (e) => {
-        if (!form.contains(e.target as Node)) this.hideKeyboard();
+        if (!form.contains(e.target as Node)) void this.hideKeyboard();
       },
       true,
     );
@@ -114,46 +115,51 @@ export class NativeEntry {
     this.maxLength = maxLength;
   }
 
-  setEnabled(on: boolean) {
+  setEnabled(on: boolean): Promise<void> {
     const { input } = this.o;
     this.enabled = on;
     debugLog('kb enabled', on, { focused: document.activeElement === input, vk: vkHeight() });
     if (on) {
+      input.disabled = false;
       input.readOnly = false;
       input.removeAttribute('inputmode');
       input.setAttribute('virtualkeyboardpolicy', 'manual');
-      return;
+      return Promise.resolve();
     }
-    this.hideKeyboard();
+    const hidden = this.hideKeyboard();
     // Android can bring the keyboard back once the keyboard app catches up
     // with the Enter press: check again when that has settled.
     setTimeout(() => {
-      if (!this.enabled && vkHeight() > 0) {
-        debugLog('kb still up after 400ms, hiding again');
-        this.hideKeyboard();
+      if (!this.enabled && !this.hiding && vkHeight() > 0) {
+        debugLog('kb still up after 1.2s, hiding again');
+        void this.hideKeyboard();
       }
-    }, 400);
+    }, 1200);
+    return hidden;
   }
 
   /**
-   * Puts the on-screen keyboard away, using every lever there is, in order:
+   * Puts the on-screen keyboard away. Each lever gets a moment to work before
+   * the next one is tried, because Chrome applies keyboard requests at the
+   * next frame: changing focus in the same task cancels them (the ?debug log
+   * showed hide() followed straight away by a blur leaving the keyboard up).
    * 1. navigator.virtualKeyboard.hide() while the field is focused, editable
    *    and on the "manual" policy (the API's own way).
-   * 2. Then switch the field to the browser's normal ("auto") policy with
-   *    inputmode="none" and move focus off it. Chrome reads the policy when
-   *    focus changes, so the field is focused once more under "auto" (no
-   *    keyboard, inputmode="none") and blurred again: a blur under "auto"
-   *    is what closes the keyboard on every Android browser.
-   * All of this is synchronous, so a dialog opened right after can't get in
-   * the way. Each step goes to the ?debug log.
+   * 2. If it's still up: switch the field to the "auto" policy, let a frame
+   *    pass, then blur (a blur under "auto" closes the keyboard).
+   * 3. If it's still up: disable the field, which Android can't keep a
+   *    keyboard open for.
+   * Each step goes to the ?debug log. Resolves once the keyboard is down
+   * (or every lever has been tried).
    */
-  hideKeyboard() {
+  hideKeyboard(): Promise<void> {
     const { input } = this.o;
     const focused = document.activeElement === input;
     debugLog('kb hide start', { focused, vk: vkHeight() });
+    if (this.hiding) return this.hiding;
     if (!focused && !(vkHeight() > 0)) {
       if (!this.enabled) this.lockField();
-      return;
+      return Promise.resolve();
     }
     input.readOnly = false;
     if (!focused) input.focus({ preventScroll: true });
@@ -162,14 +168,45 @@ export class NativeEntry {
     } catch (e) {
       debugLog('kb hide() threw', e);
     }
-    if (this.enabled) return; // a pause (dialog over a game in progress): the field keeps its policy
-    input.inputMode = 'none';
-    input.setAttribute('virtualkeyboardpolicy', 'auto');
-    input.blur();
-    input.focus({ preventScroll: true });
-    input.blur();
-    this.lockField();
-    debugLog('kb hide done', { focused: document.activeElement === input, vk: vkHeight() });
+    if (this.enabled) return Promise.resolve(); // a tap elsewhere mid-game: the field keeps its policy
+    this.hiding = (async () => {
+      if (!(await this.closed())) {
+        debugLog('kb hide() left it up: auto policy, then blur', { vk: vkHeight() });
+        input.inputMode = 'none';
+        input.setAttribute('virtualkeyboardpolicy', 'auto');
+        await frames(2);
+        input.blur();
+        if (!(await this.closed())) {
+          debugLog('kb still up after blur: disabling the field', { vk: vkHeight() });
+          input.disabled = true;
+          await this.closed();
+        }
+      }
+      if (document.activeElement === input) input.blur();
+      if (!this.enabled) this.lockField();
+      debugLog('kb hide done', { focused: document.activeElement === input, vk: vkHeight() });
+    })().finally(() => {
+      this.hiding = null;
+    });
+    return this.hiding;
+  }
+
+  /** Waits up to `ms` for the keyboard to go down. True if it did (or we can't tell). */
+  private closed(ms = 350): Promise<boolean> {
+    if (!vk) return frames(2).then(() => true);
+    if (vkHeight() <= 0) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const done = (ok: boolean) => {
+        clearTimeout(timer);
+        vk.removeEventListener('geometrychange', check);
+        resolve(ok);
+      };
+      const check = () => {
+        if (vkHeight() <= 0) done(true);
+      };
+      const timer = setTimeout(() => done(vkHeight() <= 0), ms);
+      vk.addEventListener('geometrychange', check);
+    });
   }
 
   /** Typing is off: no keyboard for this field until it's turned back on. */
@@ -225,6 +262,12 @@ export class NativeEntry {
     }
   }
 }
+
+const frames = (n: number) =>
+  new Promise<void>((resolve) => {
+    const step = () => (--n <= 0 ? resolve() : requestAnimationFrame(step));
+    requestAnimationFrame(step);
+  });
 
 /** Keeps the layout above the on-screen keyboard. Sets --kb on <html>. */
 function setupKeyboardInsets() {
