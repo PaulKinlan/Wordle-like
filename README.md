@@ -273,6 +273,17 @@ To add a language page, add it to `PAGES` in `scripts/seo.ts`.
 - The image (`/og/...png`, 1200×630) is drawn by the Worker, with no image library. Glyphs from Inter are pre-rendered into `worker/og-font.ts` by `scripts/make-og-font.mjs`, and a small PNG encoder uses `CompressionStream`. Images are cached at the edge.
 - A shared link opens the game in the language it was played in. An invite opens the race.
 
+## Agents can play (WebMCP, an experiment)
+
+`src/webmcp.ts` registers four tools with `document.modelContext`, where the browser supports WebMCP:
+
+- `get_rules` explains how to play.
+- `get_game_state` returns the board, the marks, the letter hints and how many guesses are left. It includes the answer only once the game is over.
+- `guess_word` types a word onto the board and submits it, with the same checks as a person gets.
+- `new_game` switches between the daily and unlimited games.
+
+Agent tool use shows in the dashboard as the `agent_tool` action.
+
 ## Ready for later steps
 
 - **Push notifications**: store subscriptions in the same D1 database, VAPID keys made by the

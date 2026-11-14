@@ -10,6 +10,7 @@ import { RaceClient } from './race';
 import { initDebug } from './debug';
 import { initTelemetry, track } from './telemetry';
 import { watchForUpdates } from './update';
+import { registerAgentTools } from './webmcp';
 import { canVibrate, promptInstall, setHaptics, setUnplayedBadge, watchInstall } from './pwa';
 import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
@@ -229,7 +230,11 @@ function upperWord(word: string, code: string) {
   return [...word].map((c) => (c === 'ß' ? 'ẞ' : c.toLocaleUpperCase(code))).join('');
 }
 
+/** The last refusal, so an agent (webmcp.ts) can be told why its guess didn't count. */
+let lastReject: string | null = null;
+
 function reject(row: number, message: string) {
+  lastReject = message;
   toast(message);
   board.shake(row);
 }
@@ -810,6 +815,40 @@ function firstVisit() {
 }
 
 void init();
+
+// An AI agent can play too, where the browser supports WebMCP (an experiment).
+registerAgentTools({
+  state: () =>
+    game && !race.isActive
+      ? {
+          mode: game.mode,
+          language: { code: game.lang, name: getLanguage(game.lang)?.name ?? game.lang },
+          puzzleNumber: game.number,
+          wordLength: game.wordLength,
+          maxGuesses: game.maxGuesses,
+          hardMode: game.hard,
+          status: game.status,
+          rows: game.rows.map((r) => ({ guess: r.guess, marks: r.marks })),
+          ...(game.status === 'playing' ? {} : { answer: game.answer }),
+        }
+      : null,
+  async guess(word) {
+    if (race.isActive) return 'A race is open; agents can play the daily or unlimited game.';
+    if (!game || game.status !== 'playing') return 'This game is over. Start another with new_game.';
+    if (busy) return 'Still checking the last guess.';
+    for (const d of document.querySelectorAll<HTMLDialogElement>('dialog[open]')) d.close();
+    current = [...normalizeWord(word, game.lang)].slice(0, game.wordLength).join('');
+    draw();
+    lastReject = null;
+    await submit();
+    return lastReject;
+  },
+  async newGame(mode) {
+    for (const d of document.querySelectorAll<HTMLDialogElement>('dialog[open]')) d.close();
+    await startMode(mode, mode === 'unlimited' && game?.mode === 'unlimited' && game.status !== 'playing');
+  },
+  used: (tool) => track('agent_tool', { tool }),
+});
 
 // A newer version is live: offer it, without interrupting anything.
 watchForUpdates((live) => {
