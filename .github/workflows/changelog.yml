@@ -1,0 +1,39 @@
+name: What's new
+
+# Every pull request that changes the app must add or extend an entry in
+# src/changelog.ts (the player-facing "What's new" sheet). Label the PR
+# `no-changelog` for changes no player can notice, such as a refactor,
+# tests, docs or CI.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  entry:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changelog') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for a What's new entry
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE...$HEAD")
+          echo "$changed"
+          app=$(echo "$changed" | grep -E '^(src/|shared/|worker/|public/|index\.html$)' | grep -vE '\.test\.ts$' || true)
+          if [ -z "$app" ]; then
+            echo "No app files changed, so no entry is needed."
+            exit 0
+          fi
+          if echo "$changed" | grep -qx 'src/changelog.ts'; then
+            echo "src/changelog.ts is updated."
+            exit 0
+          fi
+          echo "::error file=src/changelog.ts::This PR changes the app but adds nothing to What's new. Add a player-facing entry to src/changelog.ts (see the notes at the top of that file), or label the PR no-changelog if no player could notice the change."
+          exit 1
