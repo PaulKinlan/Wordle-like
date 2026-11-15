@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "Jokatu zuk ere {host} helbidean",
   "settings.version": "{version} bertsioa",
   "help.bug": "Akatsen bat aurkitu duzu? Jakinarazi GitHub-en",
+  "help.debug": "Arazketa-erregistroa",
   "update.ready": "Letterle-ren bertsio berri bat prest dago",
   "update.button": "Eguneratu",
   "settings.haptics": "Bibrazioa",

@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "C'hoarit ivez war {host}",
   "settings.version": "Stumm {version}",
   "help.bug": "Kavet hoc'h eus ur bug? Kemennit anezhañ war GitHub",
+  "help.debug": "Deizlevr debug",
   "update.ready": "Ur stumm nevez eus Letterle a zo prest",
   "update.button": "Hizivaat",
   "settings.haptics": "Froumal",

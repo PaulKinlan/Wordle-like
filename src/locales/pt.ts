@@ -53,6 +53,7 @@ const messages: Messages = {
   "card.play": "Joga também em {host}",
   "settings.version": "Versão {version}",
   "help.bug": "Encontraste um erro? Reporta-o no GitHub",
+  "help.debug": "Registo de depuração",
   "update.ready": "Há uma nova versão do Letterle",
   "update.button": "Atualizar",
   "settings.haptics": "Vibração",

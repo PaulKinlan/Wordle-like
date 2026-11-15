@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "Spela själv på {host}",
   "settings.version": "Version {version}",
   "help.bug": "Hittat en bugg? Rapportera den på GitHub",
+  "help.debug": "Felsökningslogg",
   "update.ready": "En ny version av Letterle är klar",
   "update.button": "Uppdatera",
   "settings.haptics": "Vibration",

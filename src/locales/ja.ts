@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "{host} で遊んでみよう",
   "settings.version": "バージョン {version}",
   "help.bug": "不具合を見つけたら GitHub で報告してください",
+  "help.debug": "デバッグログ",
   "update.ready": "Letterle の新しいバージョンがあります",
   "update.button": "更新",
   "settings.haptics": "バイブレーション",

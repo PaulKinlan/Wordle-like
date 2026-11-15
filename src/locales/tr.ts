@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "Sen de {host} adresinde oyna",
   "settings.version": "Sürüm {version}",
   "help.bug": "Hata mı buldun? GitHub'da bildir",
+  "help.debug": "Hata ayıklama günlüğü",
   "update.ready": "Letterle'nin yeni sürümü hazır",
   "update.button": "Güncelle",
   "settings.haptics": "Titreşim",

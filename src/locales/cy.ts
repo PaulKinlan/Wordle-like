@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "Chwaraewch eich hun yn {host}",
   "settings.version": "Fersiwn {version}",
   "help.bug": "Wedi dod o hyd i nam? Rhowch wybod ar GitHub",
+  "help.debug": "Log dadfygio",
   "update.ready": "Mae fersiwn newydd o Letterle yn barod",
   "update.button": "Diweddaru",
   "settings.haptics": "Dirgryniad",

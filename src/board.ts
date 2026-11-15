@@ -6,7 +6,7 @@ import { letterHints } from './hints';
 
 // Must match .board in styles.css: the gap between tiles and the largest tile.
 const GAP = 6;
-const MAX_TILE = 64;
+const MAX_TILE = 80;
 
 /** Draws the grid of tiles. Rebuilt only when the puzzle shape changes. */
 export class Board {

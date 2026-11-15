@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "Cluich thu fhèin aig {host}",
   "settings.version": "Tionndadh {version}",
   "help.bug": "An do lorg thu buga? Innis dhuinn air GitHub",
+  "help.debug": "Loga dì-bhugachaidh",
   "update.ready": "Tha tionndadh ùr de Letterle deiseil",
   "update.button": "Ùraich",
   "settings.haptics": "Crith",

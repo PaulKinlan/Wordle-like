@@ -79,7 +79,23 @@ export function debugLog(...parts: unknown[]) {
 export function initDebug() {
   // Each page load starts with a marker, so earlier visits are easy to tell apart.
   debugLog(`--- page load, version ${SHORT_COMMIT} ---`);
-  if (!on) return;
+  if (on) showPanel();
+}
+
+/**
+ * Turns the debug panel on from inside the page (How to play has a link):
+ * the installed app has no address bar to add ?debug to.
+ */
+export function openDebug() {
+  try {
+    sessionStorage.setItem(KEY, '1');
+  } catch {
+    /* on for this page only */
+  }
+  if (!document.querySelector('.debug-panel')) showPanel();
+}
+
+function showPanel() {
   const panel = document.createElement('details');
   panel.className = 'debug-panel';
   // Starts folded to one small bar, so it never covers the board. The Show
