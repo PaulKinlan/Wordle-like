@@ -147,6 +147,21 @@ export class Board {
       t.style.setProperty('--i', String(i));
       t.classList.add('bounce');
     });
+    this.celebrate();
+  }
+
+  /** Confetti over the board on a win, where CSS random() can scatter it. */
+  private celebrate() {
+    const wrap = this.el.parentElement;
+    if (!wrap || !CSS.supports('width', 'random(1px, 2px)')) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    wrap.querySelector('.confetti')?.remove();
+    const box = document.createElement('div');
+    box.className = 'confetti';
+    box.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 28; i++) box.append(document.createElement('i'));
+    wrap.append(box);
+    setTimeout(() => box.remove(), 2400);
   }
 }
 
@@ -167,16 +182,47 @@ export function renderTracker(el: HTMLElement, alphabet: string[], rows: Row[]) 
   if (el.childElementCount !== alphabet.length) {
     el.replaceChildren(
       ...alphabet.map((ch) => {
-        const s = document.createElement('span');
+        // Where interest invokers work, each letter is a button: a long press
+        // (hover on desktop) says what's known about it. Otherwise plain text.
+        const s = document.createElement(letterTip ? 'button' : 'span');
         s.textContent = toUpper(ch);
+        if (s instanceof HTMLButtonElement) {
+          s.type = 'button';
+          s.tabIndex = -1;
+          s.setAttribute('interestfor', 'letter-tip');
+        }
         return s;
       }),
     );
   }
   [...el.children].forEach((s, i) => {
-    s.className = best.get(alphabet[i]) ?? '';
+    const mark = best.get(alphabet[i]);
+    s.className = mark ?? '';
+    if (letterTip) {
+      const letter = toUpper(alphabet[i]);
+      s.setAttribute('aria-label', tr(`tracker.${mark ?? 'untried'}`, { letter }));
+    }
   });
 }
+
+/** The popover the tracker's letters explain themselves in, if supported. */
+const letterTip =
+  typeof HTMLButtonElement !== 'undefined' && 'interestForElement' in HTMLButtonElement.prototype
+    ? document.getElementById('letter-tip')
+    : null;
+
+// The tip shows the label of whichever letter asked for it.
+let tipAnchor: HTMLElement | undefined;
+letterTip?.addEventListener('interest', (e) => {
+  const source = (e as Event & { source?: Element }).source;
+  letterTip.textContent = source?.getAttribute('aria-label') ?? '';
+  // Sits above that letter (CSS anchor positioning).
+  tipAnchor?.style.removeProperty('anchor-name');
+  if (source instanceof HTMLElement) {
+    tipAnchor = source;
+    source.style.setProperty('anchor-name', '--letter-tip');
+  }
+});
 
 let trackerListener: ((lang: string, best: Map<string, Mark>) => void) | undefined;
 

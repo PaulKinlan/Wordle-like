@@ -689,7 +689,7 @@ body:not(.typing) .row.active .tile.cursor {
   gap: 4px;
 }
 
-.tracker span {
+.tracker > * {
   min-width: 22px;
   padding: 3px 0;
   border-radius: 6px;
@@ -708,22 +708,22 @@ body:not(.typing) .row.active .tile.cursor {
   gap: 2px;
 }
 
-.tracker.dense span {
+.tracker.dense > * {
   min-width: 0;
   padding: 1px 0;
   border-radius: 4px;
   font-size: 0.6875rem;
 }
 
-.tracker span.correct {
+.tracker > *.correct {
   background: var(--correct);
   color: var(--on-mark);
 }
-.tracker span.present {
+.tracker > *.present {
   background: var(--present);
   color: var(--on-mark);
 }
-.tracker span.absent {
+.tracker > *.absent {
   opacity: 0.35;
   text-decoration: line-through;
 }
@@ -1588,4 +1588,375 @@ install[hidden],
 
 #dlg-install:not([data-route='button']) .install-go {
   display: none;
+}
+
+/* ---- Chrome feature experiments (progressive: other browsers keep the
+   look above). ---- */
+
+/* Squircles: the smooth curve of an app icon instead of a circular arc. A
+   squircle looks squarer at the same radius, hence the larger one. */
+@supports (corner-shape: squircle) {
+  .tile {
+    border-radius: calc(var(--radius) * 1.7);
+    corner-shape: squircle;
+  }
+  .osk-key,
+  .tracker > *,
+  .result,
+  .toast,
+  dialog.sheet {
+    corner-shape: squircle;
+  }
+  .osk-key {
+    border-radius: 11px;
+  }
+  .result {
+    border-radius: 26px;
+  }
+  .toast {
+    border-radius: 20px;
+  }
+  dialog.sheet {
+    border-radius: 36px;
+  }
+}
+
+/* Two characters on one tile (Welsh "ll", "ch"…) shrink to fit instead of
+   spilling over. One letter is unchanged. */
+@supports (text-fit: shrink) {
+  .tile {
+    text-fit: shrink;
+    padding-inline: calc(var(--tile) * 0.1);
+  }
+}
+
+/* The win: tile-coloured pieces fall over the board, each with its own
+   start, drift, spin and timing picked by CSS random(). board.ts adds them
+   only where random() works. */
+@property --drift {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@supports (width: random(1px, 2px)) {
+  .confetti i {
+    --drift: random(-60px, 60px);
+    --spin: random(360deg, 900deg);
+    position: absolute;
+    top: -16px;
+    left: random(4%, 96%);
+    width: random(7px, 11px);
+    height: random(10px, 16px);
+    border-radius: 2px;
+    background: var(--correct);
+    rotate: random(0deg, 180deg);
+    animation: confetti-fall random(1100ms, 1700ms) cubic-bezier(0.3, 0.6, 0.6, 1) random(0ms, 350ms) both;
+  }
+  .confetti i:nth-child(3n + 1) {
+    background: var(--present);
+  }
+  .confetti i:nth-child(5n + 2) {
+    background: var(--accent);
+    border-radius: 50%;
+    width: 9px;
+    height: 9px;
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), calc(100cqh + 32px)) rotate(var(--spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
+}
+
+/* Tracker letters as buttons (interest invokers): look exactly like the
+   plain ones. */
+.tracker > button {
+  border: 0;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The long-press tip: above the letter, in the top layer. */
+.letter-tip {
+  position-anchor: --letter-tip;
+  position-area: top;
+  inset: auto;
+  position-try-fallbacks: flip-block;
+  margin: 0 0 8px;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  corner-shape: squircle;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+}
+
+/* Settings pickers drawn by the page: grouped, with the native name large
+   and the English name small. Other browsers keep the system picker. */
+@supports (appearance: base-select) {
+  .setting select,
+  .setting select::picker(select) {
+    appearance: base-select;
+  }
+  .setting select {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 6px 10px 6px 12px;
+    border-radius: 12px;
+    corner-shape: squircle;
+  }
+  .setting select::picker-icon {
+    color: var(--muted);
+    transition: rotate 150ms;
+  }
+  .setting select:open::picker-icon {
+    rotate: 180deg;
+  }
+  .setting select::picker(select) {
+    margin-block: 6px;
+    min-width: anchor-size(width);
+    max-height: min(60dvh, 420px);
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    corner-shape: squircle;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+    position-try-fallbacks: flip-block;
+  }
+  .setting optgroup {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 8px 10px 4px;
+  }
+  .setting optgroup + optgroup {
+    margin-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+  .setting option {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .setting select button {
+    display: contents;
+  }
+  .setting selectedcontent small {
+    display: none;
+  }
+  .setting option small {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .setting option:hover,
+  .setting option:focus-visible {
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    outline: none;
+  }
+  .setting option:checked {
+    font-weight: 700;
+  }
+  .setting option::checkmark {
+    order: 1;
+    margin-left: auto;
+    color: var(--accent);
+  }
+}
+
+/* The phone's font size (meta text-scale): sheets, toasts and settings grow
+   with it, but the bars around the board stay put so the board keeps its
+   height. Each cap is the size at the default font size. */
+.brand {
+  font-size: min(1.35rem, 22px);
+}
+.segmented button {
+  font-size: min(0.9rem, 15px);
+}
+.subtitle {
+  font-size: min(0.8rem, 13px);
+}
+.tracker > * {
+  font-size: min(0.75rem, 12px);
+}
+.tracker.dense > * {
+  font-size: min(0.6875rem, 11px);
+}
+
+/* New board (Daily/Unlimited, New word, back from a race): the old board
+   slides up and fades, the new one rises in. Scoped to the board's wrapper
+   (element.startViewTransition in main.ts). */
+.board-swap .board {
+  view-transition-name: board;
+}
+.board-wrap::view-transition-old(board) {
+  animation: board-out 180ms ease-in both;
+}
+.board-wrap::view-transition-new(board) {
+  animation: board-in 260ms cubic-bezier(0.2, 0.8, 0.3, 1) 60ms both;
+}
+@keyframes board-out {
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+}
+@keyframes board-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+
+/* The share card (share.ts, HTML-in-canvas): laid out by the browser inside
+   a canvas that is never seen, then drawn into it at 1080×1350. Same layout
+   and colours as the hand-drawn card. */
+.share-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1350px;
+  /* Clipped away, not hidden: a canvas that isn't painted (opacity 0, off
+     screen) gets no snapshot of its HTML to draw. */
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+.share-card {
+  --correct: #2f9e74;
+  --present: #d9a21b;
+  --absent: #7d828c;
+  box-sizing: border-box;
+  width: 1080px;
+  height: 1350px;
+  padding: 58px 60px 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f6f6f3;
+  color: #17181b;
+  font-family: ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  text-align: center;
+  line-height: 1.15;
+}
+.share-card.contrast {
+  --correct: #f5793a;
+  --present: #6fb2f2;
+}
+.share-name {
+  font-size: 64px;
+  font-weight: 800;
+}
+.share-which {
+  margin-top: 8px;
+  font-size: 36px;
+  font-weight: 600;
+  color: #6b6f78;
+  white-space: pre;
+}
+.share-score {
+  margin-top: 24px;
+  font-size: 170px;
+  font-weight: 800;
+  line-height: 1;
+}
+.share-score.won {
+  color: var(--correct);
+}
+.share-said {
+  margin-top: 16px;
+  font-size: 44px;
+  font-weight: 700;
+}
+.share-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--tile));
+  grid-auto-rows: var(--tile);
+  gap: 14px;
+  align-content: center;
+}
+.share-grid i {
+  border: 5px solid #dcdde0;
+  border-radius: 16px;
+}
+@supports (corner-shape: squircle) {
+  .share-grid i {
+    border-radius: 26px;
+    corner-shape: squircle;
+  }
+}
+.share-grid i.correct,
+.share-grid i.present,
+.share-grid i.absent {
+  border: 0;
+}
+.share-grid i.correct {
+  background: var(--correct);
+}
+.share-grid i.present {
+  background: var(--present);
+}
+.share-grid i.absent {
+  background: var(--absent);
+}
+.share-streak {
+  min-height: 46px;
+  margin-bottom: 24px;
+  font-size: 40px;
+  font-weight: 700;
+}
+.share-play {
+  max-width: 960px;
+  padding: 22px 48px;
+  border-radius: 999px;
+  background: #17181b;
+  color: #fff;
+  font-size: 38px;
+  font-weight: 700;
+  text-wrap: balance;
 }

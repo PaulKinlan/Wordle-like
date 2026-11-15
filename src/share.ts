@@ -70,8 +70,100 @@ export async function shareCard(
   labels: CardLabels,
   streak = 0,
 ): Promise<Blob | null> {
-  const W = 1080;
-  const H = 1350;
+  return (await htmlCard(game, highContrast, labels, streak)) ?? drawnCard(game, highContrast, labels, streak);
+}
+
+const W = 1080;
+const H = 1350;
+
+/** The tile size and gap of the card's grid: the same sum for both versions. */
+function gridTile(cols: number, rows: number, gap: number, height: number) {
+  return Math.min(96, (W - 300 - gap * (cols - 1)) / cols, (height - gap * (rows - 1)) / rows);
+}
+
+type HtmlCanvasContext = CanvasRenderingContext2D & {
+  drawElementImage(el: Element, x: number, y: number): void;
+};
+
+/**
+ * The card as HTML, drawn into the canvas by the browser (HTML-in-canvas):
+ * the app's own fonts, any script, translated text that wraps by itself, and
+ * the same tile shape as the board. Null where that isn't supported or it
+ * doesn't draw in time; the hand-drawn version is used then.
+ */
+async function htmlCard(game: SavedGame, highContrast: boolean, labels: CardLabels, streak: number): Promise<Blob | null> {
+  if (typeof CanvasRenderingContext2D === 'undefined' || !('drawElementImage' in CanvasRenderingContext2D.prototype)) {
+    return null;
+  }
+  const el = (tag: string, cls: string, text = '') => {
+    const e = document.createElement(tag);
+    e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  };
+  const won = game.status === 'won';
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  canvas.className = 'share-canvas';
+  canvas.setAttribute('aria-hidden', 'true');
+  // The attribute was renamed during the trial; set both.
+  canvas.setAttribute('layoutsubtree', '');
+  canvas.setAttribute('content', 'drawable');
+
+  const card = el('div', 'share-card' + (highContrast ? ' contrast' : ''));
+  card.setAttribute('drawable', '');
+  const which = game.mode === 'daily' ? `No. ${game.number ?? '?'}` : 'Unlimited';
+  const extras = [game.lang !== 'en' ? game.lang.toUpperCase() : '', game.hard ? 'Hard' : ''].filter(Boolean);
+  const grid = el('div', 'share-grid');
+  const gap = 14;
+  grid.style.setProperty('--cols', String(game.wordLength));
+  grid.style.setProperty('--tile', `${gridTile(game.wordLength, game.maxGuesses, gap, H - 250 - 480)}px`);
+  for (let r = 0; r < game.maxGuesses; r++) {
+    for (let c = 0; c < game.wordLength; c++) {
+      grid.append(el('i', game.rows[r]?.marks[c] ?? ''));
+    }
+  }
+  card.append(
+    el('div', 'share-name', APP_NAME),
+    el('div', 'share-which', [which, ...extras].join('  ·  ')),
+    el('div', 'share-score' + (won ? ' won' : ''), `${won ? game.rows.length : 'X'}/${game.maxGuesses}`),
+    el('div', 'share-said', won ? labels.won : labels.lost),
+    grid,
+    el('div', 'share-streak', streakLine(game, streak)),
+    el('div', 'share-play', labels.play),
+  );
+  canvas.append(card);
+  document.body.append(canvas);
+
+  try {
+    const ctx = canvas.getContext('2d') as HtmlCanvasContext | null;
+    if (!ctx) return null;
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('no paint')), 1000);
+      // The first paint can come before the card's first snapshot: then wait for the next.
+      canvas.addEventListener('paint', () => {
+        try {
+          ctx.clearRect(0, 0, W, H);
+          ctx.drawElementImage(card, 0, 0);
+          clearTimeout(timer);
+          resolve();
+        } catch {
+          (canvas as HTMLCanvasElement & { requestPaint?: () => void }).requestPaint?.();
+        }
+      });
+      (canvas as HTMLCanvasElement & { requestPaint?: () => void }).requestPaint?.();
+    });
+    return await new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+  } catch {
+    return null;
+  } finally {
+    canvas.remove();
+  }
+}
+
+/** The card drawn by hand on a plain canvas: everywhere else. */
+async function drawnCard(game: SavedGame, highContrast: boolean, labels: CardLabels, streak: number): Promise<Blob | null> {
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -111,7 +203,7 @@ export async function shareCard(
   const gap = 14;
   const top = 480;
   const bottom = H - 250;
-  const tile = Math.min(96, (W - 300 - gap * (cols - 1)) / cols, (bottom - top - gap * (rows - 1)) / rows);
+  const tile = gridTile(cols, rows, gap, bottom - top);
   const gridW = cols * tile + (cols - 1) * gap;
   const gridH = rows * tile + (rows - 1) * gap;
   const x0 = (W - gridW) / 2;

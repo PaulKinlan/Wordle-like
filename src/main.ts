@@ -164,13 +164,33 @@ async function startMode(mode: Mode, fresh = false) {
   // Hints the phone's keyboard towards the game's language, where supported.
   els.input.lang = game.lang;
   setTileLocale(game.lang);
-  board.build(game.maxGuesses, game.wordLength);
-  draw();
-  showResult();
+  const g = game;
+  swapBoard(() => {
+    board.build(g.maxGuesses, g.wordLength);
+    draw();
+    showResult();
+  });
   // The help text names this language's number of tries.
   pageVars.n = game.maxGuesses;
   fillRich($('help-p1'), 'help.p1');
   void loadWords(lang);
+}
+
+let boardShown = false;
+
+/**
+ * Swaps in a new board with a short slide and fade, scoped to the board
+ * (element-scoped view transitions), so it can't hold up anything else on
+ * the page. Instant the first time, under reduced motion, or where the
+ * browser can't scope a transition to one element.
+ */
+function swapBoard(update: () => void) {
+  const wrap = els.board.parentElement as (HTMLElement & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } }) | null;
+  const animate = boardShown && !!wrap?.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  boardShown = true;
+  if (!animate || !wrap?.startViewTransition) return update();
+  wrap.classList.add('board-swap');
+  wrap.startViewTransition(update).finished.finally(() => wrap.classList.remove('board-swap'));
 }
 
 function newGame(
@@ -793,6 +813,63 @@ function savedUiLang(): string | null {
   }
 }
 
+/** Pickers drawn by the page, not the system (Chrome's customizable select). */
+const richSelect = typeof CSS !== 'undefined' && CSS.supports('appearance', 'base-select');
+
+/**
+ * Fills a language picker: the device's and keyboard's languages first, in
+ * their own group when there are others too. Where the page draws the picker,
+ * each row shows the name in the language itself, with the English name
+ * beside it in small type.
+ */
+function fillLanguageSelect(
+  select: HTMLSelectElement,
+  order: string[],
+  hints: string[],
+  info: (code: string) => { nativeName: string; name: string },
+) {
+  const primary = (tag: string) => tag.toLowerCase().split('-')[0];
+  const mine = new Set([...hints, ...(navigator.languages ?? [navigator.language])].map(primary));
+  const option = (code: string) => {
+    const { nativeName, name } = info(code);
+    const o = document.createElement('option');
+    o.value = code;
+    if (richSelect && nativeName !== name) {
+      const big = document.createElement('span');
+      big.textContent = nativeName;
+      const small = document.createElement('small');
+      small.textContent = name;
+      o.append(big, small);
+    } else {
+      o.textContent = nativeName === name ? name : `${nativeName} (${name})`;
+    }
+    return o;
+  };
+  // The closed picker shows a copy of the chosen row (CSS hides the small name).
+  const shown: Node[] = [];
+  if (richSelect) {
+    const button = document.createElement('button');
+    button.append(document.createElement('selectedcontent'));
+    shown.push(button);
+  }
+  const yours = order.filter((code) => mine.has(primary(code)));
+  if (!yours.length || yours.length === order.length) {
+    select.replaceChildren(...shown, ...order.map(option));
+    return;
+  }
+  const group = (label: string, codes: string[]) => {
+    const g = document.createElement('optgroup');
+    g.label = label;
+    g.append(...codes.map(option));
+    return g;
+  };
+  select.replaceChildren(
+    ...shown,
+    group(t('settings.yourLangs'), yours),
+    group(t('settings.allLangs'), order.filter((code) => !yours.includes(code))),
+  );
+}
+
 /** Offers the device's languages first, but stays in English unless chosen. */
 function fillUiLanguages(hints: string[]) {
   const order = orderLanguages(
@@ -800,15 +877,7 @@ function fillUiLanguages(hints: string[]) {
     navigator.languages ?? [navigator.language],
     hints,
   );
-  setUiLang.replaceChildren(
-    ...order.map((code) => {
-      const info = UI_LANGUAGES.find((l) => l.code === code)!;
-      const o = document.createElement('option');
-      o.value = code;
-      o.textContent = info.nativeName === info.name ? info.name : `${info.nativeName} (${info.name})`;
-      return o;
-    }),
-  );
+  fillLanguageSelect(setUiLang, order, hints, (code) => UI_LANGUAGES.find((l) => l.code === code)!);
   setUiLang.value = uiLang();
 }
 
@@ -816,7 +885,8 @@ async function applyUiLanguage(code: string) {
   track('setting', { ui: code });
   await setUiLanguage(code);
   translatePage();
-  setUiLang.value = uiLang();
+  // Refills both pickers: their group names are in the interface language.
+  await chooseLanguage();
   if (race.isActive) race.show();
   else {
     draw();
@@ -845,15 +915,7 @@ async function chooseLanguage() {
     navigator.languages ?? [navigator.language],
     hints,
   );
-  els.setLang.replaceChildren(
-    ...order.map((code) => {
-      const info = getLanguage(code)!;
-      const o = document.createElement('option');
-      o.value = code;
-      o.textContent = info.nativeName === info.name ? info.name : `${info.nativeName} (${info.name})`;
-      return o;
-    }),
-  );
+  fillLanguageSelect(els.setLang, order, hints, (code) => getLanguage(code)!);
   // English unless the player picks another: the device's languages are only
   // offered first in the list.
   els.setLang.value = lang;
