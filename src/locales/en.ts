@@ -63,6 +63,7 @@ const en = {
   'news.title': 'What\'s new',
   'news.behind': 'Behind the scenes',
   'news.unseen': 'How to play, with something new',
+  'help.debug': 'Debug log',
   'update.ready': 'A new version of Letterle is ready',
   'update.button': 'Update',
   'settings.haptics': "Vibration",

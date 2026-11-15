@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Na tha ùr",
   "news.behind": "Air cùl na seallaidh",
   "news.unseen": "Mar a chluicheas tu, tha rud ùr ann",
+  "help.debug": "Loga dì-bhugachaidh",
   "update.ready": "Tha tionndadh ùr de Letterle deiseil",
   "update.button": "Ùraich",
   "settings.haptics": "Crith",

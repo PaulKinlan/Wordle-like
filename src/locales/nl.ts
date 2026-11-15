@@ -56,6 +56,7 @@ const messages: Messages = {
   "news.title": "Wat is er nieuw",
   "news.behind": "Achter de schermen",
   "news.unseen": "Hoe speel je, er is iets nieuws",
+  "help.debug": "Foutopsporingslog",
   "update.ready": "Er is een nieuwe versie van Letterle",
   "update.button": "Bijwerken",
   "settings.haptics": "Trillen",

@@ -101,7 +101,9 @@ button {
   /* Room for the on-screen keyboard: env() with the VirtualKeyboard API,
      --kb (measured from visualViewport) elsewhere. */
   --kb-inset: var(--kb);
-  height: 100dvh;
+  /* --app-h is the window's height measured in script (keyboard.ts), with
+     100dvh until it has run: in an installed app dvh has been wrong. */
+  height: var(--app-h, 100dvh);
   display: flex;
   flex-direction: column;
   max-width: 560px;
@@ -328,7 +330,7 @@ button {
   --tile: var(
     --tile-px,
     min(
-      64px,
+      80px,
       calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols)),
       calc((100cqh - (var(--rows) - 1) * var(--gap)) / var(--rows))
     )
@@ -1413,13 +1415,14 @@ body:not(.typing):has(.debug-panel:not([open])) .app {
   border-top: 1px solid var(--border);
   font-size: 0.9rem;
 }
-.help-bug a { color: inherit; }
 .help-bug {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px 20px;
+  gap: 8px 16px;
 }
+.help-bug a { color: inherit; }
 
 /* ------------------------------------------------------------ what's new */
 
@@ -1498,6 +1501,7 @@ body:not(.typing):has(.debug-panel:not([open])) .app {
 }
 
 .news .behind strong { color: var(--text); }
+.help-bug .link { font-size: inherit; color: var(--muted); }
 .secondary.small { padding: 6px 14px; flex: none; color: inherit; font: inherit; font-weight: 700; }
 
 /* ------------------------------------------------------------ update */

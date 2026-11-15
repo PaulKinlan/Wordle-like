@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Berritasunak",
   "news.behind": "Atzealdean",
   "news.unseen": "Nola jokatu, berritasunak daude",
+  "help.debug": "Arazketa-erregistroa",
   "update.ready": "Letterle-ren bertsio berri bat prest dago",
   "update.button": "Eguneratu",
   "settings.haptics": "Bibrazioa",

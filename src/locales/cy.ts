@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Beth sy'n newydd",
   "news.behind": "Y tu ôl i'r llenni",
   "news.unseen": "Sut i chwarae, mae rhywbeth newydd",
+  "help.debug": "Log dadfygio",
   "update.ready": "Mae fersiwn newydd o Letterle yn barod",
   "update.button": "Diweddaru",
   "settings.haptics": "Dirgryniad",

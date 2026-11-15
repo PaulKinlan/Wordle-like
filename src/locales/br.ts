@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Petra nevez",
   "news.behind": "A-dreñv al leurenn",
   "news.unseen": "Penaos c'hoari, traoù nevez zo",
+  "help.debug": "Deizlevr debug",
   "update.ready": "Ur stumm nevez eus Letterle a zo prest",
   "update.button": "Hizivaat",
   "settings.haptics": "Froumal",

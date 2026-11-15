@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "새로운 소식",
   "news.behind": "비하인드",
   "news.unseen": "게임 방법, 새 소식 있음",
+  "help.debug": "디버그 로그",
   "update.ready": "Letterle 새 버전이 준비됐어요",
   "update.button": "업데이트",
   "settings.haptics": "진동",

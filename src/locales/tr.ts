@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Yenilikler",
   "news.behind": "Perde arkası",
   "news.unseen": "Nasıl oynanır, yenilikler var",
+  "help.debug": "Hata ayıklama günlüğü",
   "update.ready": "Letterle'nin yeni sürümü hazır",
   "update.button": "Güncelle",
   "settings.haptics": "Titreşim",

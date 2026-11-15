@@ -333,9 +333,55 @@ const frames = (n: number) =>
     requestAnimationFrame(step);
   });
 
+/**
+ * Sizes the app to the window's real height (--app-h on <html>) and logs the
+ * viewport numbers when they change. 100dvh alone has left the bottom of the
+ * installed app under the navigation bar.
+ */
+function trackAppHeight(root: HTMLElement) {
+  // Reads the env() safe areas, which script can't see directly.
+  const probe = document.createElement('div');
+  probe.style.cssText =
+    'position:fixed;inset:0 auto auto 0;width:0;height:0;visibility:hidden;pointer-events:none;' +
+    'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+  document.body.append(probe);
+  const dvh = document.createElement('div');
+  dvh.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100dvh;visibility:hidden;pointer-events:none';
+  document.body.append(dvh);
+
+  let last = '';
+  let logTimer = 0;
+  const update = () => {
+    const h = window.innerHeight;
+    if (h > 0) root.style.setProperty('--app-h', `${h}px`);
+    clearTimeout(logTimer);
+    logTimer = window.setTimeout(() => {
+      const cs = getComputedStyle(probe);
+      const px = (v: string) => Math.round(parseFloat(v) || 0);
+      const info = {
+        inner: `${window.innerWidth}x${window.innerHeight}`,
+        dvh: Math.round(dvh.getBoundingClientRect().height),
+        vv: Math.round(window.visualViewport?.height ?? 0),
+        screen: `${screen.width}x${screen.height}`,
+        safe: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].map(px).join(' '),
+        kb: vkHeight(),
+        mode: matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser',
+        fit: /viewport-fit=cover/.test(document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? '') ? 'cover' : 'auto',
+      };
+      const text = JSON.stringify(info);
+      if (text !== last) debugLog('viewport', info);
+      last = text;
+    }, 300);
+  };
+  window.addEventListener('resize', update);
+  window.visualViewport?.addEventListener('resize', update);
+  update();
+}
+
 /** Keeps the layout above the on-screen keyboard. Sets --kb on <html>. */
 function setupKeyboardInsets() {
   const root = document.documentElement;
+  trackAppHeight(root);
   if (vk) {
     vk.overlaysContent = true;
     // Logged once it settles, with the window sizes: they show which browser

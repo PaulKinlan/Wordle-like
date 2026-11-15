@@ -56,6 +56,7 @@ const messages: Messages = {
   "news.title": "Nouveautés",
   "news.behind": "En coulisses",
   "news.unseen": "Comment jouer, il y a du nouveau",
+  "help.debug": "Journal de débogage",
   "update.ready": "Une nouvelle version de Letterle est prête",
   "update.button": "Mettre à jour",
   "settings.haptics": "Vibration",

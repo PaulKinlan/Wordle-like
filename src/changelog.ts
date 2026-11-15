@@ -40,6 +40,16 @@ export const CHANGELOG: ChangeDay[] = [
         prs: [40],
       },
       {
+        title: 'A better fit in the installed app',
+        text: "On Android the installed app no longer slides under the navigation bar, so the result panel stays in view, and the board uses the screen's real height with bigger tiles. How to play has a Debug log link to help us track down problems.",
+        prs: [41],
+      },
+      {
+        title: 'No offensive answers',
+        text: 'Slurs and offensive words are never picked as the answer, in any language. They still count as guesses.',
+        prs: [41],
+      },
+      {
         title: 'A rounder, smoother look in newer Chrome',
         text: 'Tiles, keys and sheets get soft squircle corners, a win throws a little confetti, and the board slides when you switch modes. Long-press a letter in the letter strip to see what you know about it. The language pickers list your own languages first, each shown in its own language and in English, and text follows your phone\'s font size without squeezing the board.',
         prs: [39],

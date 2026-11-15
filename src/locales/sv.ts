@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Nyheter",
   "news.behind": "Bakom kulisserna",
   "news.unseen": "Så spelar du, det finns nyheter",
+  "help.debug": "Felsökningslogg",
   "update.ready": "En ny version av Letterle är klar",
   "update.button": "Uppdatera",
   "settings.haptics": "Vibration",

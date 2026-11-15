@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Τι νέο υπάρχει",
   "news.behind": "Στο παρασκήνιο",
   "news.unseen": "Πώς παίζεται, υπάρχουν νέα",
+  "help.debug": "Αρχείο εντοπισμού σφαλμάτων",
   "update.ready": "Μια νέα έκδοση του Letterle είναι έτοιμη",
   "update.button": "Ενημέρωση",
   "settings.haptics": "Δόνηση",

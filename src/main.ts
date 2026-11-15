@@ -8,7 +8,7 @@ import { OnScreenKeyboard } from './osk';
 import { fillRich, pageVars, setUiLanguage, t, translatePage, uiLang, UI_LANGUAGES } from './i18n';
 import { keyboardLanguageHints, NativeEntry } from './keyboard';
 import { RaceClient } from './race';
-import { initDebug } from './debug';
+import { initDebug, openDebug } from './debug';
 import { initTelemetry, track } from './telemetry';
 import { watchForUpdates } from './update';
 import { registerAgentTools } from './webmcp';
@@ -1008,6 +1008,12 @@ function bugReportUrl() {
 $<HTMLAnchorElement>('report-bug').addEventListener('click', (e) => {
   track('report_bug');
   (e.currentTarget as HTMLAnchorElement).href = bugReportUrl();
+});
+
+// The installed app has no address bar for ?debug, so How to play has a link.
+$<HTMLButtonElement>('open-debug').addEventListener('click', () => {
+  openDebug();
+  $<HTMLDialogElement>('dlg-help').close();
 });
 
 function openFromReminder(play: 'daily' | 'unlimited' | 'race') {

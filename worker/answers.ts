@@ -9,6 +9,8 @@
 //   unlimited token  -> row HMAC(key, token) mod count, with a key that is
 //                       also made here and kept in D1 (see puzzles.ts)
 
+import { isBlocked } from './blocklist';
+
 export interface AnswerStore {
   /**
    * Number of answers in a set ("en", or "en:rare" for hard mode),
@@ -22,6 +24,24 @@ export interface AnswerStore {
 }
 
 const SAFE_WORD = /^\p{L}+$/u;
+
+/**
+ * The answer at a position, skipping words that must never be an answer
+ * (blocklist.ts): a blocked word gives way to the next one in the order. The
+ * stored order is kept, so every other day's word stays the same.
+ */
+export async function cleanAnswer(
+  set: string,
+  index: number,
+  count: number,
+  read: (index: number) => Promise<string>,
+): Promise<string> {
+  for (let i = 0; i < Math.min(count, 50); i++) {
+    const word = await read((index + i) % count);
+    if (!isBlocked(set, word)) return word;
+  }
+  throw new Error(`No clean answer near ${set}/${index}`);
+}
 
 export function shuffle<T>(items: readonly T[]): T[] {
   const out = [...items];
@@ -77,6 +97,11 @@ export class D1AnswerStore implements AnswerStore {
   }
 
   async at(lang: string, index: number): Promise<string> {
+    const count = counts.get(lang) ?? (await this.readCount(lang)) ?? index + 1;
+    return cleanAnswer(lang, index, count, (i) => this.read(lang, i));
+  }
+
+  private async read(lang: string, index: number): Promise<string> {
     const cacheKey = `${lang}/${index}`;
     const hit = words.get(cacheKey);
     if (hit !== undefined) return hit;
@@ -116,7 +141,7 @@ export class D1AnswerStore implements AnswerStore {
         'CREATE TABLE IF NOT EXISTS answers (lang TEXT NOT NULL, idx INTEGER NOT NULL, word TEXT NOT NULL, PRIMARY KEY (lang, idx))',
       ),
     ]);
-    const words = shuffle(candidates.filter((w) => SAFE_WORD.test(w)));
+    const words = shuffle(candidates.filter((w) => SAFE_WORD.test(w) && !isBlocked(lang, w)));
     const statements = [
       this.db
         .prepare('INSERT INTO answer_sets (lang, count, created_at) VALUES (?1, ?2, ?3)')
@@ -150,7 +175,8 @@ export class MemoryAnswerStore implements AnswerStore {
     return this.lists.get(lang)!.length;
   }
   async at(lang: string, index: number) {
-    return this.lists.get(lang)![index];
+    const list = this.lists.get(lang)!;
+    return cleanAnswer(lang, index, list.length, async (i) => list[i]);
   }
   async key() {
     return 'test-key';

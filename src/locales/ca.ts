@@ -61,6 +61,7 @@ const messages: Messages = {
   "news.title": "Novetats",
   "news.behind": "Entre bastidors",
   "news.unseen": "Com es juga, hi ha novetats",
+  "help.debug": "Registre de depuració",
   "update.ready": "Hi ha una versió nova de Letterle",
   "update.button": "Actualitza",
   "settings.haptics": "Vibració",
