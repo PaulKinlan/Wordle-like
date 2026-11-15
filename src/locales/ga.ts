@@ -58,6 +58,7 @@ const messages: Messages = {
   "card.play": "Imir tú féin ag {host}",
   "settings.version": "Leagan {version}",
   "help.bug": "Fuair tú fabht? Tuairiscigh ar GitHub é",
+  "help.debug": "Loga dífhabhtaithe",
   "update.ready": "Tá leagan nua de Letterle réidh",
   "update.button": "Nuashonraigh",
   "settings.haptics": "Crith",

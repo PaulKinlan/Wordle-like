@@ -60,6 +60,7 @@ const en = {
   'card.play': 'Play your own at {host}',
   'settings.version': 'Version {version}',
   'help.bug': 'Found a bug? Report it on GitHub',
+  'help.debug': 'Debug log',
   'update.ready': 'A new version of Letterle is ready',
   'update.button': 'Update',
   'settings.haptics': "Vibration",
