@@ -180,8 +180,15 @@
         <p data-i18n-rich="help.hard"><strong>Hard mode</strong> picks a rarer word, and you must use every hint you've found in later guesses. It has its own daily word and its own stats.</p>
         <p data-i18n-rich="help.race"><strong>Race</strong> against friends: start a race, send the invite link, and everyone plays the same word. When someone finishes a row, the others have 5 seconds to finish theirs. First to find the word wins; if nobody does, the best single row wins (2 points per green, 1 per yellow).</p>
         <p data-i18n-rich="help.languages"><strong>Other languages</strong> are in Settings. Accents are optional: É counts as E. Letters that are their own letter, like Spanish Ñ or German Ä, count separately.</p>
-        <p class="help-bug"><a id="report-bug" target="_blank" rel="noopener" data-i18n="help.bug">Found a bug? Report it on GitHub</a>
+        <p class="help-bug"><button class="news-link" id="open-news" type="button"><span data-i18n="news.title">What's new</span><span class="news-dot" aria-hidden="true"></span></button><a id="report-bug" target="_blank" rel="noopener" data-i18n="help.bug">Found a bug? Report it on GitHub</a>
           <button class="link" id="open-debug" type="button" data-i18n="help.debug">Debug log</button></p>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-news" class="sheet" aria-labelledby="news-title" tabindex="-1" autofocus closedby="any">
+      <form method="dialog">
+        <header class="sheet-head"><h2 id="news-title" data-i18n="news.title">What's new</h2><button class="close" type="submit" value="close" aria-label="Close" data-i18n-aria="app.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></button></header>
+        <div class="news" id="news-list"></div>
       </form>
     </dialog>
 

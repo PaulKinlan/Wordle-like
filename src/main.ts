@@ -13,6 +13,7 @@ import { initTelemetry, track } from './telemetry';
 import { watchForUpdates } from './update';
 import { registerAgentTools } from './webmcp';
 import { canVibrate, setHaptics, setUnplayedBadge } from './pwa';
+import { initNews, refreshNewsLabel, renderNews } from './news';
 import { initInstall, noteFinishedGame, sheetRoute, takeNudge } from './install';
 import { COMMIT, COMMIT_URL, REPO_URL, SHORT_COMMIT } from '../shared/version';
 import { disablePush, enablePush, loadPushPrefs, markPlayedToday, pushAvailability } from './push';
@@ -502,6 +503,18 @@ $('btn-help').addEventListener('click', () => {
   track('open_help');
   openDialog('dlg-help');
 });
+// What's new, from the foot of How to play. Runs before the first visit to
+// How to play is recorded, so a new player starts with nothing unseen.
+initNews();
+function openNews() {
+  renderNews();
+  track('open_news');
+  openDialog('dlg-news');
+}
+$('open-news').addEventListener('click', () => {
+  $<HTMLDialogElement>('dlg-help').close();
+  openNews();
+});
 $('btn-stats').addEventListener('click', () => {
   track('open_stats');
   openStats();
@@ -885,6 +898,7 @@ async function applyUiLanguage(code: string) {
   track('setting', { ui: code });
   await setUiLanguage(code);
   translatePage();
+  refreshNewsLabel();
   // Refills both pickers: their group names are in the interface language.
   await chooseLanguage();
   if (race.isActive) race.show();
@@ -931,6 +945,7 @@ async function init() {
   if (ui && ui !== 'en') {
     await setUiLanguage(ui);
     translatePage();
+    refreshNewsLabel();
   }
   void setupReminders();
   await chooseLanguage();
@@ -953,6 +968,8 @@ async function init() {
   if (matchMedia('(pointer: fine)').matches) entry.focus(false);
   // ?install-sheet opens the install sheet straight away, for testing it.
   if (new URLSearchParams(location.search).has('install-sheet')) openInstallSheet();
+  // ?whats-new opens What's new straight away, for testing it.
+  else if (new URLSearchParams(location.search).has('whats-new')) openNews();
   else if (firstVisit()) openDialog('dlg-help');
 }
 
